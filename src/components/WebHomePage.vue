@@ -19,7 +19,7 @@
             :class="[
               activeNav === item.id ? 'bg-[#E8D5C4] text-[#8B6F4E]' : 'text-gray-600'
             ]"
-            @click="activeNav = item.id">
+            @click="handleNavClick(item.id)">
             <Icon :icon="item.icon" class="text-lg" />
             <span class="font-medium text-sm">{{ item.label }}</span>
           </button>
@@ -111,7 +111,8 @@
               module.highlight 
                 ? 'bg-gradient-to-br from-[#8B6F4E] to-[#A67B5B] shadow-glow border-2 border-white' 
                 : 'bg-white shadow-soft border border-stone-100 hover-lift'
-            ]">
+            ]"
+            @click="handleModuleClick(module.id)">
             <div class="p-6 rounded-2xl text-center relative">
               <div v-if="module.highlight" class="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full border-2 border-white"></div>
               
@@ -355,7 +356,23 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
+
+const router = useRouter()
+
+const handleModuleClick = (moduleId: string) => {
+  if (moduleId === 'family') {
+    router.push('/zupu')
+  }
+}
+
+const handleNavClick = (navId: string) => {
+  activeNav.value = navId
+  if (navId === 'family') {
+    router.push('/zupu')
+  }
+}
 
 interface NavItem {
   id: string
