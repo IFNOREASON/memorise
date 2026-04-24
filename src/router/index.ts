@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import WebHomePage from '../components/WebHomePage.vue'
 import ZupuPage from '../components/ZupuPage.vue'
+import GalleryPage from '../components/GalleryPage.vue'
 
 const routes = [
   {
@@ -12,6 +13,11 @@ const routes = [
     path: '/zupu',
     name: 'Zupu',
     component: ZupuPage
+  },
+  {
+    path: '/gallery',
+    name: 'Gallery',
+    component: GalleryPage
   }
 ]
 

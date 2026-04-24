@@ -384,8 +384,8 @@
     </div>
 
     <div v-if="selectedMember" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" @click.self="selectedMember = null">
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div class="bg-gradient-to-br from-[#8B6F4E] to-[#A67B5B] rounded-t-2xl p-6 text-white">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div class="bg-gradient-to-br from-[#8B6F4E] to-[#A67B5B] rounded-t-2xl p-6 text-white flex-shrink-0">
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-4">
               <div class="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
@@ -401,43 +401,131 @@
             </button>
           </div>
         </div>
-        <div class="p-6 space-y-4">
-          <div class="grid grid-cols-2 gap-4">
-            <div class="bg-[#FAF7F2] rounded-xl p-3">
-              <p class="text-xs text-gray-500">性别</p>
-              <p class="font-medium text-[#5C4A3A]">{{ selectedMember.gender === 'male' ? '男' : '女' }}</p>
+        
+        <div class="flex border-b border-[#E8D5C4] flex-shrink-0">
+          <button 
+            @click="memberDetailTab = 'info'"
+            :class="[
+              'flex-1 px-6 py-3 text-sm font-medium transition-colors relative',
+              memberDetailTab === 'info' ? 'text-[#8B6F4E]' : 'text-gray-500 hover:text-gray-700'
+            ]">
+            <span class="flex items-center justify-center space-x-2">
+              <Icon icon="solar:user-circle-bold" class="text-lg" />
+              <span>基本信息</span>
+            </span>
+            <div v-if="memberDetailTab === 'info'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-[#8B6F4E]"></div>
+          </button>
+          <button 
+            @click="memberDetailTab = 'media'"
+            :class="[
+              'flex-1 px-6 py-3 text-sm font-medium transition-colors relative',
+              memberDetailTab === 'media' ? 'text-[#8B6F4E]' : 'text-gray-500 hover:text-gray-700'
+            ]">
+            <span class="flex items-center justify-center space-x-2">
+              <Icon icon="solar:gallery-add-bold" class="text-lg" />
+              <span>人物影像</span>
+              <span v-if="(selectedMember.medias?.length || 0) > 0" 
+                class="w-5 h-5 rounded-full bg-[#8B6F4E] text-white text-xs flex items-center justify-center">
+                {{ selectedMember.medias?.length || 0 }}
+              </span>
+            </span>
+            <div v-if="memberDetailTab === 'media'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-[#8B6F4E]"></div>
+          </button>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto">
+          <div v-if="memberDetailTab === 'info'" class="p-6 space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-[#FAF7F2] rounded-xl p-3">
+                <p class="text-xs text-gray-500">性别</p>
+                <p class="font-medium text-[#5C4A3A]">{{ selectedMember.gender === 'male' ? '男' : '女' }}</p>
+              </div>
+              <div class="bg-[#FAF7F2] rounded-xl p-3">
+                <p class="text-xs text-gray-500">状态</p>
+                <p class="font-medium text-[#5C4A3A]">{{ selectedMember.status === 'alive' ? '在世' : '已故' }}</p>
+              </div>
             </div>
-            <div class="bg-[#FAF7F2] rounded-xl p-3">
-              <p class="text-xs text-gray-500">状态</p>
-              <p class="font-medium text-[#5C4A3A]">{{ selectedMember.status === 'alive' ? '在世' : '已故' }}</p>
+            <div class="bg-[#FAF7F2] rounded-xl p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-500">出生年份</span>
+                <span class="font-medium text-[#5C4A3A]">{{ selectedMember.birthYear || '未知' }}</span>
+              </div>
+              <div v-if="selectedMember.deathYear" class="flex items-center justify-between">
+                <span class="text-sm text-gray-500">去世年份</span>
+                <span class="font-medium text-[#5C4A3A]">{{ selectedMember.deathYear }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-500">配偶</span>
+                <span class="font-medium text-[#5C4A3A]">{{ selectedMember.spouse || '无' }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-500">现居地</span>
+                <span class="font-medium text-[#5C4A3A]">{{ selectedMember.residence || '未知' }}</span>
+              </div>
+            </div>
+            <div v-if="selectedMember.note" class="bg-[#FAF7F2] rounded-xl p-4">
+              <p class="text-xs text-gray-500 mb-2">备注</p>
+              <p class="text-sm text-gray-700">{{ selectedMember.note }}</p>
             </div>
           </div>
-          <div class="bg-[#FAF7F2] rounded-xl p-4 space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-500">出生年份</span>
-              <span class="font-medium text-[#5C4A3A]">{{ selectedMember.birthYear || '未知' }}</span>
+          
+          <div v-else-if="memberDetailTab === 'media'" class="p-6">
+            <div v-if="!selectedMember.medias || selectedMember.medias.length === 0" class="flex flex-col items-center justify-center py-16">
+              <Icon icon="solar:gallery-empty-linear" class="text-6xl text-gray-300 mb-4" />
+              <p class="text-gray-500 mb-2">暂无影像资料</p>
+              <p class="text-gray-400 text-sm">该成员暂无保存的影像记录</p>
             </div>
-            <div v-if="selectedMember.deathYear" class="flex items-center justify-between">
-              <span class="text-sm text-gray-500">去世年份</span>
-              <span class="font-medium text-[#5C4A3A]">{{ selectedMember.deathYear }}</span>
+            
+            <div v-else class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div v-for="media in selectedMember.medias" :key="media.id"
+                   class="rounded-xl overflow-hidden bg-gray-100 relative group cursor-pointer hover:shadow-lg transition-shadow">
+                <div class="aspect-square relative">
+                  <img v-if="media.type === 'image'" 
+                       :src="media.url" 
+                       class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                       :alt="`影像`">
+                  <div v-else class="w-full h-full bg-gradient-to-br from-[#F5E6D3] to-[#D4A574] flex flex-col items-center justify-center">
+                    <Icon icon="solar:play-bold" class="text-white text-4xl mb-2" />
+                    <span class="text-white text-sm font-medium">{{ media.duration }}</span>
+                  </div>
+                  <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <div class="flex items-center space-x-2">
+                      <button class="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-[#E8D5C4] transition-colors">
+                        <Icon icon="solar:eye-bold" class="text-[#8B6F4E]" />
+                      </button>
+                      <button class="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-[#E8D5C4] transition-colors">
+                        <Icon icon="solar:download-minimalistic-bold" class="text-[#8B6F4E]" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="p-3 bg-white">
+                  <div class="space-y-1">
+                    <div class="flex items-center space-x-1 text-xs text-gray-500">
+                      <Icon icon="solar:clock-circle-linear" class="text-xs" />
+                      <span>{{ media.dateTime }}</span>
+                    </div>
+                    <div class="flex items-center space-x-1 text-xs text-gray-400">
+                      <Icon icon="solar:point-on-map-linear" class="text-xs" />
+                      <span class="truncate">{{ media.location }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-500">配偶</span>
-              <span class="font-medium text-[#5C4A3A]">{{ selectedMember.spouse || '无' }}</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-500">现居地</span>
-              <span class="font-medium text-[#5C4A3A]">{{ selectedMember.residence || '未知' }}</span>
-            </div>
-          </div>
-          <div v-if="selectedMember.note" class="bg-[#FAF7F2] rounded-xl p-4">
-            <p class="text-xs text-gray-500 mb-2">备注</p>
-            <p class="text-sm text-gray-700">{{ selectedMember.note }}</p>
           </div>
         </div>
-        <div class="border-t border-stone-100 px-6 py-4 flex justify-end space-x-3">
-          <button @click="editMember(selectedMember); selectedMember = null" class="px-4 py-2 bg-[#E8D5C4] text-[#8B6F4E] rounded-xl text-sm font-medium hover:bg-[#D4A574] transition-colors">
+        
+        <div class="border-t border-stone-100 px-6 py-4 flex justify-end space-x-3 flex-shrink-0">
+          <button v-if="memberDetailTab === 'info'" 
+            @click="editMember(selectedMember); selectedMember = null" 
+            class="px-4 py-2 bg-[#E8D5C4] text-[#8B6F4E] rounded-xl text-sm font-medium hover:bg-[#D4A574] transition-colors">
             编辑信息
+          </button>
+          <button v-else-if="memberDetailTab === 'media'" 
+            class="px-4 py-2 bg-[#E8D5C4] text-[#8B6F4E] rounded-xl text-sm font-medium hover:bg-[#D4A574] transition-colors flex items-center space-x-2">
+            <Icon icon="solar:add-circle-bold" class="text-sm" />
+            <span>添加影像</span>
           </button>
         </div>
       </div>
@@ -461,6 +549,15 @@ const familyInfo = reactive({
   ziBei: ['元', '亨', '利', '贞', '仁', '义', '礼', '智', '信']
 })
 
+interface MemberMedia {
+  id: string
+  url: string
+  type: 'image' | 'video'
+  dateTime: string
+  location: string
+  duration?: string
+}
+
 interface FamilyMember {
   id: string
   name: string
@@ -473,6 +570,7 @@ interface FamilyMember {
   residence?: string
   note?: string
   status: 'alive' | 'deceased'
+  medias?: MemberMedia[]
 }
 
 interface TreeNodeData extends FamilyMember {
@@ -480,22 +578,106 @@ interface TreeNodeData extends FamilyMember {
 }
 
 const familyMembers = ref<FamilyMember[]>([
-  { id: '1', name: '李元明', gender: 'male', generation: 1, birthYear: '1880', deathYear: '1945', spouse: '王氏', residence: '陇西', status: 'deceased' },
-  { id: '2', name: '李亨德', gender: 'male', generation: 2, birthYear: '1905', deathYear: '1980', spouse: '张氏', fatherId: '1', residence: '陇西', status: 'deceased' },
-  { id: '3', name: '李亨芳', gender: 'female', generation: 2, birthYear: '1910', deathYear: '1990', spouse: '赵某', fatherId: '1', residence: '长安', status: 'deceased' },
-  { id: '4', name: '李利国', gender: 'male', generation: 3, birthYear: '1930', deathYear: '2010', spouse: '刘氏', fatherId: '2', residence: '北京', status: 'deceased' },
-  { id: '5', name: '李利华', gender: 'female', generation: 3, birthYear: '1935', spouse: '王某', fatherId: '2', residence: '上海', status: 'alive' },
-  { id: '6', name: '李贞强', gender: 'male', generation: 4, birthYear: '1955', spouse: '陈氏', fatherId: '4', residence: '北京', status: 'alive' },
-  { id: '7', name: '李贞敏', gender: 'female', generation: 4, birthYear: '1960', spouse: '张某', fatherId: '4', residence: '天津', status: 'alive' },
-  { id: '8', name: '李仁伟', gender: 'male', generation: 5, birthYear: '1980', spouse: '林氏', fatherId: '6', residence: '北京', status: 'alive' },
-  { id: '9', name: '李仁婷', gender: 'female', generation: 5, birthYear: '1985', spouse: '刘某', fatherId: '6', residence: '深圳', status: 'alive' },
-  { id: '10', name: '李义泽', gender: 'male', generation: 6, birthYear: '2010', fatherId: '8', residence: '北京', status: 'alive' },
-  { id: '11', name: '李义涵', gender: 'female', generation: 6, birthYear: '2012', fatherId: '8', residence: '北京', status: 'alive' },
+  { 
+    id: '1', name: '李元明', gender: 'male', generation: 1, birthYear: '1880', deathYear: '1945', spouse: '王氏', residence: '陇西', status: 'deceased',
+    medias: [
+      { id: 'm1-1', url: 'https://picsum.photos/400/400?random=101', type: 'image', dateTime: '1910-03-15 10:30:00', location: '甘肃省陇西县' },
+      { id: 'm1-2', url: 'https://picsum.photos/400/400?random=102', type: 'image', dateTime: '1925-07-20 14:00:00', location: '甘肃省陇西县李家大院' },
+      { id: 'm1-3', url: 'https://picsum.photos/400/400?random=103', type: 'image', dateTime: '1935-05-10 09:00:00', location: '甘肃省兰州市' }
+    ]
+  },
+  { 
+    id: '2', name: '李亨德', gender: 'male', generation: 2, birthYear: '1905', deathYear: '1980', spouse: '张氏', fatherId: '1', residence: '陇西', status: 'deceased',
+    medias: [
+      { id: 'm2-1', url: 'https://picsum.photos/400/400?random=201', type: 'image', dateTime: '1928-01-01 11:00:00', location: '甘肃省陇西县' },
+      { id: 'm2-2', url: 'https://picsum.photos/400/400?random=202', type: 'image', dateTime: '1945-09-02 16:30:00', location: '陕西省西安市' },
+      { id: 'm2-3', url: 'https://picsum.photos/400/400?random=203', type: 'video', dateTime: '1950-06-15 10:00:00', location: '甘肃省陇西县', duration: '00:32' },
+      { id: 'm2-4', url: 'https://picsum.photos/400/400?random=204', type: 'image', dateTime: '1965-12-25 12:00:00', location: '甘肃省兰州市' }
+    ]
+  },
+  { 
+    id: '3', name: '李亨芳', gender: 'female', generation: 2, birthYear: '1910', deathYear: '1990', spouse: '赵某', fatherId: '1', residence: '长安', status: 'deceased',
+    medias: [
+      { id: 'm3-1', url: 'https://picsum.photos/400/400?random=301', type: 'image', dateTime: '1930-04-10 09:30:00', location: '陕西省西安市' }
+    ]
+  },
+  { 
+    id: '4', name: '李利国', gender: 'male', generation: 3, birthYear: '1930', deathYear: '2010', spouse: '刘氏', fatherId: '2', residence: '北京', status: 'deceased',
+    medias: [
+      { id: 'm4-1', url: 'https://picsum.photos/400/400?random=401', type: 'image', dateTime: '1955-08-20 14:00:00', location: '北京市海淀区' },
+      { id: 'm4-2', url: 'https://picsum.photos/400/400?random=402', type: 'image', dateTime: '1970-05-01 10:30:00', location: '北京市天安门广场' },
+      { id: 'm4-3', url: 'https://picsum.photos/400/400?random=403', type: 'image', dateTime: '1985-10-15 09:00:00', location: '北京市朝阳区' },
+      { id: 'm4-4', url: 'https://picsum.photos/400/400?random=404', type: 'video', dateTime: '1995-03-08 15:00:00', location: '北京市海淀区', duration: '01:15' },
+      { id: 'm4-5', url: 'https://picsum.photos/400/400?random=405', type: 'image', dateTime: '2005-07-20 11:30:00', location: '北京市西城区' }
+    ]
+  },
+  { 
+    id: '5', name: '李利华', gender: 'female', generation: 3, birthYear: '1935', spouse: '王某', fatherId: '2', residence: '上海', status: 'alive',
+    medias: [
+      { id: 'm5-1', url: 'https://picsum.photos/400/400?random=501', type: 'image', dateTime: '1960-02-14 10:00:00', location: '上海市外滩' },
+      { id: 'm5-2', url: 'https://picsum.photos/400/400?random=502', type: 'image', dateTime: '1980-09-10 14:30:00', location: '上海市浦东新区' },
+      { id: 'm5-3', url: 'https://picsum.photos/400/400?random=503', type: 'image', dateTime: '2000-12-31 20:00:00', location: '上海市黄浦区' }
+    ]
+  },
+  { 
+    id: '6', name: '李贞强', gender: 'male', generation: 4, birthYear: '1955', spouse: '陈氏', fatherId: '4', residence: '北京', status: 'alive',
+    medias: [
+      { id: 'm6-1', url: 'https://picsum.photos/400/400?random=601', type: 'image', dateTime: '1978-07-15 09:00:00', location: '北京市海淀区' },
+      { id: 'm6-2', url: 'https://picsum.photos/400/400?random=602', type: 'image', dateTime: '1985-05-01 12:00:00', location: '北京市颐和园' },
+      { id: 'm6-3', url: 'https://picsum.photos/400/400?random=603', type: 'video', dateTime: '1990-10-01 10:30:00', location: '北京市天安门广场', duration: '02:45' },
+      { id: 'm6-4', url: 'https://picsum.photos/400/400?random=604', type: 'image', dateTime: '2008-08-08 20:00:00', location: '北京市朝阳区' },
+      { id: 'm6-5', url: 'https://picsum.photos/400/400?random=605', type: 'image', dateTime: '2015-03-15 14:00:00', location: '北京市西城区' },
+      { id: 'm6-6', url: 'https://picsum.photos/400/400?random=606', type: 'image', dateTime: '2020-10-20 11:30:00', location: '北京市海淀区' }
+    ]
+  },
+  { 
+    id: '7', name: '李贞敏', gender: 'female', generation: 4, birthYear: '1960', spouse: '张某', fatherId: '4', residence: '天津', status: 'alive',
+    medias: [
+      { id: 'm7-1', url: 'https://picsum.photos/400/400?random=701', type: 'image', dateTime: '1982-06-18 10:00:00', location: '天津市和平区' },
+      { id: 'm7-2', url: 'https://picsum.photos/400/400?random=702', type: 'image', dateTime: '1995-11-25 15:30:00', location: '天津市南开区' }
+    ]
+  },
+  { 
+    id: '8', name: '李仁伟', gender: 'male', generation: 5, birthYear: '1980', spouse: '林氏', fatherId: '6', residence: '北京', status: 'alive',
+    medias: [
+      { id: 'm8-1', url: 'https://picsum.photos/400/400?random=801', type: 'image', dateTime: '1998-09-01 08:00:00', location: '北京市海淀区' },
+      { id: 'm8-2', url: 'https://picsum.photos/400/400?random=802', type: 'image', dateTime: '2005-07-10 14:00:00', location: '北京市朝阳区' },
+      { id: 'm8-3', url: 'https://picsum.photos/400/400?random=803', type: 'video', dateTime: '2010-05-20 16:30:00', location: '北京市海淀区', duration: '00:45' },
+      { id: 'm8-4', url: 'https://picsum.photos/400/400?random=804', type: 'image', dateTime: '2018-12-25 12:00:00', location: '北京市西城区' },
+      { id: 'm8-5', url: 'https://picsum.photos/400/400?random=805', type: 'image', dateTime: '2023-06-18 10:30:00', location: '北京市朝阳区' }
+    ]
+  },
+  { 
+    id: '9', name: '李仁婷', gender: 'female', generation: 5, birthYear: '1985', spouse: '刘某', fatherId: '6', residence: '深圳', status: 'alive',
+    medias: [
+      { id: 'm9-1', url: 'https://picsum.photos/400/400?random=901', type: 'image', dateTime: '2008-08-15 09:00:00', location: '广东省深圳市南山区' },
+      { id: 'm9-2', url: 'https://picsum.photos/400/400?random=902', type: 'image', dateTime: '2015-03-22 14:30:00', location: '广东省深圳市福田区' },
+      { id: 'm9-3', url: 'https://picsum.photos/400/400?random=903', type: 'image', dateTime: '2020-11-11 11:11:00', location: '广东省深圳市宝安区' }
+    ]
+  },
+  { 
+    id: '10', name: '李义泽', gender: 'male', generation: 6, birthYear: '2010', fatherId: '8', residence: '北京', status: 'alive',
+    medias: [
+      { id: 'm10-1', url: 'https://picsum.photos/400/400?random=1001', type: 'image', dateTime: '2010-06-15 08:30:00', location: '北京市海淀区' },
+      { id: 'm10-2', url: 'https://picsum.photos/400/400?random=1002', type: 'image', dateTime: '2015-09-01 07:45:00', location: '北京市朝阳区' },
+      { id: 'm10-3', url: 'https://picsum.photos/400/400?random=1003', type: 'image', dateTime: '2020-12-25 10:00:00', location: '北京市西城区' },
+      { id: 'm10-4', url: 'https://picsum.photos/400/400?random=1004', type: 'video', dateTime: '2023-08-20 15:00:00', location: '北京市海淀区', duration: '00:30' }
+    ]
+  },
+  { 
+    id: '11', name: '李义涵', gender: 'female', generation: 6, birthYear: '2012', fatherId: '8', residence: '北京', status: 'alive',
+    medias: [
+      { id: 'm11-1', url: 'https://picsum.photos/400/400?random=1101', type: 'image', dateTime: '2012-03-10 10:00:00', location: '北京市海淀区' },
+      { id: 'm11-2', url: 'https://picsum.photos/400/400?random=1102', type: 'image', dateTime: '2018-07-15 14:30:00', location: '北京市朝阳区' },
+      { id: 'm11-3', url: 'https://picsum.photos/400/400?random=1103', type: 'image', dateTime: '2022-05-20 09:00:00', location: '北京市西城区' }
+    ]
+  },
 ])
 
 const searchKeyword = ref('')
 const filterStatus = ref('all')
 const selectedMember = ref<FamilyMember | null>(null)
+const memberDetailTab = ref<'info' | 'media'>('info')
 const showMemberModal = ref(false)
 const showFamilySettings = ref(false)
 const editingMember = ref<FamilyMember | null>(null)
@@ -618,6 +800,7 @@ const toggleTreeMode = () => {
 
 const selectMember = (member: FamilyMember) => {
   selectedMember.value = member
+  memberDetailTab.value = 'info'
 }
 
 const toggleCollapse = (memberId: string) => {

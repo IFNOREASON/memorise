@@ -364,6 +364,8 @@ const router = useRouter()
 const handleModuleClick = (moduleId: string) => {
   if (moduleId === 'family') {
     router.push('/zupu')
+  } else if (moduleId === 'gallery') {
+    router.push('/gallery')
   }
 }
 
@@ -371,6 +373,8 @@ const handleNavClick = (navId: string) => {
   activeNav.value = navId
   if (navId === 'family') {
     router.push('/zupu')
+  } else if (navId === 'gallery') {
+    router.push('/gallery')
   }
 }
 
