@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import WebHomePage from '../components/WebHomePage.vue'
 import ZupuPage from '../components/ZupuPage.vue'
 import GalleryPage from '../components/GalleryPage.vue'
+import ImageRepairPage from '../components/ImageRepairPage.vue'
 
 const routes = [
   {
@@ -18,6 +19,11 @@ const routes = [
     path: '/gallery',
     name: 'Gallery',
     component: GalleryPage
+  },
+  {
+    path: '/gallery/repair',
+    name: 'ImageRepair',
+    component: ImageRepairPage
   }
 ]
 
