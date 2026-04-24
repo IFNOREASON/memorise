@@ -195,7 +195,7 @@
           <h3 class="text-xl font-bold text-[#5C4A3A] font-serif">快速制作</h3>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="bg-white rounded-2xl p-6 shadow-soft border border-stone-100 hover-lift cursor-pointer">
+          <div class="bg-white rounded-2xl p-6 shadow-soft border border-stone-100 hover-lift cursor-pointer" @click="goToImageRepair">
             <div class="w-16 h-16 bg-gradient-to-br from-[#E8D5C4] to-[#D4A574] rounded-2xl flex items-center justify-center mb-4">
               <Icon icon="solar:image-line-duotone" class="text-[#8B6F4E] text-3xl" />
             </div>
@@ -943,6 +943,10 @@ const handleNavClick = (navId: string) => {
   } else if (navId === 'family') {
     router.push('/zupu')
   }
+}
+
+const goToImageRepair = () => {
+  router.push('/gallery/repair')
 }
 
 const prevSlide = () => {
