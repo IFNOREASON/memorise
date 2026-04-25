@@ -366,15 +366,21 @@ const handleModuleClick = (moduleId: string) => {
     router.push('/zupu')
   } else if (moduleId === 'gallery') {
     router.push('/gallery')
+  } else if (moduleId === 'digital') {
+    router.push('/habitat')
   }
 }
 
 const handleNavClick = (navId: string) => {
   activeNav.value = navId
-  if (navId === 'family') {
+  if (navId === 'home') {
+    router.push('/')
+  } else if (navId === 'family') {
     router.push('/zupu')
   } else if (navId === 'gallery') {
     router.push('/gallery')
+  } else if (navId === 'digital') {
+    router.push('/habitat')
   }
 }
 

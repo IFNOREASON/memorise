@@ -3,6 +3,7 @@ import WebHomePage from '../components/WebHomePage.vue'
 import ZupuPage from '../components/ZupuPage.vue'
 import GalleryPage from '../components/GalleryPage.vue'
 import ImageRepairPage from '../components/ImageRepairPage.vue'
+import HabitatPage from '../components/HabitatPage.vue'
 
 const routes = [
   {
@@ -24,6 +25,11 @@ const routes = [
     path: '/gallery/repair',
     name: 'ImageRepair',
     component: ImageRepairPage
+  },
+  {
+    path: '/habitat',
+    name: 'Habitat',
+    component: HabitatPage
   }
 ]
 
