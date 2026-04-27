@@ -24,7 +24,7 @@ let config = {
     model: 'gpt-4o'
   },
   aliyun: {
-    apiKey: 'sk-24410da7911f4486a0930c1f909ec7d2',
+    apiKey: '',
     baseUrl: 'https://dashscope.aliyuncs.com/api/v1',
     imageModel: 'wanx-v1',
     textModel: 'qwen-plus'
@@ -33,7 +33,8 @@ let config = {
 
 let data = {
   avatars: [],
-  generationTasks: []
+  generationTasks: [],
+  memories: []
 };
 
 function loadConfig() {
@@ -772,11 +773,17 @@ app.delete('/api/avatars/:id', (req, res) => {
     }
 
     data.avatars.splice(index, 1);
+
+    const relatedMemories = data.memories.filter(m => m.avatarId === id);
+    if (relatedMemories.length > 0) {
+      data.memories = data.memories.filter(m => m.avatarId !== id);
+    }
+
     saveData();
 
     res.json({
       success: true,
-      message: '数字人已删除'
+      message: '数字人已删除，关联记忆也已删除'
     });
   } catch (error) {
     console.error('删除数字人错误:', error);
@@ -828,6 +835,387 @@ app.put('/api/avatars/:id', (req, res) => {
     res.status(500).json({
       success: false,
       error: '更新数字人失败，请重试'
+    });
+  }
+});
+
+app.get('/api/memories', (req, res) => {
+  try {
+    const { avatarId, type, tag } = req.query;
+
+    let filteredMemories = [...data.memories];
+
+    if (avatarId) {
+      filteredMemories = filteredMemories.filter(m => m.avatarId === avatarId);
+    }
+
+    if (type) {
+      filteredMemories = filteredMemories.filter(m => m.type === type);
+    }
+
+    if (tag) {
+      filteredMemories = filteredMemories.filter(m => m.tags && m.tags.includes(tag));
+    }
+
+    const memoryList = filteredMemories.map(memory => ({
+      id: memory.id,
+      avatarId: memory.avatarId,
+      title: memory.title,
+      type: memory.type,
+      description: memory.description,
+      tags: memory.tags,
+      createdAt: memory.createdAt,
+      updatedAt: memory.updatedAt
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        total: memoryList.length,
+        memories: memoryList
+      }
+    });
+  } catch (error) {
+    console.error('获取记忆列表错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取记忆列表失败，请重试'
+    });
+  }
+});
+
+app.get('/api/memories/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const memory = data.memories.find(m => m.id === id);
+
+    if (!memory) {
+      return res.status(404).json({
+        success: false,
+        error: '记忆不存在'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: memory.id,
+        avatarId: memory.avatarId,
+        title: memory.title,
+        type: memory.type,
+        content: memory.content,
+        description: memory.description,
+        tags: memory.tags,
+        metadata: memory.metadata,
+        createdAt: memory.createdAt,
+        updatedAt: memory.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error('获取记忆详情错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取记忆详情失败，请重试'
+    });
+  }
+});
+
+app.post('/api/memories', (req, res) => {
+  try {
+    const {
+      avatarId,
+      title,
+      type,
+      content,
+      description,
+      tags,
+      metadata
+    } = req.body;
+
+    if (!avatarId || !title || !type || !content) {
+      return res.status(400).json({
+        success: false,
+        error: '缺少必要参数'
+      });
+    }
+
+    const validTypes = ['text', 'image', 'video'];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({
+        success: false,
+        error: '不支持的记忆类型，仅支持 text、image、video'
+      });
+    }
+
+    const avatar = data.avatars.find(a => a.id === avatarId);
+    if (!avatar) {
+      return res.status(404).json({
+        success: false,
+        error: '关联的数字人不存在'
+      });
+    }
+
+    const memoryId = `memory_${Date.now()}`;
+    const now = new Date().toISOString();
+
+    const newMemory = {
+      id: memoryId,
+      avatarId,
+      title,
+      type,
+      content,
+      description: description || '',
+      tags: tags || [],
+      metadata: metadata || {},
+      createdAt: now,
+      updatedAt: now
+    };
+
+    data.memories.push(newMemory);
+    saveData();
+
+    res.json({
+      success: true,
+      data: {
+        id: newMemory.id,
+        avatarId: newMemory.avatarId,
+        title: newMemory.title,
+        type: newMemory.type,
+        createdAt: newMemory.createdAt,
+        message: '记忆创建成功'
+      }
+    });
+  } catch (error) {
+    console.error('创建记忆错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '创建记忆失败，请重试'
+    });
+  }
+});
+
+app.put('/api/memories/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      title,
+      type,
+      content,
+      description,
+      tags,
+      metadata
+    } = req.body;
+
+    const memory = data.memories.find(m => m.id === id);
+
+    if (!memory) {
+      return res.status(404).json({
+        success: false,
+        error: '记忆不存在'
+      });
+    }
+
+    if (title) memory.title = title;
+    if (type) {
+      const validTypes = ['text', 'image', 'video'];
+      if (!validTypes.includes(type)) {
+        return res.status(400).json({
+          success: false,
+          error: '不支持的记忆类型，仅支持 text、image、video'
+        });
+      }
+      memory.type = type;
+    }
+    if (content) memory.content = content;
+    if (description !== undefined) memory.description = description;
+    if (tags !== undefined) memory.tags = tags;
+    if (metadata !== undefined) memory.metadata = metadata;
+
+    memory.updatedAt = new Date().toISOString();
+    saveData();
+
+    res.json({
+      success: true,
+      data: {
+        id: memory.id,
+        title: memory.title,
+        type: memory.type,
+        updatedAt: memory.updatedAt,
+        message: '记忆更新成功'
+      }
+    });
+  } catch (error) {
+    console.error('更新记忆错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '更新记忆失败，请重试'
+    });
+  }
+});
+
+app.delete('/api/memories/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const index = data.memories.findIndex(m => m.id === id);
+
+    if (index === -1) {
+      return res.status(404).json({
+        success: false,
+        error: '记忆不存在'
+      });
+    }
+
+    data.memories.splice(index, 1);
+    saveData();
+
+    res.json({
+      success: true,
+      message: '记忆已删除'
+    });
+  } catch (error) {
+    console.error('删除记忆错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '删除记忆失败，请重试'
+    });
+  }
+});
+
+app.get('/api/avatars/:avatarId/memories', (req, res) => {
+  try {
+    const { avatarId } = req.params;
+    const { type, tag } = req.query;
+
+    const avatar = data.avatars.find(a => a.id === avatarId);
+    if (!avatar) {
+      return res.status(404).json({
+        success: false,
+        error: '数字人不存在'
+      });
+    }
+
+    let memories = data.memories.filter(m => m.avatarId === avatarId);
+
+    if (type) {
+      memories = memories.filter(m => m.type === type);
+    }
+
+    if (tag) {
+      memories = memories.filter(m => m.tags && m.tags.includes(tag));
+    }
+
+    const memoryList = memories.map(memory => ({
+      id: memory.id,
+      avatarId: memory.avatarId,
+      title: memory.title,
+      type: memory.type,
+      description: memory.description,
+      tags: memory.tags,
+      createdAt: memory.createdAt,
+      updatedAt: memory.updatedAt
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        avatarId,
+        avatarName: avatar.name,
+        total: memoryList.length,
+        memories: memoryList
+      }
+    });
+  } catch (error) {
+    console.error('获取数字人记忆错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取数字人记忆失败，请重试'
+    });
+  }
+});
+
+app.post('/api/memories/batch', (req, res) => {
+  try {
+    const { memories } = req.body;
+
+    if (!memories || !Array.isArray(memories) || memories.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: '请提供至少一个记忆'
+      });
+    }
+
+    const results = [];
+    const errors = [];
+
+    for (let i = 0; i < memories.length; i++) {
+      const memoryData = memories[i];
+
+      try {
+        if (!memoryData.avatarId || !memoryData.title || !memoryData.type || !memoryData.content) {
+          throw new Error('缺少必要参数');
+        }
+
+        const validTypes = ['text', 'image', 'video'];
+        if (!validTypes.includes(memoryData.type)) {
+          throw new Error('不支持的记忆类型');
+        }
+
+        const avatar = data.avatars.find(a => a.id === memoryData.avatarId);
+        if (!avatar) {
+          throw new Error('关联的数字人不存在');
+        }
+
+        const memoryId = `memory_${Date.now()}_${i}`;
+        const now = new Date().toISOString();
+
+        const newMemory = {
+          id: memoryId,
+          avatarId: memoryData.avatarId,
+          title: memoryData.title,
+          type: memoryData.type,
+          content: memoryData.content,
+          description: memoryData.description || '',
+          tags: memoryData.tags || [],
+          metadata: memoryData.metadata || {},
+          createdAt: now,
+          updatedAt: now
+        };
+
+        data.memories.push(newMemory);
+        results.push({
+          index: i,
+          success: true,
+          id: newMemory.id,
+          title: newMemory.title
+        });
+      } catch (error) {
+        errors.push({
+          index: i,
+          success: false,
+          error: error.message
+        });
+      }
+    }
+
+    if (results.length > 0) {
+      saveData();
+    }
+
+    res.json({
+      success: true,
+      data: {
+        total: memories.length,
+        successCount: results.length,
+        errorCount: errors.length,
+        results,
+        errors
+      }
+    });
+  } catch (error) {
+    console.error('批量创建记忆错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '批量创建记忆失败，请重试'
     });
   }
 });

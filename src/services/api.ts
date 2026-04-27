@@ -136,6 +136,66 @@ interface Avatar {
   chatCount?: number;
 }
 
+type MemoryType = 'text' | 'image' | 'video' | 'richtext' | 'document';
+
+interface Memory {
+  id: string;
+  avatarId: string;
+  title: string;
+  type: MemoryType;
+  content: string;
+  description?: string;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface MemoryListItem {
+  id: string;
+  avatarId: string;
+  title: string;
+  type: MemoryType;
+  description?: string;
+  tags?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CreateMemoryRequest {
+  avatarId: string;
+  title: string;
+  type: MemoryType;
+  content: string;
+  description?: string;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+}
+
+interface UpdateMemoryRequest {
+  title?: string;
+  type?: MemoryType;
+  content?: string;
+  description?: string;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+}
+
+interface BatchMemoryResult {
+  index: number;
+  success: boolean;
+  id?: string;
+  title?: string;
+  error?: string;
+}
+
+interface AvatarMemoriesResponse {
+  avatarId: string;
+  avatarName: string;
+  total: number;
+  memories: MemoryListItem[];
+}
+
 class ApiService {
   private async request<T>(
     endpoint: string,
@@ -246,6 +306,117 @@ class ApiService {
       body: JSON.stringify({ adjustments })
     });
   }
+
+  async getMemories(options?: {
+    avatarId?: string;
+    type?: MemoryType;
+    tag?: string;
+  }): Promise<ApiResponse<{ total: number; memories: MemoryListItem[] }>> {
+    let endpoint = '/api/memories';
+    const params = new URLSearchParams();
+    
+    if (options?.avatarId) params.append('avatarId', options.avatarId);
+    if (options?.type) params.append('type', options.type);
+    if (options?.tag) params.append('tag', options.tag);
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`;
+    }
+    
+    return this.request<{ total: number; memories: MemoryListItem[] }>(endpoint);
+  }
+
+  async getMemory(memoryId: string): Promise<ApiResponse<Memory>> {
+    return this.request<Memory>(`/api/memories/${memoryId}`);
+  }
+
+  async createMemory(memory: CreateMemoryRequest): Promise<ApiResponse<{
+    id: string;
+    avatarId: string;
+    title: string;
+    type: MemoryType;
+    createdAt: string;
+    message: string;
+  }>> {
+    return this.request<{
+      id: string;
+      avatarId: string;
+      title: string;
+      type: MemoryType;
+      createdAt: string;
+      message: string;
+    }>('/api/memories', {
+      method: 'POST',
+      body: JSON.stringify(memory)
+    });
+  }
+
+  async updateMemory(
+    memoryId: string, 
+    updates: UpdateMemoryRequest
+  ): Promise<ApiResponse<{
+    id: string;
+    title: string;
+    type: MemoryType;
+    updatedAt: string;
+    message: string;
+  }>> {
+    return this.request<{
+      id: string;
+      title: string;
+      type: MemoryType;
+      updatedAt: string;
+      message: string;
+    }>(`/api/memories/${memoryId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates)
+    });
+  }
+
+  async deleteMemory(memoryId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<{ message: string }>(`/api/memories/${memoryId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async getAvatarMemories(
+    avatarId: string,
+    options?: {
+      type?: MemoryType;
+      tag?: string;
+    }
+  ): Promise<ApiResponse<AvatarMemoriesResponse>> {
+    let endpoint = `/api/avatars/${avatarId}/memories`;
+    const params = new URLSearchParams();
+    
+    if (options?.type) params.append('type', options.type);
+    if (options?.tag) params.append('tag', options.tag);
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`;
+    }
+    
+    return this.request<AvatarMemoriesResponse>(endpoint);
+  }
+
+  async batchCreateMemories(memories: CreateMemoryRequest[]): Promise<ApiResponse<{
+    total: number;
+    successCount: number;
+    errorCount: number;
+    results: BatchMemoryResult[];
+    errors: BatchMemoryResult[];
+  }>> {
+    return this.request<{
+      total: number;
+      successCount: number;
+      errorCount: number;
+      results: BatchMemoryResult[];
+      errors: BatchMemoryResult[];
+    }>('/api/memories/batch', {
+      method: 'POST',
+      body: JSON.stringify({ memories })
+    });
+  }
 }
 
 export const apiService = new ApiService();
@@ -261,5 +432,12 @@ export type {
   ApiResponse,
   Config,
   UpdateConfigRequest,
-  FineTuneAdjustments
+  FineTuneAdjustments,
+  MemoryType,
+  Memory,
+  MemoryListItem,
+  CreateMemoryRequest,
+  UpdateMemoryRequest,
+  BatchMemoryResult,
+  AvatarMemoriesResponse
 };

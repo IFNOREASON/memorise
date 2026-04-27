@@ -186,6 +186,159 @@
             </div>
           </div>
 
+          <div v-else-if="activeModule === 'memory-upload'" class="flex-1 flex flex-col">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h2 class="text-2xl font-bold text-[#5C4A3A] font-serif">记忆管理</h2>
+                <p class="text-sm text-gray-500 mt-1">上传和管理与数字人关联的记忆数据</p>
+              </div>
+              <button @click="goToCreateMemory" 
+                      class="px-6 py-3 bg-[#8B6F4E] text-white rounded-xl font-medium hover:bg-[#6B5342] transition-colors flex items-center space-x-2">
+                <Icon icon="solar:plus-bold" class="text-lg" />
+                <span>上传新记忆</span>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div class="bg-white rounded-2xl p-4 shadow-soft border border-stone-100">
+                <div class="flex items-center space-x-3">
+                  <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                    <Icon icon="material-symbols:edit-note" class="text-blue-500 text-xl" />
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-500">文字记忆</p>
+                    <p class="text-lg font-bold text-[#5C4A3A]">{{ textMemoryCount }}</p>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-white rounded-2xl p-4 shadow-soft border border-stone-100">
+                <div class="flex items-center space-x-3">
+                  <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                    <Icon icon="material-symbols:image" class="text-purple-500 text-xl" />
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-500">图片记忆</p>
+                    <p class="text-lg font-bold text-[#5C4A3A]">{{ imageMemoryCount }}</p>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-white rounded-2xl p-4 shadow-soft border border-stone-100">
+                <div class="flex items-center space-x-3">
+                  <div class="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
+                    <Icon icon="material-symbols:videocam" class="text-red-500 text-xl" />
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-500">视频记忆</p>
+                    <p class="text-lg font-bold text-[#5C4A3A]">{{ videoMemoryCount }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-[#5C4A3A] mb-2">筛选数字人</label>
+              <select 
+                v-model="memoryFilterAvatarId" 
+                @change="loadMemoriesForHabitat"
+                class="w-full px-4 py-3 bg-white rounded-xl border border-[#E8D5C4] text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#8B6F4E]/30"
+              >
+                <option value="">全部数字人</option>
+                <option v-for="avatar in digitalAvatars" :key="avatar.id" :value="avatar.id">
+                  {{ avatar.name }} ({{ avatar.relationship }})
+                </option>
+              </select>
+            </div>
+
+            <div class="flex-1 overflow-y-auto">
+              <div v-if="loadingMemories" class="flex-1 flex items-center justify-center">
+                <div class="text-center">
+                  <div class="w-12 h-12 border-4 border-[#E8D5C4] border-t-[#8B6F4E] rounded-full animate-spin mx-auto mb-4"></div>
+                  <p class="text-gray-500 text-sm">加载中...</p>
+                </div>
+              </div>
+
+              <div v-else-if="memoriesForHabitat.length === 0" class="flex-1 flex items-center justify-center bg-white rounded-2xl border border-stone-100 shadow-soft">
+                <div class="text-center p-12">
+                  <div class="w-24 h-24 mx-auto mb-6 bg-[#E8D5C4] rounded-full flex items-center justify-center">
+                    <Icon icon="solar:gallery-add-bold" class="text-5xl text-[#8B6F4E]" />
+                  </div>
+                  <h3 class="text-xl font-bold text-[#5C4A3A] font-serif mb-2">还没有记忆数据</h3>
+                  <p class="text-sm text-gray-500 mb-6">上传您的第一个记忆，让数字人更加生动</p>
+                  <button @click="goToCreateMemory" class="px-6 py-3 bg-[#8B6F4E] text-white rounded-xl font-medium hover:bg-[#6B5342] transition-colors flex items-center space-x-2 mx-auto">
+                    <Icon icon="solar:plus-bold" class="text-lg" />
+                    <span>上传第一个记忆</span>
+                  </button>
+                </div>
+              </div>
+
+              <div v-else class="space-y-4">
+                <div v-for="memory in memoriesForHabitat" :key="memory.id"
+                     class="bg-white rounded-2xl p-4 shadow-soft border border-stone-100 hover-lift cursor-pointer"
+                     @click="viewMemoryDetail(memory.id)">
+                  <div class="flex items-start space-x-4">
+                    <div 
+                      :class="[
+                        'w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0',
+                        memory.type === 'text' ? 'bg-blue-50' :
+                        memory.type === 'image' ? 'bg-purple-50' :
+                        'bg-red-50'
+                      ]"
+                    >
+                      <Icon 
+                        :icon="getMemoryTypeIcon(memory.type)" 
+                        :class="[
+                          'text-2xl',
+                          memory.type === 'text' ? 'text-blue-500' :
+                          memory.type === 'image' ? 'text-purple-500' :
+                          'text-red-500'
+                        ]"
+                      />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                          <h4 class="font-bold text-gray-800 truncate">{{ memory.title }}</h4>
+                          <p class="text-xs text-gray-400 mt-1">
+                            {{ getAvatarNameForMemory(memory.avatarId) }} · {{ formatMemoryDate(memory.createdAt) }}
+                          </p>
+                        </div>
+                        <div class="flex items-center space-x-1 ml-2">
+                          <button 
+                            @click.stop="editMemoryForHabitat(memory.id)" 
+                            class="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                          >
+                            <Icon icon="solar:pen-bold" class="text-gray-500" />
+                          </button>
+                          <button 
+                            @click.stop="confirmDeleteMemory(memory.id)" 
+                            class="p-2 rounded-lg hover:bg-red-50 transition-colors"
+                          >
+                            <Icon icon="solar:trash-bin-trash-bold" class="text-red-400" />
+                          </button>
+                        </div>
+                      </div>
+                      <p v-if="memory.description" class="text-xs text-gray-500 mt-2 line-clamp-2">
+                        {{ memory.description }}
+                      </p>
+                      <div v-if="memory.tags && memory.tags.length > 0" class="flex flex-wrap gap-1 mt-2">
+                        <span 
+                          v-for="(tag, index) in memory.tags.slice(0, 3)" 
+                          :key="index"
+                          class="px-2 py-0.5 bg-[#F5E6D3] text-[#8B6F4E] rounded text-[10px]"
+                        >
+                          {{ tag }}
+                        </span>
+                        <span v-if="memory.tags.length > 3" class="px-2 py-0.5 text-gray-400 text-[10px]">
+                          +{{ memory.tags.length - 3 }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div v-else class="flex-1 flex items-center justify-center bg-white rounded-2xl border border-stone-100 shadow-soft">
             <div class="text-center p-12">
               <div class="w-24 h-24 mx-auto mb-6 bg-[#E8D5C4] rounded-full flex items-center justify-center">
@@ -871,6 +1024,30 @@
       </div>
     </div>
 
+    <div v-if="showDeleteMemoryModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl shadow-xl max-w-md w-full">
+        <div class="p-6 text-center">
+          <div class="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+            <Icon icon="solar:trash-bin-trash-bold" class="text-3xl text-red-500" />
+          </div>
+          <h3 class="text-xl font-bold text-gray-800 mb-2">确认删除</h3>
+          <p class="text-gray-500 mb-6">
+            确定要删除这个记忆吗？
+            <br>
+            <span class="text-sm">此操作不可撤销。</span>
+          </p>
+          <div class="flex space-x-3">
+            <button @click="showDeleteMemoryModal = false" class="flex-1 py-3 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50 transition-colors">
+              取消
+            </button>
+            <button @click="deleteMemoryForHabitat" class="flex-1 py-3 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors">
+              确认删除
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div v-if="showDetailModal && selectedAvatar" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div class="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <div class="p-6 border-b border-[#E8D5C4] flex items-center justify-between">
@@ -1394,7 +1571,7 @@ import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import ThreeDModelViewer from './ThreeDModelViewer.vue'
-import { apiService, type PhotoAnalysisResponse, type PhotoAnalysisResult } from '../services/api'
+import { apiService, type PhotoAnalysisResponse, type PhotoAnalysisResult, type MemoryListItem, type MemoryType } from '../services/api'
 
 const router = useRouter()
 
@@ -2042,6 +2219,7 @@ const stopGenerationTracking = () => {
 
 onMounted(() => {
   loadAvatars()
+  loadMemoriesForHabitat()
 })
 
 onUnmounted(() => {
@@ -2346,4 +2524,106 @@ const noisePatternStyle = computed(() => ({
 const dotPatternStyle = computed(() => ({
   backgroundImage: `url("data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%22%23ffffff%22 fill-opacity=%220.4%22%3E%3Cpath d=%22M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
 }))
+
+const memoriesForHabitat = ref<MemoryListItem[]>([])
+const loadingMemories = ref(false)
+const memoryFilterAvatarId = ref('')
+const memoryToDelete = ref<string | null>(null)
+const showDeleteMemoryModal = ref(false)
+
+const textMemoryCount = computed(() => 
+  memoriesForHabitat.value.filter(m => m.type === 'text').length
+)
+
+const imageMemoryCount = computed(() => 
+  memoriesForHabitat.value.filter(m => m.type === 'image').length
+)
+
+const videoMemoryCount = computed(() => 
+  memoriesForHabitat.value.filter(m => m.type === 'video').length
+)
+
+const loadMemoriesForHabitat = async () => {
+  loadingMemories.value = true
+  try {
+    const options: { avatarId?: string; type?: MemoryType } = {}
+    
+    if (memoryFilterAvatarId.value) {
+      options.avatarId = memoryFilterAvatarId.value
+    }
+
+    const response = await apiService.getMemories(options)
+    if (response.success && response.data) {
+      memoriesForHabitat.value = response.data.memories
+    } else {
+      memoriesForHabitat.value = []
+    }
+  } catch (error) {
+    console.error('加载记忆列表失败:', error)
+    memoriesForHabitat.value = []
+  } finally {
+    loadingMemories.value = false
+  }
+}
+
+const goToCreateMemory = () => {
+  router.push('/memory/create')
+}
+
+const getMemoryTypeIcon = (type: MemoryType) => {
+  const icons = {
+    text: 'material-symbols:edit-note',
+    image: 'material-symbols:image',
+    video: 'material-symbols:videocam'
+  }
+  return icons[type] || icons.text
+}
+
+const getAvatarNameForMemory = (avatarId: string) => {
+  const avatar = digitalAvatars.value.find(a => a.id === avatarId)
+  return avatar ? avatar.name : '未知数字人'
+}
+
+const formatMemoryDate = (dateString: string) => {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
+}
+
+const viewMemoryDetail = (memoryId: string) => {
+  router.push(`/memory/edit/${memoryId}`)
+}
+
+const editMemoryForHabitat = (memoryId: string) => {
+  router.push(`/memory/edit/${memoryId}`)
+}
+
+const confirmDeleteMemory = (memoryId: string) => {
+  memoryToDelete.value = memoryId
+  showDeleteMemoryModal.value = true
+}
+
+const deleteMemoryForHabitat = async () => {
+  if (!memoryToDelete.value) return
+  
+  try {
+    const response = await apiService.deleteMemory(memoryToDelete.value)
+    if (response.success) {
+      const index = memoriesForHabitat.value.findIndex(m => m.id === memoryToDelete.value)
+      if (index > -1) {
+        memoriesForHabitat.value.splice(index, 1)
+      }
+      showDeleteMemoryModal.value = false
+      memoryToDelete.value = null
+    } else {
+      alert('删除记忆失败: ' + (response.error || '未知错误'))
+    }
+  } catch (error) {
+    console.error('删除记忆失败:', error)
+    alert('删除记忆失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  }
+}
 </script>
