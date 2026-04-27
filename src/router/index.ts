@@ -4,6 +4,8 @@ import ZupuPage from '../components/ZupuPage.vue'
 import GalleryPage from '../components/GalleryPage.vue'
 import ImageRepairPage from '../components/ImageRepairPage.vue'
 import HabitatPage from '../components/HabitatPage.vue'
+import MemoryListPage from '../components/MemoryListPage.vue'
+import MemoryEditorPage from '../components/MemoryEditorPage.vue'
 
 const routes = [
   {
@@ -30,6 +32,21 @@ const routes = [
     path: '/habitat',
     name: 'Habitat',
     component: HabitatPage
+  },
+  {
+    path: '/memories',
+    name: 'MemoryList',
+    component: MemoryListPage
+  },
+  {
+    path: '/memory/create',
+    name: 'MemoryCreate',
+    component: MemoryEditorPage
+  },
+  {
+    path: '/memory/edit/:id',
+    name: 'MemoryEdit',
+    component: MemoryEditorPage
   }
 ]
 
