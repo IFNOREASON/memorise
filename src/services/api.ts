@@ -1,0 +1,265 @@
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+
+interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+interface Config {
+  openai: {
+    apiKeyConfigured: boolean;
+    baseUrl: string;
+    model: string;
+  };
+  aliyun: {
+    apiKeyConfigured: boolean;
+    baseUrl: string;
+    imageModel: string;
+    textModel: string;
+  };
+}
+
+interface UpdateConfigRequest {
+  openai?: {
+    apiKey?: string;
+    baseUrl?: string;
+    model?: string;
+  };
+  aliyun?: {
+    apiKey?: string;
+    baseUrl?: string;
+    imageModel?: string;
+    textModel?: string;
+  };
+}
+
+interface FineTuneAdjustments {
+  faceWidth?: number;
+  jawLine?: number;
+  cheekbones?: number;
+  eyeSize?: number;
+  eyeSpacing?: number;
+  doubleEyelid?: number;
+  noseSize?: number;
+  lipThickness?: number;
+  wrinkles?: number;
+}
+
+interface PhotoAnalysisResult {
+  index: number;
+  detectedType: 'front' | 'left' | 'right' | 'back' | 'closeup';
+  detectedTypeLabel: string;
+  confidence: number;
+  features: string[];
+  qualityScore: number;
+}
+
+interface PhotoAnalysisResponse {
+  totalPhotos: number;
+  analysis: PhotoAnalysisResult[];
+  detectedTypes: string[];
+  detectedTypeLabels: string[];
+  missingTypes: string[];
+  missingTypeLabels: string[];
+  overallQuality: number;
+  recommendation: string;
+}
+
+interface GenerateAvatarRequest {
+  name: string;
+  relationship: string;
+  gender: 'male' | 'female';
+  birthYear: string;
+  deathYear?: string;
+  description?: string;
+  generationMethod: 'photo' | 'text' | 'manual';
+  photos?: string[];
+  textDescription?: {
+    overall: string;
+    facialFeatures: string[];
+    hairStyles: string[];
+    ageSense: number;
+    temperament: string;
+  };
+  manualAdjust?: {
+    faceWidth: number;
+    jawLine: number;
+    cheekbones: number;
+    eyeSize: number;
+    eyeSpacing: number;
+    doubleEyelid: number;
+    noseSize: number;
+    lipThickness: number;
+    wrinkles: number;
+  };
+}
+
+interface GenerateAvatarResponse {
+  taskId: string;
+  avatarId: string;
+  status: string;
+  message: string;
+}
+
+interface AvatarStatusResponse {
+  avatarId: string;
+  status: 'active' | 'training' | 'generating' | 'inactive';
+  progress: number;
+  generationMethod: string;
+  estimatedTimeRemaining?: number;
+}
+
+interface TaskStatusResponse {
+  taskId: string;
+  avatarId: string;
+  status: 'pending' | 'processing' | 'completed';
+  progress: number;
+  createdAt: string;
+}
+
+interface Avatar {
+  id: string;
+  name: string;
+  relationship: string;
+  gender: 'male' | 'female';
+  birthYear?: string;
+  deathYear?: string;
+  description?: string;
+  generationMethod: 'photo' | 'text' | 'manual';
+  status: 'active' | 'training' | 'generating' | 'inactive';
+  progress: number;
+  avatar?: string;
+  modelUrl?: string;
+  createdAt: string;
+  chatCount?: number;
+}
+
+class ApiService {
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> {
+    const url = `${API_BASE_URL}${endpoint}`;
+    
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers
+        },
+        ...options
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: data.error || `请求失败: ${response.status}`
+        };
+      }
+
+      return data as ApiResponse<T>;
+    } catch (error) {
+      console.error('API 请求错误:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '网络错误'
+      };
+    }
+  }
+
+  async analyzePhotos(photos: string[]): Promise<ApiResponse<PhotoAnalysisResponse>> {
+    return this.request<PhotoAnalysisResponse>('/api/photos/analyze', {
+      method: 'POST',
+      body: JSON.stringify({ photos })
+    });
+  }
+
+  async generateAvatar(request: GenerateAvatarRequest): Promise<ApiResponse<GenerateAvatarResponse>> {
+    return this.request<GenerateAvatarResponse>('/api/avatars/generate', {
+      method: 'POST',
+      body: JSON.stringify(request)
+    });
+  }
+
+  async getAvatarStatus(avatarId: string): Promise<ApiResponse<AvatarStatusResponse>> {
+    return this.request<AvatarStatusResponse>(`/api/avatars/${avatarId}/status`);
+  }
+
+  async getTaskStatus(taskId: string): Promise<ApiResponse<TaskStatusResponse>> {
+    return this.request<TaskStatusResponse>(`/api/tasks/${taskId}/status`);
+  }
+
+  async getAvatar(avatarId: string): Promise<ApiResponse<Avatar>> {
+    return this.request<Avatar>(`/api/avatars/${avatarId}`);
+  }
+
+  async getAvatars(): Promise<ApiResponse<{ total: number; avatars: Avatar[] }>> {
+    return this.request<{ total: number; avatars: Avatar[] }>('/api/avatars');
+  }
+
+  async updateAvatar(
+    avatarId: string, 
+    updates: Partial<Pick<Avatar, 'name' | 'relationship' | 'gender' | 'birthYear' | 'deathYear' | 'description'>>
+  ): Promise<ApiResponse<Avatar>> {
+    return this.request<Avatar>(`/api/avatars/${avatarId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates)
+    });
+  }
+
+  async deleteAvatar(avatarId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<{ message: string }>(`/api/avatars/${avatarId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async checkHealth(): Promise<ApiResponse<{ status: string; message: string }>> {
+    return this.request<{ status: string; message: string }>('/api/health');
+  }
+
+  async getConfig(): Promise<ApiResponse<Config>> {
+    return this.request<Config>('/api/config');
+  }
+
+  async updateConfig(config: UpdateConfigRequest): Promise<ApiResponse<{ message: string }>> {
+    return this.request<{ message: string }>('/api/config', {
+      method: 'PUT',
+      body: JSON.stringify(config)
+    });
+  }
+
+  async fineTuneAvatar(avatarId: string, adjustments: FineTuneAdjustments): Promise<ApiResponse<{
+    success: boolean;
+    avatarId: string;
+    status: string;
+  }>> {
+    return this.request<{
+      success: boolean;
+      avatarId: string;
+      status: string;
+    }>(`/api/avatars/${avatarId}/fine-tune`, {
+      method: 'POST',
+      body: JSON.stringify({ adjustments })
+    });
+  }
+}
+
+export const apiService = new ApiService();
+
+export type {
+  PhotoAnalysisResult,
+  PhotoAnalysisResponse,
+  GenerateAvatarRequest,
+  GenerateAvatarResponse,
+  AvatarStatusResponse,
+  TaskStatusResponse,
+  Avatar,
+  ApiResponse,
+  Config,
+  UpdateConfigRequest,
+  FineTuneAdjustments
+};

@@ -322,9 +322,9 @@
           <div v-if="currentStep === 2" class="space-y-6">
             <div>
               <h4 class="text-lg font-bold text-[#5C4A3A] font-serif mb-4">选择形象生成方式</h4>
-              <p class="text-sm text-gray-500 mb-6">选择一种方式创建您的数字人形象，也可以后续进行微调</p>
+              <p class="text-sm text-gray-500 mb-6">选择一种方式创建您的数字人形象，生成后可进行微调优化</p>
 
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div @click="newAvatarForm.generationMethod = 'photo'"
                      class="p-6 rounded-2xl border-2 cursor-pointer transition-all hover:shadow-md"
                      :class="[
@@ -355,22 +355,10 @@
                   </div>
                   <h5 class="font-bold text-center text-[#5C4A3A] font-serif mb-2">文字描述生成</h5>
                   <p class="text-sm text-gray-500 text-center mb-4">用文字描述您想要的形象特征，AI将根据描述生成</p>
-                  <div class="h-5"></div>
-                </div>
-
-                <div @click="newAvatarForm.generationMethod = 'manual'"
-                     class="p-6 rounded-2xl border-2 cursor-pointer transition-all hover:shadow-md"
-                     :class="[
-                       newAvatarForm.generationMethod === 'manual' 
-                         ? 'border-[#8B6F4E] bg-[#E8D5C4]/30' 
-                         : 'border-gray-200 bg-white hover:border-[#E8D5C4]'
-                     ]">
-                  <div class="w-16 h-16 rounded-full bg-[#E8D5C4] flex items-center justify-center mb-4 mx-auto">
-                    <Icon icon="solar:slider-horizontal-bold" class="text-3xl text-[#8B6F4E]" />
+                  <div class="flex items-center justify-center space-x-1 text-xs text-gray-400">
+                    <Icon icon="solar:info-circle-bold" class="text-xs" />
+                    <span>生成后可进行微调</span>
                   </div>
-                  <h5 class="font-bold text-center text-[#5C4A3A] font-serif mb-2">手动微调</h5>
-                  <p class="text-sm text-gray-500 text-center mb-4">从基础模板开始，通过滑块精确调整各项面部特征</p>
-                  <div class="h-5"></div>
                 </div>
               </div>
             </div>
@@ -379,7 +367,7 @@
           <div v-if="currentStep === 3 && newAvatarForm.generationMethod === 'photo'" class="space-y-6">
             <div>
               <h4 class="text-lg font-bold text-[#5C4A3A] font-serif mb-2">上传照片</h4>
-              <p class="text-sm text-gray-500 mb-4">请上传1-5张不同角度的清晰面部照片，建议包含正面、侧面、45度角等</p>
+              <p class="text-sm text-gray-500 mb-4">请上传1-5张不同角度的清晰面部照片，系统将自动检测角度类型</p>
               
               <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <div v-for="(photo, index) in newAvatarForm.uploadedPhotos" :key="index"
@@ -392,6 +380,13 @@
                   </div>
                   <div class="absolute top-2 left-2 w-6 h-6 rounded-full bg-[#8B6F4E] text-white text-xs flex items-center justify-center font-bold">
                     {{ index + 1 }}
+                  </div>
+                  <div v-if="photoAnalysisResult?.analysis[index]" class="absolute bottom-2 left-2 right-2">
+                    <span class="px-2 py-1 bg-white/90 text-[#8B6F4E] text-xs rounded-full font-medium backdrop-blur-sm">
+                      <Icon icon="solar:face-id-bold" class="inline mr-1" />
+                      {{ photoAnalysisResult.analysis[index].detectedTypeLabel }}
+                      <span class="text-gray-500 ml-1">({{ Math.round(photoAnalysisResult.analysis[index].confidence * 100) }}%)</span>
+                    </span>
                   </div>
                 </div>
 
@@ -408,7 +403,21 @@
 
               <input type="file" ref="photoFileInput" multiple accept="image/*" @change="handlePhotoUpload" class="hidden">
 
-              <div class="mt-4 p-4 bg-[#FAF7F2] rounded-xl">
+              <div v-if="isAnalyzingPhotos" class="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <div class="flex items-center space-x-3">
+                  <div class="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span class="text-sm text-blue-700">正在分析照片...</span>
+                </div>
+              </div>
+
+              <div v-else-if="photoAnalysisError" class="mt-4 p-4 bg-red-50 rounded-xl border border-red-200">
+                <div class="flex items-center space-x-3">
+                  <Icon icon="solar:danger-triangle-bold" class="text-red-500 text-lg" />
+                  <span class="text-sm text-red-700">{{ photoAnalysisError }}</span>
+                </div>
+              </div>
+
+              <div v-else class="mt-4 p-4 bg-[#FAF7F2] rounded-xl">
                 <h6 class="font-medium text-sm text-[#5C4A3A] mb-2">上传建议：</h6>
                 <ul class="text-xs text-gray-500 space-y-1">
                   <li class="flex items-center space-x-2">
@@ -427,36 +436,109 @@
               </div>
             </div>
 
-            <div v-if="newAvatarForm.uploadedPhotos.length > 0" class="space-y-4">
-              <h5 class="font-medium text-[#5C4A3A]">照片分析预览</h5>
-              <div class="grid grid-cols-2 gap-4">
+            <div v-if="photoAnalysisResult" class="space-y-4">
+              <h5 class="font-medium text-[#5C4A3A] flex items-center space-x-2">
+                <Icon icon="solar:chart-2-bold" class="text-lg" />
+                <span>照片分析结果</span>
+              </h5>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="p-4 bg-[#FAF7F2] rounded-xl">
-                  <h6 class="text-sm font-medium text-gray-700 mb-2">检测到的特征</h6>
-                  <div class="flex flex-wrap gap-2">
-                    <span class="px-3 py-1 bg-[#E8D5C4] text-[#8B6F4E] text-xs rounded-full">面部轮廓清晰</span>
-                    <span class="px-3 py-1 bg-[#E8D5C4] text-[#8B6F4E] text-xs rounded-full">五官特征明显</span>
-                    <span class="px-3 py-1 bg-[#E8D5C4] text-[#8B6F4E] text-xs rounded-full">肤色正常</span>
+                  <h6 class="text-sm font-medium text-gray-700 mb-3">角度覆盖情况</h6>
+                  <div class="grid grid-cols-5 gap-2 mb-3">
+                    <div v-for="type in ['front', 'left', 'right', 'back', 'closeup']" :key="type"
+                         class="text-center">
+                      <div class="w-10 h-10 mx-auto rounded-full flex items-center justify-center mb-1"
+                           :class="photoAnalysisResult.detectedTypes.includes(type) 
+                             ? 'bg-green-100 text-green-600' 
+                             : 'bg-gray-100 text-gray-400'">
+                        <Icon v-if="photoAnalysisResult.detectedTypes.includes(type)" 
+                              icon="solar:check-circle-bold" class="text-lg" />
+                        <Icon v-else icon="solar:minimalistic-underline-bold" class="text-lg" />
+                      </div>
+                      <span class="text-xs"
+                            :class="photoAnalysisResult.detectedTypes.includes(type) ? 'text-green-600' : 'text-gray-400'">
+                        {{ type === 'front' ? '正面' : 
+                           type === 'left' ? '左侧' : 
+                           type === 'right' ? '右侧' : 
+                           type === 'back' ? '背面' : '特写' }}
+                      </span>
+                    </div>
+                  </div>
+                  <div v-if="photoAnalysisResult.missingTypes.length > 0" class="text-xs text-amber-600 flex items-center space-x-1">
+                    <Icon icon="solar:info-circle-bold" />
+                    <span>缺少角度：{{ photoAnalysisResult.missingTypeLabels.join('、') }}</span>
+                  </div>
+                  <div v-else class="text-xs text-green-600 flex items-center space-x-1">
+                    <Icon icon="solar:check-circle-bold" />
+                    <span>所有角度都已覆盖！</span>
                   </div>
                 </div>
+
                 <div class="p-4 bg-[#FAF7F2] rounded-xl">
-                  <h6 class="text-sm font-medium text-gray-700 mb-2">生成质量预估</h6>
-                  <div class="flex items-center space-x-3">
-                    <div class="flex-1">
+                  <h6 class="text-sm font-medium text-gray-700 mb-3">生成质量预估</h6>
+                  <div class="space-y-3">
+                    <div>
                       <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
-                        <span>生成准确度</span>
+                        <span>整体质量评分</span>
+                        <span class="text-[#8B6F4E] font-medium">{{ photoAnalysisResult.overallQuality }}%</span>
+                      </div>
+                      <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="h-2 rounded-full transition-all"
+                             :class="photoAnalysisResult.overallQuality >= 80 ? 'bg-green-500' : 
+                                      photoAnalysisResult.overallQuality >= 60 ? 'bg-yellow-500' : 'bg-red-500'"
+                             :style="{ width: photoAnalysisResult.overallQuality + '%' }"></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
+                        <span>角度覆盖度</span>
                         <span class="text-[#8B6F4E] font-medium">
-                          {{ newAvatarForm.uploadedPhotos.length >= 3 ? '高' : newAvatarForm.uploadedPhotos.length >= 2 ? '中' : '低' }}
+                          {{ photoAnalysisResult.detectedTypes.length }}/5
                         </span>
                       </div>
                       <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div class="bg-[#8B6F4E] h-2 rounded-full transition-all" 
-                             :style="{ width: (newAvatarForm.uploadedPhotos.length * 20) + '%' }"></div>
+                        <div class="bg-[#8B6F4E] h-2 rounded-full transition-all"
+                             :style="{ width: (photoAnalysisResult.detectedTypes.length / 5) * 100 + '%' }"></div>
                       </div>
                     </div>
                   </div>
-                  <p class="text-xs text-gray-400 mt-2">
-                    {{ newAvatarForm.uploadedPhotos.length >= 3 ? '照片数量充足，生成效果预计很好' : newAvatarForm.uploadedPhotos.length >= 2 ? '建议再上传1张照片以获得更好效果' : '建议上传更多照片以提高生成质量' }}
+                  <p class="text-xs text-gray-500 mt-3">
+                    {{ photoAnalysisResult.recommendation }}
                   </p>
+                </div>
+              </div>
+
+              <div class="p-4 bg-[#FAF7F2] rounded-xl">
+                <h6 class="text-sm font-medium text-gray-700 mb-3">各照片详细分析</h6>
+                <div class="space-y-3">
+                  <div v-for="(analysis, index) in photoAnalysisResult.analysis" :key="index"
+                       class="flex items-start space-x-3 p-3 bg-white rounded-lg">
+                    <div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                      <img :src="newAvatarForm.uploadedPhotos[index]" class="w-full h-full object-cover" alt="">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center space-x-2 mb-1">
+                        <span class="text-sm font-medium text-gray-800">照片 {{ index + 1 }}</span>
+                        <span class="px-2 py-0.5 bg-[#E8D5C4] text-[#8B6F4E] text-xs rounded-full">
+                          {{ analysis.detectedTypeLabel }}
+                        </span>
+                        <span class="text-xs text-gray-500">
+                          置信度: {{ Math.round(analysis.confidence * 100) }}%
+                        </span>
+                      </div>
+                      <div class="flex flex-wrap gap-1">
+                        <span v-for="(feature, fIndex) in analysis.features" :key="fIndex"
+                              class="px-2 py-0.5 bg-green-50 text-green-600 text-xs rounded">
+                          <Icon icon="solar:check-circle-bold" class="inline mr-0.5" />
+                          {{ feature }}
+                        </span>
+                      </div>
+                      <div class="text-xs text-gray-500 mt-1">
+                        质量评分: {{ analysis.qualityScore }}%
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -552,182 +634,6 @@
             </div>
           </div>
 
-          <div v-if="currentStep === 3 && newAvatarForm.generationMethod === 'manual'" class="space-y-6">
-            <div>
-              <h4 class="text-lg font-bold text-[#5C4A3A] font-serif mb-2">手动微调</h4>
-              <p class="text-sm text-gray-500 mb-4">通过滑块精确调整各项面部特征，打造专属形象</p>
-
-              <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2 space-y-6">
-                  <div class="space-y-4">
-                    <h5 class="font-medium text-[#5C4A3A] flex items-center space-x-2">
-                      <Icon icon="solar:face-id-bold" class="text-lg" />
-                      <span>面部轮廓</span>
-                    </h5>
-                    
-                    <div class="space-y-4 pl-4">
-                      <div>
-                        <div class="flex items-center justify-between mb-2">
-                          <label class="text-sm text-gray-700">脸型宽度</label>
-                          <span class="text-xs text-[#8B6F4E]">{{ newAvatarForm.manualAdjust.faceWidth }}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" v-model="newAvatarForm.manualAdjust.faceWidth" 
-                               class="w-full h-2 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer">
-                        <div class="flex justify-between text-xs text-gray-400 mt-1">
-                          <span>较窄</span>
-                          <span>适中</span>
-                          <span>较宽</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div class="flex items-center justify-between mb-2">
-                          <label class="text-sm text-gray-700">下颌线条</label>
-                          <span class="text-xs text-[#8B6F4E]">{{ newAvatarForm.manualAdjust.jawLine }}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" v-model="newAvatarForm.manualAdjust.jawLine" 
-                               class="w-full h-2 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer">
-                        <div class="flex justify-between text-xs text-gray-400 mt-1">
-                          <span>圆润</span>
-                          <span>适中</span>
-                          <span>分明</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div class="flex items-center justify-between mb-2">
-                          <label class="text-sm text-gray-700">颧骨高度</label>
-                          <span class="text-xs text-[#8B6F4E]">{{ newAvatarForm.manualAdjust.cheekbones }}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" v-model="newAvatarForm.manualAdjust.cheekbones" 
-                               class="w-full h-2 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer">
-                        <div class="flex justify-between text-xs text-gray-400 mt-1">
-                          <span>低平</span>
-                          <span>适中</span>
-                          <span>突出</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="space-y-4">
-                    <h5 class="font-medium text-[#5C4A3A] flex items-center space-x-2">
-                      <Icon icon="solar:eye-bold" class="text-lg" />
-                      <span>眼睛特征</span>
-                    </h5>
-                    
-                    <div class="space-y-4 pl-4">
-                      <div>
-                        <div class="flex items-center justify-between mb-2">
-                          <label class="text-sm text-gray-700">眼睛大小</label>
-                          <span class="text-xs text-[#8B6F4E]">{{ newAvatarForm.manualAdjust.eyeSize }}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" v-model="newAvatarForm.manualAdjust.eyeSize" 
-                               class="w-full h-2 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer">
-                        <div class="flex justify-between text-xs text-gray-400 mt-1">
-                          <span>较小</span>
-                          <span>适中</span>
-                          <span>较大</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div class="flex items-center justify-between mb-2">
-                          <label class="text-sm text-gray-700">眼距宽度</label>
-                          <span class="text-xs text-[#8B6F4E]">{{ newAvatarForm.manualAdjust.eyeSpacing }}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" v-model="newAvatarForm.manualAdjust.eyeSpacing" 
-                               class="w-full h-2 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer">
-                        <div class="flex justify-between text-xs text-gray-400 mt-1">
-                          <span>较近</span>
-                          <span>适中</span>
-                          <span>较远</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div class="flex items-center justify-between mb-2">
-                          <label class="text-sm text-gray-700">双眼皮</label>
-                          <span class="text-xs text-[#8B6F4E]">{{ newAvatarForm.manualAdjust.doubleEyelid }}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" v-model="newAvatarForm.manualAdjust.doubleEyelid" 
-                               class="w-full h-2 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer">
-                        <div class="flex justify-between text-xs text-gray-400 mt-1">
-                          <span>单眼皮</span>
-                          <span>内双</span>
-                          <span>双眼皮</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="space-y-4">
-                    <h5 class="font-medium text-[#5C4A3A] flex items-center space-x-2">
-                      <Icon icon="solar:frame-bold" class="text-lg" />
-                      <span>其他特征</span>
-                    </h5>
-                    
-                    <div class="space-y-4 pl-4">
-                      <div>
-                        <div class="flex items-center justify-between mb-2">
-                          <label class="text-sm text-gray-700">鼻子大小</label>
-                          <span class="text-xs text-[#8B6F4E]">{{ newAvatarForm.manualAdjust.noseSize }}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" v-model="newAvatarForm.manualAdjust.noseSize" 
-                               class="w-full h-2 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer">
-                      </div>
-
-                      <div>
-                        <div class="flex items-center justify-between mb-2">
-                          <label class="text-sm text-gray-700">嘴唇厚度</label>
-                          <span class="text-xs text-[#8B6F4E]">{{ newAvatarForm.manualAdjust.lipThickness }}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" v-model="newAvatarForm.manualAdjust.lipThickness" 
-                               class="w-full h-2 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer">
-                      </div>
-
-                      <div>
-                        <div class="flex items-center justify-between mb-2">
-                          <label class="text-sm text-gray-700">皱纹程度</label>
-                          <span class="text-xs text-[#8B6F4E]">{{ newAvatarForm.manualAdjust.wrinkles }}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" v-model="newAvatarForm.manualAdjust.wrinkles" 
-                               class="w-full h-2 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer">
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="lg:col-span-1">
-                  <div class="sticky top-4">
-                    <h5 class="font-medium text-[#5C4A3A] mb-4 text-center">实时预览</h5>
-                    <div class="aspect-[3/4] bg-gradient-to-b from-[#FAF7F2] to-[#F5E6D3] rounded-2xl flex items-center justify-center relative overflow-hidden">
-                      <div class="absolute inset-0 opacity-10" :style="dotPatternStyle"></div>
-                      <div class="text-center z-10">
-                        <div class="w-32 h-32 mx-auto mb-4 rounded-full bg-[#E8D5C4] flex items-center justify-center">
-                          <Icon icon="solar:user-square-bold" class="text-5xl text-[#8B6F4E]" />
-                        </div>
-                        <p class="text-sm text-gray-500">预览效果</p>
-                        <p class="text-xs text-gray-400 mt-1">调整滑块查看变化</p>
-                      </div>
-                    </div>
-
-                    <div class="mt-4 space-y-2">
-                      <button class="w-full py-2 bg-[#E8D5C4] text-[#8B6F4E] rounded-lg text-sm font-medium hover:bg-[#D4A574] transition-colors flex items-center justify-center space-x-1">
-                        <Icon icon="solar:refresh-circle-bold" class="text-sm" />
-                        <span>重置为默认</span>
-                      </button>
-                      <button class="w-full py-2 border border-[#E8D5C4] text-[#8B6F4E] rounded-lg text-sm font-medium hover:bg-[#E8D5C4]/50 transition-colors flex items-center justify-center space-x-1">
-                        <Icon icon="solar:save-2-bold" class="text-sm" />
-                        <span>保存为预设</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div v-if="currentStep === 4" class="space-y-6">
             <div>
               <h4 class="text-lg font-bold text-[#5C4A3A] font-serif mb-2">确认信息</h4>
@@ -758,8 +664,7 @@
                   <div>
                     <label class="text-xs text-gray-400 block mb-1">生成方式</label>
                     <p class="text-sm font-medium text-gray-800">
-                      {{ newAvatarForm.generationMethod === 'photo' ? '照片生成' : 
-                         newAvatarForm.generationMethod === 'text' ? '文字描述生成' : '手动微调' }}
+                      {{ newAvatarForm.generationMethod === 'photo' ? '照片生成' : '文字描述生成' }}
                     </p>
                   </div>
                 </div>
@@ -919,7 +824,7 @@
                 <div>
                   <h6 class="font-medium text-sm text-gray-700 mb-1">关于形象生成参数</h6>
                   <p class="text-xs text-gray-500">
-                    形象生成方式（照片生成、文字描述生成、手动微调）以及相关参数在创建后不可修改。如需调整形象，请重新创建新的数字人形象。
+                    形象生成方式（照片生成、文字描述生成）以及相关参数在创建后不可修改。如需调整形象，可在创建后使用"微调形象"功能进行调整。
                   </p>
                 </div>
               </div>
@@ -1019,7 +924,13 @@
                   <Icon icon="solar:chat-round-dots-bold" class="text-lg" />
                   <span>开始对话</span>
                 </button>
-                <button @click="editAvatar(selectedAvatar)" class="w-full py-3 border border-[#E8D5C4] text-[#8B6F4E] rounded-xl font-medium hover:bg-[#E8D5C4]/50 transition-colors flex items-center justify-center space-x-2">
+                <button v-if="selectedAvatar.status === 'active'" 
+                        @click="openFineTuneModal"
+                        class="w-full py-3 border border-[#E8D5C4] text-[#8B6F4E] rounded-xl font-medium hover:bg-[#E8D5C4]/50 transition-colors flex items-center justify-center space-x-2">
+                  <Icon icon="solar:slider-horizontal-bold" class="text-lg" />
+                  <span>微调形象</span>
+                </button>
+                <button @click="editAvatar(selectedAvatar)" class="w-full py-3 border border-gray-200 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2">
                   <Icon icon="solar:pen-bold" class="text-lg" />
                   <span>编辑信息</span>
                 </button>
@@ -1056,8 +967,7 @@
                   <div>
                     <label class="text-xs text-gray-400 block mb-1">生成方式</label>
                     <p class="text-sm font-medium text-gray-800">
-                      {{ selectedAvatar.generationMethod === 'photo' ? '照片生成' : 
-                         selectedAvatar.generationMethod === 'text' ? '文字描述生成' : '手动微调' }}
+                      {{ selectedAvatar.generationMethod === 'photo' ? '照片生成' : '文字描述生成' }}
                     </p>
                   </div>
                 </div>
@@ -1109,14 +1019,382 @@
         </div>
       </div>
     </div>
+
+    <div v-if="showFineTuneModal && selectedAvatar" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl shadow-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div class="p-6 border-b border-[#E8D5C4] flex items-center justify-between">
+          <div>
+            <h3 class="text-xl font-bold text-[#5C4A3A] font-serif">微调形象</h3>
+            <p class="text-sm text-gray-500 mt-1">调整 {{ selectedAvatar.name }} 的面部特征</p>
+          </div>
+          <button @click="closeFineTuneModal" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
+            <Icon icon="solar:close-bold" class="text-gray-500" />
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 space-y-6">
+              <div class="space-y-4">
+                <h5 class="font-medium text-[#5C4A3A] flex items-center space-x-2">
+                  <Icon icon="solar:face-id-bold" class="text-lg" />
+                  <span>面部轮廓</span>
+                </h5>
+                
+                <div class="space-y-4 pl-4">
+                  <div>
+                    <div class="flex items-center justify-between mb-2">
+                      <label class="text-sm text-gray-700">脸型宽度</label>
+                      <span class="text-xs text-[#8B6F4E]">{{ fineTuneAdjustments.faceWidth }}%</span>
+                    </div>
+                    <input type="range" min="0" max="100" v-model="fineTuneAdjustments.faceWidth" 
+                           class="w-full h-2 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-xs text-gray-400 mt-1">
+                      <span>较窄</span>
+                      <span>适中</span>
+                      <span>较宽</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="flex items-center justify-between mb-2">
+                      <label class="text-sm text-gray-700">下颌线条</label>
+                      <span class="text-xs text-[#8B6F4E]">{{ fineTuneAdjustments.jawLine }}%</span>
+                    </div>
+                    <input type="range" min="0" max="100" v-model="fineTuneAdjustments.jawLine" 
+                           class="w-full h-2 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-xs text-gray-400 mt-1">
+                      <span>圆润</span>
+                      <span>适中</span>
+                      <span>分明</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="flex items-center justify-between mb-2">
+                      <label class="text-sm text-gray-700">颧骨高度</label>
+                      <span class="text-xs text-[#8B6F4E]">{{ fineTuneAdjustments.cheekbones }}%</span>
+                    </div>
+                    <input type="range" min="0" max="100" v-model="fineTuneAdjustments.cheekbones" 
+                           class="w-full h-2 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-xs text-gray-400 mt-1">
+                      <span>低平</span>
+                      <span>适中</span>
+                      <span>突出</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="space-y-4">
+                <h5 class="font-medium text-[#5C4A3A] flex items-center space-x-2">
+                  <Icon icon="solar:eye-bold" class="text-lg" />
+                  <span>眼睛特征</span>
+                </h5>
+                
+                <div class="space-y-4 pl-4">
+                  <div>
+                    <div class="flex items-center justify-between mb-2">
+                      <label class="text-sm text-gray-700">眼睛大小</label>
+                      <span class="text-xs text-[#8B6F4E]">{{ fineTuneAdjustments.eyeSize }}%</span>
+                    </div>
+                    <input type="range" min="0" max="100" v-model="fineTuneAdjustments.eyeSize" 
+                           class="w-full h-2 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-xs text-gray-400 mt-1">
+                      <span>较小</span>
+                      <span>适中</span>
+                      <span>较大</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="flex items-center justify-between mb-2">
+                      <label class="text-sm text-gray-700">眼距宽度</label>
+                      <span class="text-xs text-[#8B6F4E]">{{ fineTuneAdjustments.eyeSpacing }}%</span>
+                    </div>
+                    <input type="range" min="0" max="100" v-model="fineTuneAdjustments.eyeSpacing" 
+                           class="w-full h-2 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-xs text-gray-400 mt-1">
+                      <span>较近</span>
+                      <span>适中</span>
+                      <span>较远</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="flex items-center justify-between mb-2">
+                      <label class="text-sm text-gray-700">双眼皮</label>
+                      <span class="text-xs text-[#8B6F4E]">{{ fineTuneAdjustments.doubleEyelid }}%</span>
+                    </div>
+                    <input type="range" min="0" max="100" v-model="fineTuneAdjustments.doubleEyelid" 
+                           class="w-full h-2 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-xs text-gray-400 mt-1">
+                      <span>单眼皮</span>
+                      <span>内双</span>
+                      <span>双眼皮</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="space-y-4">
+                <h5 class="font-medium text-[#5C4A3A] flex items-center space-x-2">
+                  <Icon icon="solar:frame-bold" class="text-lg" />
+                  <span>其他特征</span>
+                </h5>
+                
+                <div class="space-y-4 pl-4">
+                  <div>
+                    <div class="flex items-center justify-between mb-2">
+                      <label class="text-sm text-gray-700">鼻子大小</label>
+                      <span class="text-xs text-[#8B6F4E]">{{ fineTuneAdjustments.noseSize }}%</span>
+                    </div>
+                    <input type="range" min="0" max="100" v-model="fineTuneAdjustments.noseSize" 
+                           class="w-full h-2 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer">
+                  </div>
+
+                  <div>
+                    <div class="flex items-center justify-between mb-2">
+                      <label class="text-sm text-gray-700">嘴唇厚度</label>
+                      <span class="text-xs text-[#8B6F4E]">{{ fineTuneAdjustments.lipThickness }}%</span>
+                    </div>
+                    <input type="range" min="0" max="100" v-model="fineTuneAdjustments.lipThickness" 
+                           class="w-full h-2 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer">
+                  </div>
+
+                  <div>
+                    <div class="flex items-center justify-between mb-2">
+                      <label class="text-sm text-gray-700">皱纹程度</label>
+                      <span class="text-xs text-[#8B6F4E]">{{ fineTuneAdjustments.wrinkles }}%</span>
+                    </div>
+                    <input type="range" min="0" max="100" v-model="fineTuneAdjustments.wrinkles" 
+                           class="w-full h-2 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="lg:col-span-1">
+              <div class="sticky top-4">
+                <h5 class="font-medium text-[#5C4A3A] mb-4 text-center">预览效果</h5>
+                <div class="aspect-[3/4] bg-gradient-to-b from-[#FAF7F2] to-[#F5E6D3] rounded-2xl flex items-center justify-center relative overflow-hidden">
+                  <div v-if="selectedAvatar.avatar" class="absolute inset-0">
+                    <img :src="selectedAvatar.avatar" class="w-full h-full object-cover opacity-80" alt="">
+                  </div>
+                  <div v-else class="text-center z-10">
+                    <div class="w-32 h-32 mx-auto mb-4 rounded-full bg-[#E8D5C4] flex items-center justify-center">
+                      <Icon icon="solar:user-square-bold" class="text-5xl text-[#8B6F4E]" />
+                    </div>
+                    <p class="text-sm text-gray-500">预览效果</p>
+                    <p class="text-xs text-gray-400 mt-1">调整滑块后可重新生成</p>
+                  </div>
+                  
+                  <div v-if="isFineTuning" class="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <div class="text-center text-white">
+                      <div class="w-10 h-10 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                      <p class="text-sm">微调中...</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-4 space-y-2">
+                  <button @click="applyFineTune" 
+                          :disabled="isFineTuning"
+                          class="w-full py-3 bg-[#8B6F4E] text-white rounded-xl font-medium hover:bg-[#6B5342] transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <Icon icon="solar:check-circle-bold" class="text-sm" />
+                    <span>应用微调</span>
+                  </button>
+                  <button @click="resetFineTune" 
+                          class="w-full py-3 border border-[#E8D5C4] text-[#8B6F4E] rounded-xl font-medium hover:bg-[#E8D5C4]/50 transition-colors flex items-center justify-center space-x-2">
+                    <Icon icon="solar:refresh-circle-bold" class="text-sm" />
+                    <span>重置为默认</span>
+                  </button>
+                </div>
+
+                <div v-if="selectedAvatar.fineTuneAdjustments" class="mt-4 p-4 bg-[#FAF7F2] rounded-xl">
+                  <h6 class="text-sm font-medium text-[#5C4A3A] mb-2">上次微调</h6>
+                  <p class="text-xs text-gray-500">已保存微调参数，可随时调整</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-6 border-t border-[#E8D5C4] flex items-center justify-end space-x-3">
+          <button @click="closeFineTuneModal" 
+                  class="px-6 py-3 border border-gray-200 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-colors">
+            取消
+          </button>
+          <button @click="saveAndCloseFineTune" 
+                  :disabled="isFineTuning"
+                  class="px-6 py-3 bg-[#8B6F4E] text-white rounded-xl font-medium hover:bg-[#6B5342] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            保存并关闭
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showConfigModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div class="p-6 border-b border-[#E8D5C4] flex items-center justify-between">
+          <div>
+            <h3 class="text-xl font-bold text-[#5C4A3A] font-serif">API 配置</h3>
+            <p class="text-sm text-gray-500 mt-1">配置 AI 模型服务的 API Key</p>
+          </div>
+          <button @click="closeConfigModal" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
+            <Icon icon="solar:close-bold" class="text-gray-500" />
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 space-y-6">
+          <div class="space-y-4">
+            <h5 class="font-medium text-[#5C4A3A] flex items-center space-x-2">
+              <Icon icon="solar:command-bold" class="text-lg" />
+              <span>OpenAI 配置</span>
+            </h5>
+            
+            <div class="space-y-4 p-4 bg-[#FAF7F2] rounded-xl">
+              <div>
+                <label class="text-sm font-medium text-gray-700 block mb-2">
+                  API Key
+                  <span class="text-gray-400 text-xs ml-1">(用于图像分析、文本生成)</span>
+                </label>
+                <input type="password" v-model="configForm.openai.apiKey" 
+                       placeholder="sk-..."
+                       class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8B6F4E] focus:border-transparent transition-all">
+              </div>
+              
+              <div>
+                <label class="text-sm font-medium text-gray-700 block mb-2">
+                  API 地址 (可选)
+                  <span class="text-gray-400 text-xs ml-1">(用于代理服务)</span>
+                </label>
+                <input type="text" v-model="configForm.openai.baseUrl" 
+                       placeholder="https://api.openai.com/v1"
+                       class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8B6F4E] focus:border-transparent transition-all">
+              </div>
+
+              <div>
+                <label class="text-sm font-medium text-gray-700 block mb-2">
+                  模型
+                </label>
+                <select v-model="configForm.openai.model"
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8B6F4E] focus:border-transparent transition-all">
+                  <option value="gpt-4o">GPT-4o (推荐)</option>
+                  <option value="gpt-4o-mini">GPT-4o Mini</option>
+                  <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                  <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                </select>
+              </div>
+
+              <div v-if="currentConfig?.openai?.apiKeyConfigured" class="flex items-center space-x-2 text-green-600 text-sm">
+                <Icon icon="solar:check-circle-bold" />
+                <span>OpenAI API Key 已配置</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <h5 class="font-medium text-[#5C4A3A] flex items-center space-x-2">
+              <Icon icon="solar:cloud-bold" class="text-lg" />
+              <span>阿里云百炼配置</span>
+            </h5>
+            
+            <div class="space-y-4 p-4 bg-[#FAF7F2] rounded-xl">
+              <div>
+                <label class="text-sm font-medium text-gray-700 block mb-2">
+                  API Key
+                  <span class="text-gray-400 text-xs ml-1">(用于图像生成、图像分析)</span>
+                </label>
+                <input type="password" v-model="configForm.aliyun.apiKey" 
+                       placeholder="sk-..."
+                       class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8B6F4E] focus:border-transparent transition-all">
+              </div>
+              
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="text-sm font-medium text-gray-700 block mb-2">
+                    图像生成模型
+                  </label>
+                  <select v-model="configForm.aliyun.imageModel"
+                          class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8B6F4E] focus:border-transparent transition-all">
+                    <option value="wanx-v1">万相 v1 (推荐)</option>
+                    <option value="wanx2.1-t2i-turbo">万相 2.1 极速版</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-gray-700 block mb-2">
+                    文本模型
+                  </label>
+                  <select v-model="configForm.aliyun.textModel"
+                          class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8B6F4E] focus:border-transparent transition-all">
+                    <option value="qwen-plus">通义千问 Plus (推荐)</option>
+                    <option value="qwen-max">通义千问 Max</option>
+                    <option value="qwen-turbo">通义千问 Turbo</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                <h6 class="text-sm font-medium text-blue-800 mb-1">获取阿里云 API Key</h6>
+                <p class="text-xs text-blue-600">
+                  1. 访问 <a href="https://dashscope.console.aliyun.com" target="_blank" class="underline">阿里云百炼控制台</a><br>
+                  2. 开通 DashScope 服务<br>
+                  3. 在 API-Key 管理中创建新的 API Key
+                </p>
+              </div>
+
+              <div v-if="currentConfig?.aliyun?.apiKeyConfigured" class="flex items-center space-x-2 text-green-600 text-sm">
+                <Icon icon="solar:check-circle-bold" />
+                <span>阿里云 API Key 已配置</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4 bg-amber-50 rounded-xl border border-amber-100">
+            <div class="flex items-start space-x-3">
+              <Icon icon="solar:info-circle-bold" class="text-amber-600 text-lg flex-shrink-0 mt-0.5" />
+              <div>
+                <h6 class="font-medium text-sm text-amber-800 mb-1">关于 API Key 安全</h6>
+                <p class="text-xs text-amber-700">
+                  API Key 仅保存在本地服务器配置文件中，不会上传到任何第三方。请妥善保管您的 API Key，不要泄露给他人。
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-6 border-t border-[#E8D5C4] flex items-center justify-between">
+          <button @click="testConnection" 
+                  :disabled="isTestingConnection"
+                  class="px-6 py-3 border border-[#E8D5C4] text-[#8B6F4E] rounded-xl font-medium hover:bg-[#E8D5C4]/50 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
+            <Icon v-if="isTestingConnection" icon="solar:loader-bold" class="animate-spin" />
+            <span>{{ isTestingConnection ? '测试中...' : '测试连接' }}</span>
+          </button>
+          
+          <div class="flex items-center space-x-3">
+            <button @click="closeConfigModal" 
+                    class="px-6 py-3 border border-gray-200 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-colors">
+              取消
+            </button>
+            <button @click="saveConfig" 
+                    :disabled="isSavingConfig"
+                    class="px-6 py-3 bg-[#8B6F4E] text-white rounded-xl font-medium hover:bg-[#6B5342] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              保存配置
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import ThreeDModelViewer from './ThreeDModelViewer.vue'
+import { apiService, type PhotoAnalysisResponse, type PhotoAnalysisResult } from '../services/api'
 
 const router = useRouter()
 
@@ -1129,7 +1407,7 @@ interface DigitalAvatar {
   gender: 'male' | 'female'
   avatar?: string
   modelUrl?: string
-  status: 'active' | 'training' | 'generating' | 'inactive'
+  status: 'active' | 'training' | 'generating' | 'inactive' | 'fine-tuning'
   progress: number
   birthYear?: string
   deathYear?: string
@@ -1137,6 +1415,7 @@ interface DigitalAvatar {
   lastInteraction?: string
   generationMethod?: 'photo' | 'text' | 'manual'
   description?: string
+  fineTuneAdjustments?: FineTuneAdjustments
 }
 
 interface HabitatModule {
@@ -1161,38 +1440,38 @@ interface HairStyle {
   label: string
 }
 
-const digitalAvatars = ref<DigitalAvatar[]>([
-  {
-    id: '1',
-    name: '祖父 · 张明远',
-    relationship: '祖父',
-    gender: 'male',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face',
-    modelUrl: '/models/girl_speedsculpt.glb',
-    status: 'active',
-    progress: 98,
-    birthYear: '1928',
-    deathYear: '2018',
-    chatCount: 2345,
-    lastInteraction: '3天前',
-    generationMethod: 'photo',
-    description: '一位慈祥的祖父，一生勤劳善良，热爱家庭，对子孙后代充满关爱。'
-  },
-  {
-    id: '2',
-    name: '祖母 · 李淑华',
-    relationship: '祖母',
-    gender: 'female',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&crop=face',
-    modelUrl: undefined,
-    status: 'training',
-    progress: 76,
-    birthYear: '1932',
-    deathYear: '2020',
-    chatCount: 0,
-    generationMethod: 'text'
+const digitalAvatars = ref<DigitalAvatar[]>([])
+const isLoadingAvatars = ref(false)
+
+const loadAvatars = async () => {
+  isLoadingAvatars.value = true
+  try {
+    const response = await apiService.getAvatars()
+    if (response.success && response.data && response.data.avatars) {
+      digitalAvatars.value = response.data.avatars.map((avatar: any) => ({
+        id: avatar.id,
+        name: avatar.name,
+        relationship: avatar.relationship,
+        gender: avatar.gender as 'male' | 'female',
+        avatar: avatar.avatar,
+        modelUrl: avatar.modelUrl,
+        status: avatar.status as DigitalAvatar['status'],
+        progress: avatar.progress || 0,
+        birthYear: avatar.birthYear,
+        deathYear: avatar.deathYear,
+        chatCount: avatar.chatCount || 0,
+        lastInteraction: avatar.lastInteraction,
+        generationMethod: avatar.generationMethod as 'photo' | 'text' | 'manual',
+        description: avatar.description,
+        fineTuneAdjustments: avatar.fineTuneAdjustments
+      }))
+    }
+  } catch (error) {
+    console.error('加载数字人列表失败:', error)
+  } finally {
+    isLoadingAvatars.value = false
   }
-])
+}
 
 const habitatModules: HabitatModule[] = [
   {
@@ -1241,6 +1520,17 @@ const currentStep = ref(1)
 const totalSteps = computed(() => createSteps.length)
 
 const photoFileInput = ref<HTMLInputElement | null>(null)
+
+const isAnalyzingPhotos = ref(false)
+const photoAnalysisResult = ref<PhotoAnalysisResponse | null>(null)
+const photoAnalysisError = ref<string>('')
+const photoAnalysisDebounceTimer = ref<number | null>(null)
+const needsReanalysis = ref(false)
+const lastAnalyzedPhotosCount = ref(0)
+
+const generationTrackingInterval = ref<number | null>(null)
+const pendingAvatarId = ref<string>('')
+const pendingTaskId = ref<string>('')
 
 interface NewAvatarForm {
   name: string
@@ -1534,10 +1824,17 @@ const triggerPhotoUpload = () => {
 const handlePhotoUpload = (event: Event) => {
   const target = event.target as HTMLInputElement
   const files = target.files
-  if (!files) return
+  if (!files || files.length === 0) return
 
   const remainingSlots = 5 - newAvatarForm.value.uploadedPhotos.length
   const filesToProcess = Array.from(files).slice(0, remainingSlots)
+  
+  target.value = ''
+
+  if (filesToProcess.length === 0) return
+
+  let processedCount = 0
+  const totalToProcess = filesToProcess.length
 
   filesToProcess.forEach(file => {
     const reader = new FileReader()
@@ -1546,13 +1843,71 @@ const handlePhotoUpload = (event: Event) => {
       if (result && newAvatarForm.value.uploadedPhotos.length < 5) {
         newAvatarForm.value.uploadedPhotos.push(result)
       }
+      
+      processedCount++
+      if (processedCount >= totalToProcess) {
+        analyzePhotos()
+      }
     }
     reader.readAsDataURL(file)
   })
 }
 
+const performPhotoAnalysis = async () => {
+  if (isAnalyzingPhotos.value) {
+    needsReanalysis.value = true
+    return
+  }
+
+  isAnalyzingPhotos.value = true
+  needsReanalysis.value = false
+  lastAnalyzedPhotosCount.value = newAvatarForm.value.uploadedPhotos.length
+  photoAnalysisError.value = ''
+
+  try {
+    const response = await apiService.analyzePhotos(newAvatarForm.value.uploadedPhotos)
+    
+    if (response.success && response.data) {
+      photoAnalysisResult.value = response.data
+    } else {
+      photoAnalysisError.value = response.error || '照片分析失败'
+    }
+  } catch (error) {
+    photoAnalysisError.value = error instanceof Error ? error.message : '照片分析失败'
+  } finally {
+    isAnalyzingPhotos.value = false
+
+    if (needsReanalysis.value || 
+        newAvatarForm.value.uploadedPhotos.length !== lastAnalyzedPhotosCount.value) {
+      performPhotoAnalysis()
+    }
+  }
+}
+
+const analyzePhotos = () => {
+  if (newAvatarForm.value.uploadedPhotos.length === 0) {
+    photoAnalysisResult.value = null
+    photoAnalysisError.value = ''
+    needsReanalysis.value = false
+    if (photoAnalysisDebounceTimer.value) {
+      clearTimeout(photoAnalysisDebounceTimer.value)
+      photoAnalysisDebounceTimer.value = null
+    }
+    return
+  }
+
+  if (photoAnalysisDebounceTimer.value) {
+    clearTimeout(photoAnalysisDebounceTimer.value)
+  }
+
+  photoAnalysisDebounceTimer.value = window.setTimeout(() => {
+    performPhotoAnalysis()
+  }, 300)
+}
+
 const removePhoto = (index: number) => {
   newAvatarForm.value.uploadedPhotos.splice(index, 1)
+  analyzePhotos()
 }
 
 const toggleFacialFeature = (featureId: string) => {
@@ -1586,49 +1941,116 @@ const calculateDescriptionCompleteness = () => {
   return Math.round((score / total) * 100)
 }
 
-const submitCreateAvatar = () => {
-  const avatarImages = [
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face',
-    'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&crop=face',
-    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face'
-  ]
-
-  const newId = String(Date.now())
-  const newDigitalAvatar: DigitalAvatar = {
-    id: newId,
+const submitCreateAvatar = async () => {
+  const request = {
     name: newAvatarForm.value.name,
     relationship: newAvatarForm.value.relationship,
     gender: newAvatarForm.value.gender,
-    avatar: newAvatarForm.value.uploadedPhotos[0] || avatarImages[Math.floor(Math.random() * avatarImages.length)],
-    status: 'generating',
-    progress: 0,
     birthYear: newAvatarForm.value.birthYear,
     deathYear: newAvatarForm.value.deathYear || undefined,
-    chatCount: 0,
+    description: newAvatarForm.value.description,
     generationMethod: newAvatarForm.value.generationMethod,
-    description: newAvatarForm.value.description
+    photos: newAvatarForm.value.uploadedPhotos.length > 0 ? newAvatarForm.value.uploadedPhotos : [],
+    textDescription: newAvatarForm.value.generationMethod === 'text' ? {
+      overall: newAvatarForm.value.textDescription.overall,
+      facialFeatures: newAvatarForm.value.textDescription.facialFeatures,
+      hairStyles: newAvatarForm.value.textDescription.hairStyles,
+      ageSense: newAvatarForm.value.textDescription.ageSense,
+      temperament: newAvatarForm.value.textDescription.temperament
+    } : undefined
   }
 
-  digitalAvatars.value.push(newDigitalAvatar)
-  closeCreateAvatarModal()
+  try {
+    const response = await apiService.generateAvatar(request)
+    
+    if (response.success && response.data) {
+      const { taskId, avatarId } = response.data
+      
+      const newDigitalAvatar: DigitalAvatar = {
+        id: avatarId,
+        name: newAvatarForm.value.name,
+        relationship: newAvatarForm.value.relationship,
+        gender: newAvatarForm.value.gender,
+        avatar: newAvatarForm.value.uploadedPhotos[0] || undefined,
+        status: 'generating',
+        progress: 0,
+        birthYear: newAvatarForm.value.birthYear,
+        deathYear: newAvatarForm.value.deathYear || undefined,
+        chatCount: 0,
+        generationMethod: newAvatarForm.value.generationMethod,
+        description: newAvatarForm.value.description
+      }
 
-  simulateGeneration(newId)
-}
+      digitalAvatars.value.push(newDigitalAvatar)
+      closeCreateAvatarModal()
 
-const simulateGeneration = (avatarId: string) => {
-  const avatar = digitalAvatars.value.find(a => a.id === avatarId)
-  if (!avatar) return
-
-  const interval = setInterval(() => {
-    if (avatar.progress < 100) {
-      avatar.progress += Math.random() * 10
-      if (avatar.progress > 100) avatar.progress = 100
+      pendingAvatarId.value = avatarId
+      pendingTaskId.value = taskId
+      startGenerationTracking(avatarId, taskId)
     } else {
-      avatar.status = 'inactive'
-      clearInterval(interval)
+      console.error('创建数字人失败:', response.error)
+      alert('创建数字人失败: ' + (response.error || '未知错误'))
     }
-  }, 1000)
+  } catch (error) {
+    console.error('创建数字人失败:', error)
+    alert('创建数字人失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  }
 }
+
+const startGenerationTracking = (avatarId: string, taskId: string) => {
+  if (generationTrackingInterval.value) {
+    clearInterval(generationTrackingInterval.value)
+  }
+
+  generationTrackingInterval.value = window.setInterval(async () => {
+    const avatar = digitalAvatars.value.find(a => a.id === avatarId)
+    if (!avatar) {
+      stopGenerationTracking()
+      return
+    }
+
+    try {
+      const response = await apiService.getAvatarStatus(avatarId)
+      
+      if (response.success && response.data) {
+        avatar.progress = response.data.progress
+        avatar.status = response.data.status as DigitalAvatar['status']
+
+        if (response.data.status === 'active') {
+          const avatarDetail = await apiService.getAvatar(avatarId)
+          if (avatarDetail.success && avatarDetail.data) {
+            avatar.avatar = avatarDetail.data.avatar
+            avatar.modelUrl = avatarDetail.data.modelUrl
+          }
+          stopGenerationTracking()
+        }
+      }
+    } catch (error) {
+      console.error('跟踪生成进度失败:', error)
+    }
+  }, 2000)
+}
+
+const stopGenerationTracking = () => {
+  if (generationTrackingInterval.value) {
+    clearInterval(generationTrackingInterval.value)
+    generationTrackingInterval.value = null
+  }
+  pendingAvatarId.value = ''
+  pendingTaskId.value = ''
+}
+
+onMounted(() => {
+  loadAvatars()
+})
+
+onUnmounted(() => {
+  stopGenerationTracking()
+  if (photoAnalysisDebounceTimer.value) {
+    clearTimeout(photoAnalysisDebounceTimer.value)
+    photoAnalysisDebounceTimer.value = null
+  }
+})
 
 const viewAvatarDetail = (avatar: DigitalAvatar) => {
   selectedAvatar.value = avatar
@@ -1708,6 +2130,213 @@ const deleteAvatar = () => {
 
   showDeleteModal.value = false
   avatarToDelete.value = null
+}
+
+const showFineTuneModal = ref(false)
+const isFineTuning = ref(false)
+
+interface FineTuneAdjustments {
+  faceWidth: number
+  jawLine: number
+  cheekbones: number
+  eyeSize: number
+  eyeSpacing: number
+  doubleEyelid: number
+  noseSize: number
+  lipThickness: number
+  wrinkles: number
+}
+
+const defaultFineTuneAdjustments: FineTuneAdjustments = {
+  faceWidth: 50,
+  jawLine: 50,
+  cheekbones: 50,
+  eyeSize: 50,
+  eyeSpacing: 50,
+  doubleEyelid: 50,
+  noseSize: 50,
+  lipThickness: 50,
+  wrinkles: 50
+}
+
+const fineTuneAdjustments = ref<FineTuneAdjustments>({ ...defaultFineTuneAdjustments })
+
+const openFineTuneModal = () => {
+  if (!selectedAvatar.value) return
+  
+  if (selectedAvatar.value.fineTuneAdjustments) {
+    fineTuneAdjustments.value = { ...selectedAvatar.value.fineTuneAdjustments }
+  } else {
+    fineTuneAdjustments.value = { ...defaultFineTuneAdjustments }
+  }
+  
+  showFineTuneModal.value = true
+}
+
+const closeFineTuneModal = () => {
+  showFineTuneModal.value = false
+  isFineTuning.value = false
+}
+
+const resetFineTune = () => {
+  fineTuneAdjustments.value = { ...defaultFineTuneAdjustments }
+}
+
+const applyFineTune = async () => {
+  if (!selectedAvatar.value) return
+  
+  isFineTuning.value = true
+  
+  try {
+    const response = await apiService.fineTuneAvatar(selectedAvatar.value.id, {
+      faceWidth: fineTuneAdjustments.value.faceWidth,
+      jawLine: fineTuneAdjustments.value.jawLine,
+      cheekbones: fineTuneAdjustments.value.cheekbones,
+      eyeSize: fineTuneAdjustments.value.eyeSize,
+      eyeSpacing: fineTuneAdjustments.value.eyeSpacing,
+      doubleEyelid: fineTuneAdjustments.value.doubleEyelid,
+      noseSize: fineTuneAdjustments.value.noseSize,
+      lipThickness: fineTuneAdjustments.value.lipThickness,
+      wrinkles: fineTuneAdjustments.value.wrinkles
+    })
+    
+    if (response.success) {
+      if (selectedAvatar.value) {
+        selectedAvatar.value.fineTuneAdjustments = { ...fineTuneAdjustments.value }
+        selectedAvatar.value.status = 'fine-tuning'
+        
+        const index = digitalAvatars.value.findIndex(a => a.id === selectedAvatar.value!.id)
+        if (index > -1) {
+          digitalAvatars.value[index] = { ...selectedAvatar.value }
+        }
+      }
+      
+      alert('微调已应用，正在重新生成形象...')
+    } else {
+      alert('微调失败: ' + (response.error || '未知错误'))
+    }
+  } catch (error) {
+    console.error('应用微调失败:', error)
+    alert('微调失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  } finally {
+    isFineTuning.value = false
+  }
+}
+
+const saveAndCloseFineTune = async () => {
+  await applyFineTune()
+  closeFineTuneModal()
+}
+
+const showConfigModal = ref(false)
+const isSavingConfig = ref(false)
+const isTestingConnection = ref(false)
+
+interface ConfigForm {
+  openai: {
+    apiKey: string
+    baseUrl: string
+    model: string
+  }
+  aliyun: {
+    apiKey: string
+    imageModel: string
+    textModel: string
+  }
+}
+
+const defaultConfigForm: ConfigForm = {
+  openai: {
+    apiKey: '',
+    baseUrl: 'https://api.openai.com/v1',
+    model: 'gpt-4o'
+  },
+  aliyun: {
+    apiKey: '',
+    imageModel: 'wanx-v1',
+    textModel: 'qwen-plus'
+  }
+}
+
+const configForm = ref<ConfigForm>({ ...defaultConfigForm })
+const currentConfig = ref<any>(null)
+
+const openConfigModal = async () => {
+  configForm.value = { ...defaultConfigForm }
+  currentConfig.value = null
+  
+  try {
+    const response = await apiService.getConfig()
+    if (response.success && response.data) {
+      currentConfig.value = response.data
+      
+      configForm.value.openai.baseUrl = response.data.openai.baseUrl || defaultConfigForm.openai.baseUrl
+      configForm.value.openai.model = response.data.openai.model || defaultConfigForm.openai.model
+      
+      configForm.value.aliyun.imageModel = response.data.aliyun.imageModel || defaultConfigForm.aliyun.imageModel
+      configForm.value.aliyun.textModel = response.data.aliyun.textModel || defaultConfigForm.aliyun.textModel
+    }
+  } catch (error) {
+    console.error('获取配置失败:', error)
+  }
+  
+  showConfigModal.value = true
+}
+
+const closeConfigModal = () => {
+  showConfigModal.value = false
+  isSavingConfig.value = false
+  isTestingConnection.value = false
+}
+
+const saveConfig = async () => {
+  isSavingConfig.value = true
+  
+  try {
+    const response = await apiService.updateConfig({
+      openai: {
+        apiKey: configForm.value.openai.apiKey || undefined,
+        baseUrl: configForm.value.openai.baseUrl,
+        model: configForm.value.openai.model
+      },
+      aliyun: {
+        apiKey: configForm.value.aliyun.apiKey || undefined,
+        imageModel: configForm.value.aliyun.imageModel,
+        textModel: configForm.value.aliyun.textModel
+      }
+    })
+    
+    if (response.success) {
+      alert('配置已保存')
+      closeConfigModal()
+    } else {
+      alert('保存配置失败: ' + (response.error || '未知错误'))
+    }
+  } catch (error) {
+    console.error('保存配置失败:', error)
+    alert('保存配置失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  } finally {
+    isSavingConfig.value = false
+  }
+}
+
+const testConnection = async () => {
+  isTestingConnection.value = true
+  
+  try {
+    const response = await apiService.checkHealth()
+    
+    if (response.success) {
+      alert('连接成功！后端服务运行正常。')
+    } else {
+      alert('连接失败: ' + (response.error || '未知错误'))
+    }
+  } catch (error) {
+    console.error('测试连接失败:', error)
+    alert('连接失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  } finally {
+    isTestingConnection.value = false
+  }
 }
 
 const noisePatternStyle = computed(() => ({
