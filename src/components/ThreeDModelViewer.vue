@@ -9,7 +9,7 @@
       <p class="text-sm text-gray-600">{{ error }}</p>
     </div>
     
-    <div v-if="debugMode && selectedAvatar" class="absolute top-2 right-2 z-20 bg-black/70 text-white text-xs p-3 rounded-lg max-w-xs max-h-64 overflow-y-auto">
+    <div v-if="debugMode" class="absolute top-2 right-2 z-20 bg-black/70 text-white text-xs p-3 rounded-lg max-w-xs max-h-64 overflow-y-auto">
       <h4 class="font-bold mb-1">调试信息</h4>
       <div v-if="debugInfo" class="space-y-1">
         <p>模型: {{ debugInfo.modelName }}</p>
@@ -109,14 +109,44 @@ const initScene = () => {
   renderer.setSize(width, height)
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap
+  renderer.shadowMap.type = THREE.PCFShadowMap
   
   renderer.outputColorSpace = THREE.SRGBColorSpace
   
   renderer.toneMapping = THREE.ACESFilmicToneMapping
-  renderer.toneMappingExposure = 1.0
+  renderer.toneMappingExposure = 0.8
 
   containerRef.value.appendChild(renderer.domElement)
+
+  const createGradientEnvMap = () => {
+    const size = 256
+    const canvas = document.createElement('canvas')
+    canvas.width = size
+    canvas.height = size
+    const ctx = canvas.getContext('2d')!
+    
+    const gradient = ctx.createLinearGradient(0, 0, 0, size)
+    gradient.addColorStop(0, '#e8f4ff')
+    gradient.addColorStop(0.3, '#b8d4f0')
+    gradient.addColorStop(0.7, '#8bb8cc')
+    gradient.addColorStop(1, '#6a8b9a')
+    ctx.fillStyle = gradient
+    ctx.fillRect(0, 0, size, size)
+    
+    const texture = new THREE.CanvasTexture(canvas)
+    texture.mapping = THREE.EquirectangularReflectionMapping
+    texture.colorSpace = THREE.SRGBColorSpace
+    
+    const pmremGenerator = new THREE.PMREMGenerator(renderer!)
+    const envMapRT = pmremGenerator.fromEquirectangular(texture)
+    texture.dispose()
+    pmremGenerator.dispose()
+    
+    return envMapRT.texture
+  }
+
+  const envMap = createGradientEnvMap()
+  scene.environment = envMap
 
   controls = new OrbitControls(camera, renderer.domElement)
   controls.enableDamping = true
@@ -134,7 +164,7 @@ const initScene = () => {
   hemiLight.position.set(0, 20, 0)
   scene.add(hemiLight)
 
-  const mainLight = new THREE.DirectionalLight(0xffffff, 1.0)
+  const mainLight = new THREE.DirectionalLight(0xffffff, 1.5)
   mainLight.position.set(3, 5, 3)
   mainLight.castShadow = true
   mainLight.shadow.mapSize.width = 2048
@@ -147,13 +177,24 @@ const initScene = () => {
   mainLight.shadow.camera.bottom = -10
   scene.add(mainLight)
 
-  const fillLight = new THREE.DirectionalLight(0x88aaff, 0.4)
-  fillLight.position.set(-3, 2, -3)
+  const mainLight2 = new THREE.DirectionalLight(0xffffff, 1.0)
+  mainLight2.position.set(-3, 5, -3)
+  scene.add(mainLight2)
+
+  const fillLight = new THREE.DirectionalLight(0xffffff, 0.6)
+  fillLight.position.set(-5, 3, 5)
   scene.add(fillLight)
 
-  const rimLight = new THREE.DirectionalLight(0xffd4aa, 0.3)
-  rimLight.position.set(0, 4, -5)
+  const rimLight = new THREE.DirectionalLight(0xffffff, 0.8)
+  rimLight.position.set(0, 6, -5)
   scene.add(rimLight)
+
+  const bottomLight = new THREE.DirectionalLight(0xffffff, 0.4)
+  bottomLight.position.set(0, -2, 0)
+  scene.add(bottomLight)
+
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
+  scene.add(ambientLight)
 
   const floorGeometry = new THREE.CircleGeometry(4, 64)
   const floorMaterial = new THREE.MeshStandardMaterial({
@@ -240,7 +281,7 @@ const createPlaceholderHuman = () => {
   humanGroup.add(rightLeg)
 
   model = humanGroup
-  scene.add(humanGroup)
+  scene!.add(humanGroup)
   
   loading.value = false
   emit('loaded')
@@ -250,7 +291,7 @@ const processMaterial = (material: THREE.Material) => {
   console.log('处理材质:', material.type, material.name)
   
   if (props.wireframe) {
-    material.wireframe = true
+    ;(material as any).wireframe = true
     return
   }
 
@@ -301,10 +342,6 @@ const processMaterial = (material: THREE.Material) => {
       material.bumpMap.colorSpace = THREE.NoColorSpace
     }
     
-    if (material.specularMap) {
-      material.specularMap.colorSpace = THREE.SRGBColorSpace
-    }
-    
     if (material.envMap) {
       material.envMap.colorSpace = THREE.SRGBColorSpace
     }
@@ -314,6 +351,25 @@ const processMaterial = (material: THREE.Material) => {
     console.log('  - 金属度:', material.metalness)
     console.log('  - 粗糙度:', material.roughness)
     
+    if ((material as any).vertexColors) {
+      console.log('  - 材质有vertexColors，进一步优化显示')
+      if (material.roughness > 0.3 && !material.roughnessMap) {
+        console.log('  - 降低粗糙度以增加亮度和饱和度，原值:', material.roughness)
+        material.roughness = 0.2
+        console.log('  - 新粗糙度:', material.roughness)
+      }
+      if (material.metalness > 0.5 && !material.metalnessMap) {
+        console.log('  - 降低金属度，原值:', material.metalness)
+        material.metalness = 0.0
+        console.log('  - 新金属度:', material.metalness)
+      }
+    } else {
+      if (material.roughness > 0.7 && !material.roughnessMap) {
+        console.log('  - 降低粗糙度以增加亮度，原值:', material.roughness)
+        material.roughness = Math.max(0.3, material.roughness * 0.6)
+        console.log('  - 新粗糙度:', material.roughness)
+      }
+    }
   } else if ('isMeshBasicMaterial' in material) {
     console.log('  - 是基础材质')
     const basicMat = material as THREE.MeshBasicMaterial
@@ -372,7 +428,7 @@ const loadModel = (url: string) => {
       console.log('GLTF数据:', gltf)
       
       if (model) {
-        scene.remove(model)
+        scene!.remove(model)
       }
 
       model = gltf.scene
@@ -394,6 +450,15 @@ const loadModel = (url: string) => {
           mesh.castShadow = true
           mesh.receiveShadow = true
           
+          const hasVertexColors = mesh.geometry && mesh.geometry.attributes.color
+          
+          if (mesh.geometry) {
+            console.log('  几何体属性:', Object.keys(mesh.geometry.attributes))
+            if (hasVertexColors) {
+              console.log('  检测到顶点颜色属性，需要启用材质的vertexColors')
+            }
+          }
+          
           if (mesh.material) {
             const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
             
@@ -402,16 +467,25 @@ const loadModel = (url: string) => {
               materialTypes.add(mat.type)
               console.log(`  材质 [${idx + 1}]:`, mat.type, mat.name || '未命名')
               
-              if (mat.map || (mat as any).albedoMap) {
+              if ((mat as any).map || (mat as any).albedoMap) {
                 hasTextures = true
+              }
+              
+              if (hasVertexColors) {
+                console.log('  启用材质的vertexColors')
+                ;(mat as any).vertexColors = true
+                
+                if (mat instanceof THREE.MeshStandardMaterial || 
+                    mat instanceof THREE.MeshPhysicalMaterial) {
+                  if (!mat.map && !mat.roughnessMap && !mat.normalMap && !mat.metalnessMap) {
+                    console.log('  材质没有纹理贴图，将颜色设置为白色以确保顶点颜色正确显示')
+                    mat.color.setHex(0xffffff)
+                  }
+                }
               }
               
               processMaterial(mat)
             })
-          }
-          
-          if (mesh.geometry) {
-            console.log('  几何体属性:', Object.keys(mesh.geometry.attributes))
           }
         }
       })
