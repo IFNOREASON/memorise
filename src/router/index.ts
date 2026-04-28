@@ -6,6 +6,7 @@ import ImageRepairPage from '../components/ImageRepairPage.vue'
 import HabitatPage from '../components/HabitatPage.vue'
 import MemoryListPage from '../components/MemoryListPage.vue'
 import MemoryEditorPage from '../components/MemoryEditorPage.vue'
+import ChatCompanionPage from '../components/ChatCompanionPage.vue'
 
 const routes = [
   {
@@ -47,6 +48,11 @@ const routes = [
     path: '/memory/edit/:id',
     name: 'MemoryEdit',
     component: MemoryEditorPage
+  },
+  {
+    path: '/chat',
+    name: 'ChatCompanion',
+    component: ChatCompanionPage
   }
 ]
 

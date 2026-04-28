@@ -314,6 +314,48 @@ interface BindVoiceModelRequest {
   modelId: string;
 }
 
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+}
+
+interface ChatSession {
+  id: string;
+  avatarId: string;
+  messages: ChatMessage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ChatSessionListItem {
+  id: string;
+  avatarId: string;
+  messageCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CreateChatSessionRequest {
+  avatarId: string;
+}
+
+interface SendChatMessageRequest {
+  content: string;
+}
+
+interface SendChatMessageResponse {
+  userMessage: ChatMessage;
+  assistantMessage: ChatMessage;
+  avatar: {
+    id: string;
+    name: string;
+    voiceEnabled: boolean;
+    voiceModelId?: string;
+  };
+}
+
 class ApiService {
   private async request<T>(
     endpoint: string,
@@ -770,6 +812,57 @@ class ApiService {
       method: 'DELETE'
     });
   }
+
+  async createChatSession(avatarId: string): Promise<ApiResponse<{
+    sessionId: string;
+    avatarId: string;
+    createdAt: string;
+    message: string;
+  }>> {
+    return this.request<{
+      sessionId: string;
+      avatarId: string;
+      createdAt: string;
+      message: string;
+    }>('/api/chat/sessions', {
+      method: 'POST',
+      body: JSON.stringify({ avatarId })
+    });
+  }
+
+  async getChatSession(sessionId: string): Promise<ApiResponse<ChatSession>> {
+    return this.request<ChatSession>(`/api/chat/sessions/${sessionId}`);
+  }
+
+  async getChatSessions(avatarId?: string): Promise<ApiResponse<{
+    total: number;
+    sessions: ChatSessionListItem[];
+  }>> {
+    let endpoint = '/api/chat/sessions';
+    if (avatarId) {
+      endpoint += `?avatarId=${encodeURIComponent(avatarId)}`;
+    }
+    return this.request<{
+      total: number;
+      sessions: ChatSessionListItem[];
+    }>(endpoint);
+  }
+
+  async sendChatMessage(
+    sessionId: string,
+    content: string
+  ): Promise<ApiResponse<SendChatMessageResponse>> {
+    return this.request<SendChatMessageResponse>(`/api/chat/sessions/${sessionId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ content })
+    });
+  }
+
+  async deleteChatSession(sessionId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<{ message: string }>(`/api/chat/sessions/${sessionId}`, {
+      method: 'DELETE'
+    });
+  }
 }
 
 export const apiService = new ApiService();
@@ -804,5 +897,11 @@ export type {
   VoiceSynthesisStatus,
   VoiceSynthesisOptions,
   CreateVoiceSynthesisRequest,
-  BindVoiceModelRequest
+  BindVoiceModelRequest,
+  ChatMessage,
+  ChatSession,
+  ChatSessionListItem,
+  CreateChatSessionRequest,
+  SendChatMessageRequest,
+  SendChatMessageResponse
 };

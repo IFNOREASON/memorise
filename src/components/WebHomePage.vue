@@ -368,6 +368,8 @@ const handleModuleClick = (moduleId: string) => {
     router.push('/gallery')
   } else if (moduleId === 'digital') {
     router.push('/habitat')
+  } else if (moduleId === 'chat') {
+    router.push('/chat')
   }
 }
 
@@ -381,6 +383,8 @@ const handleNavClick = (navId: string) => {
     router.push('/gallery')
   } else if (navId === 'digital') {
     router.push('/habitat')
+  } else if (navId === 'chat') {
+    router.push('/chat')
   }
 }
 
