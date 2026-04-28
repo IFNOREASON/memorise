@@ -34,7 +34,10 @@ let config = {
 let data = {
   avatars: [],
   generationTasks: [],
-  memories: []
+  memories: [],
+  voiceMaterials: [],
+  voiceModels: [],
+  voiceSynthesisTasks: []
 };
 
 function loadConfig() {
@@ -408,6 +411,316 @@ class AIService {
 
 const aiService = new AIService();
 
+class VoiceService {
+  createVoiceMaterial(avatarId, name, type, format, duration, size, audioData) {
+    const materialId = `voice_material_${Date.now()}`;
+    const now = new Date().toISOString();
+
+    const newMaterial = {
+      id: materialId,
+      avatarId,
+      name,
+      type: type || 'upload',
+      format: format || 'wav',
+      duration: duration || 0,
+      size: size || 0,
+      audioData: audioData || null,
+      status: 'raw',
+      transcription: '',
+      qualityScore: 0,
+      preprocessInfo: null,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    data.voiceMaterials.push(newMaterial);
+    saveData();
+
+    return newMaterial;
+  }
+
+  getVoiceMaterials(avatarId) {
+    if (avatarId) {
+      return data.voiceMaterials.filter(m => m.avatarId === avatarId);
+    }
+    return data.voiceMaterials;
+  }
+
+  getVoiceMaterial(materialId) {
+    return data.voiceMaterials.find(m => m.id === materialId);
+  }
+
+  updateVoiceMaterial(materialId, updates) {
+    const material = data.voiceMaterials.find(m => m.id === materialId);
+    if (!material) {
+      return null;
+    }
+
+    if (updates.name !== undefined) material.name = updates.name;
+    if (updates.status !== undefined) material.status = updates.status;
+    if (updates.transcription !== undefined) material.transcription = updates.transcription;
+    if (updates.qualityScore !== undefined) material.qualityScore = updates.qualityScore;
+    if (updates.preprocessInfo !== undefined) material.preprocessInfo = updates.preprocessInfo;
+
+    material.updatedAt = new Date().toISOString();
+    saveData();
+
+    return material;
+  }
+
+  deleteVoiceMaterial(materialId) {
+    const index = data.voiceMaterials.findIndex(m => m.id === materialId);
+    if (index === -1) {
+      return false;
+    }
+
+    data.voiceMaterials.splice(index, 1);
+    saveData();
+    return true;
+  }
+
+  preprocessAudio(materialId) {
+    const material = this.getVoiceMaterial(materialId);
+    if (!material) {
+      return null;
+    }
+
+    material.status = 'preprocessing';
+    material.updatedAt = new Date().toISOString();
+    saveData();
+
+    setTimeout(() => {
+      const foundMaterial = data.voiceMaterials.find(m => m.id === materialId);
+      if (foundMaterial) {
+        foundMaterial.status = 'preprocessed';
+        foundMaterial.qualityScore = 70 + Math.floor(Math.random() * 30);
+        foundMaterial.preprocessInfo = {
+          noiseReduction: 'applied',
+          volumeNormalized: true,
+          silenceRemoved: true,
+          formatConverted: 'wav',
+          processedAt: new Date().toISOString()
+        };
+        foundMaterial.updatedAt = new Date().toISOString();
+        saveData();
+      }
+    }, 3000);
+
+    return material;
+  }
+
+  batchPreprocess(materialIds) {
+    const results = [];
+    for (const materialId of materialIds) {
+      const result = this.preprocessAudio(materialId);
+      results.push({
+        materialId,
+        success: !!result,
+        status: result ? result.status : 'failed'
+      });
+    }
+    return results;
+  }
+
+  createVoiceModel(avatarId, name, materialIds, config) {
+    const modelId = `voice_model_${Date.now()}`;
+    const now = new Date().toISOString();
+
+    const newModel = {
+      id: modelId,
+      avatarId,
+      name,
+      status: 'training',
+      progress: 0,
+      trainingConfig: config || {
+        epochs: 100,
+        batchSize: 16,
+        learningRate: 0.0001
+      },
+      materialIds: materialIds || [],
+      modelPath: null,
+      sampleAudioPath: null,
+      qualityMetrics: null,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    data.voiceModels.push(newModel);
+    saveData();
+
+    this.simulateTraining(modelId);
+
+    return newModel;
+  }
+
+  simulateTraining(modelId) {
+    let progress = 0;
+
+    const interval = setInterval(() => {
+      progress += 5;
+
+      const model = data.voiceModels.find(m => m.id === modelId);
+      if (!model) {
+        clearInterval(interval);
+        return;
+      }
+
+      model.progress = Math.min(progress, 100);
+
+      if (progress >= 100) {
+        model.status = 'ready';
+        model.qualityMetrics = {
+          mos: 3.8 + Math.random() * 0.8,
+          similarity: 75 + Math.floor(Math.random() * 20),
+          naturalness: 70 + Math.floor(Math.random() * 25)
+        };
+        model.updatedAt = new Date().toISOString();
+
+        const avatar = data.avatars.find(a => a.id === model.avatarId);
+        if (avatar) {
+          avatar.voiceModelId = modelId;
+          avatar.voiceEnabled = true;
+        }
+
+        clearInterval(interval);
+      }
+
+      saveData();
+    }, 1000);
+  }
+
+  getVoiceModels(avatarId) {
+    if (avatarId) {
+      return data.voiceModels.filter(m => m.avatarId === avatarId);
+    }
+    return data.voiceModels;
+  }
+
+  getVoiceModel(modelId) {
+    return data.voiceModels.find(m => m.id === modelId);
+  }
+
+  deleteVoiceModel(modelId) {
+    const index = data.voiceModels.findIndex(m => m.id === modelId);
+    if (index === -1) {
+      return false;
+    }
+
+    const model = data.voiceModels[index];
+
+    const avatar = data.avatars.find(a => a.id === model.avatarId);
+    if (avatar && avatar.voiceModelId === modelId) {
+      avatar.voiceModelId = null;
+      avatar.voiceEnabled = false;
+    }
+
+    data.voiceModels.splice(index, 1);
+    saveData();
+    return true;
+  }
+
+  synthesizeVoice(modelId, text, options) {
+    const model = this.getVoiceModel(modelId);
+    if (!model || model.status !== 'ready') {
+      return null;
+    }
+
+    const taskId = `voice_synth_${Date.now()}`;
+    const now = new Date().toISOString();
+
+    const newTask = {
+      id: taskId,
+      modelId,
+      avatarId: model.avatarId,
+      text,
+      options: options || {
+        speed: 1.0,
+        pitch: 1.0,
+        emotion: 'neutral'
+      },
+      status: 'synthesizing',
+      progress: 0,
+      audioPath: null,
+      duration: 0,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    data.voiceSynthesisTasks.push(newTask);
+    saveData();
+
+    this.simulateSynthesis(taskId);
+
+    return newTask;
+  }
+
+  simulateSynthesis(taskId) {
+    let progress = 0;
+
+    const interval = setInterval(() => {
+      progress += 20;
+
+      const task = data.voiceSynthesisTasks.find(t => t.id === taskId);
+      if (!task) {
+        clearInterval(interval);
+        return;
+      }
+
+      task.progress = Math.min(progress, 100);
+
+      if (progress >= 100) {
+        task.status = 'completed';
+        task.duration = Math.floor(task.text.length * 0.2);
+        task.audioPath = `/api/voice/synthesis/${taskId}/audio`;
+        task.updatedAt = new Date().toISOString();
+        clearInterval(interval);
+      }
+
+      saveData();
+    }, 500);
+  }
+
+  getSynthesisTask(taskId) {
+    return data.voiceSynthesisTasks.find(t => t.id === taskId);
+  }
+
+  bindVoiceModelToAvatar(avatarId, modelId) {
+    const avatar = data.avatars.find(a => a.id === avatarId);
+    const model = data.voiceModels.find(m => m.id === modelId);
+
+    if (!avatar || !model) {
+      return null;
+    }
+
+    if (model.avatarId !== avatarId) {
+      return null;
+    }
+
+    avatar.voiceModelId = modelId;
+    avatar.voiceEnabled = true;
+    avatar.voiceBoundAt = new Date().toISOString();
+    saveData();
+
+    return avatar;
+  }
+
+  unbindVoiceModelFromAvatar(avatarId) {
+    const avatar = data.avatars.find(a => a.id === avatarId);
+    if (!avatar) {
+      return null;
+    }
+
+    avatar.voiceModelId = null;
+    avatar.voiceEnabled = false;
+    avatar.voiceBoundAt = null;
+    saveData();
+
+    return avatar;
+  }
+}
+
+const voiceService = new VoiceService();
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Memorise backend is running' });
 });
@@ -715,7 +1028,10 @@ app.get('/api/avatars/:id', (req, res) => {
         modelUrl: avatar.modelUrl,
         createdAt: avatar.createdAt,
         fineTuneAdjustments: avatar.fineTuneAdjustments,
-        fineTunedAt: avatar.fineTunedAt
+        fineTunedAt: avatar.fineTunedAt,
+        voiceModelId: avatar.voiceModelId,
+        voiceEnabled: avatar.voiceEnabled,
+        voiceBoundAt: avatar.voiceBoundAt
       }
     });
   } catch (error) {
@@ -741,7 +1057,9 @@ app.get('/api/avatars', (req, res) => {
       status: avatar.status,
       progress: avatar.progress,
       avatar: avatar.avatar,
-      createdAt: avatar.createdAt
+      createdAt: avatar.createdAt,
+      voiceModelId: avatar.voiceModelId,
+      voiceEnabled: avatar.voiceEnabled
     }));
 
     res.json({
@@ -1216,6 +1534,624 @@ app.post('/api/memories/batch', (req, res) => {
     res.status(500).json({
       success: false,
       error: '批量创建记忆失败，请重试'
+    });
+  }
+});
+
+app.get('/api/voice/materials', (req, res) => {
+  try {
+    const { avatarId } = req.query;
+    const materials = voiceService.getVoiceMaterials(avatarId);
+
+    const materialList = materials.map(m => ({
+      id: m.id,
+      avatarId: m.avatarId,
+      name: m.name,
+      type: m.type,
+      format: m.format,
+      duration: m.duration,
+      size: m.size,
+      status: m.status,
+      qualityScore: m.qualityScore,
+      transcription: m.transcription,
+      preprocessInfo: m.preprocessInfo,
+      createdAt: m.createdAt,
+      updatedAt: m.updatedAt
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        total: materialList.length,
+        materials: materialList
+      }
+    });
+  } catch (error) {
+    console.error('获取声音素材列表错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取声音素材列表失败，请重试'
+    });
+  }
+});
+
+app.post('/api/voice/materials', (req, res) => {
+  try {
+    const {
+      avatarId,
+      name,
+      type,
+      format,
+      duration,
+      size,
+      audioData
+    } = req.body;
+
+    if (!avatarId || !name) {
+      return res.status(400).json({
+        success: false,
+        error: '缺少必要参数：avatarId 和 name'
+      });
+    }
+
+    const avatar = data.avatars.find(a => a.id === avatarId);
+    if (!avatar) {
+      return res.status(404).json({
+        success: false,
+        error: '关联的数字人不存在'
+      });
+    }
+
+    const material = voiceService.createVoiceMaterial(
+      avatarId,
+      name,
+      type,
+      format,
+      duration,
+      size,
+      audioData
+    );
+
+    res.json({
+      success: true,
+      data: {
+        id: material.id,
+        avatarId: material.avatarId,
+        name: material.name,
+        status: material.status,
+        createdAt: material.createdAt,
+        message: '声音素材创建成功'
+      }
+    });
+  } catch (error) {
+    console.error('创建声音素材错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '创建声音素材失败，请重试'
+    });
+  }
+});
+
+app.get('/api/voice/materials/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const material = voiceService.getVoiceMaterial(id);
+
+    if (!material) {
+      return res.status(404).json({
+        success: false,
+        error: '声音素材不存在'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: material.id,
+        avatarId: material.avatarId,
+        name: material.name,
+        type: material.type,
+        format: material.format,
+        duration: material.duration,
+        size: material.size,
+        status: material.status,
+        qualityScore: material.qualityScore,
+        transcription: material.transcription,
+        preprocessInfo: material.preprocessInfo,
+        createdAt: material.createdAt,
+        updatedAt: material.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error('获取声音素材错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取声音素材失败，请重试'
+    });
+  }
+});
+
+app.put('/api/voice/materials/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, transcription } = req.body;
+
+    const material = voiceService.updateVoiceMaterial(id, {
+      name,
+      transcription
+    });
+
+    if (!material) {
+      return res.status(404).json({
+        success: false,
+        error: '声音素材不存在'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: material.id,
+        name: material.name,
+        updatedAt: material.updatedAt,
+        message: '声音素材更新成功'
+      }
+    });
+  } catch (error) {
+    console.error('更新声音素材错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '更新声音素材失败，请重试'
+    });
+  }
+});
+
+app.delete('/api/voice/materials/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const success = voiceService.deleteVoiceMaterial(id);
+
+    if (!success) {
+      return res.status(404).json({
+        success: false,
+        error: '声音素材不存在'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: '声音素材已删除'
+    });
+  } catch (error) {
+    console.error('删除声音素材错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '删除声音素材失败，请重试'
+    });
+  }
+});
+
+app.post('/api/voice/materials/:id/preprocess', (req, res) => {
+  try {
+    const { id } = req.params;
+    const material = voiceService.preprocessAudio(id);
+
+    if (!material) {
+      return res.status(404).json({
+        success: false,
+        error: '声音素材不存在'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        materialId: material.id,
+        status: material.status,
+        message: '音频预处理任务已开始'
+      }
+    });
+  } catch (error) {
+    console.error('音频预处理错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '音频预处理失败，请重试'
+    });
+  }
+});
+
+app.post('/api/voice/materials/batch-preprocess', (req, res) => {
+  try {
+    const { materialIds } = req.body;
+
+    if (!materialIds || !Array.isArray(materialIds) || materialIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: '请提供至少一个素材ID'
+      });
+    }
+
+    const results = voiceService.batchPreprocess(materialIds);
+
+    res.json({
+      success: true,
+      data: {
+        total: materialIds.length,
+        results,
+        message: '批量预处理任务已开始'
+      }
+    });
+  } catch (error) {
+    console.error('批量预处理错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '批量预处理失败，请重试'
+    });
+  }
+});
+
+app.get('/api/voice/models', (req, res) => {
+  try {
+    const { avatarId } = req.query;
+    const models = voiceService.getVoiceModels(avatarId);
+
+    const modelList = models.map(m => ({
+      id: m.id,
+      avatarId: m.avatarId,
+      name: m.name,
+      status: m.status,
+      progress: m.progress,
+      materialIds: m.materialIds,
+      qualityMetrics: m.qualityMetrics,
+      trainingConfig: m.trainingConfig,
+      createdAt: m.createdAt,
+      updatedAt: m.updatedAt
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        total: modelList.length,
+        models: modelList
+      }
+    });
+  } catch (error) {
+    console.error('获取声音模型列表错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取声音模型列表失败，请重试'
+    });
+  }
+});
+
+app.post('/api/voice/models', (req, res) => {
+  try {
+    const {
+      avatarId,
+      name,
+      materialIds,
+      config
+    } = req.body;
+
+    if (!avatarId || !name) {
+      return res.status(400).json({
+        success: false,
+        error: '缺少必要参数：avatarId 和 name'
+      });
+    }
+
+    const avatar = data.avatars.find(a => a.id === avatarId);
+    if (!avatar) {
+      return res.status(404).json({
+        success: false,
+        error: '关联的数字人不存在'
+      });
+    }
+
+    if (!materialIds || !Array.isArray(materialIds) || materialIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: '请提供至少一个声音素材'
+      });
+    }
+
+    const validMaterials = materialIds.filter(id => {
+      const m = voiceService.getVoiceMaterial(id);
+      return m && m.avatarId === avatarId && m.status === 'preprocessed';
+    });
+
+    if (validMaterials.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: '没有有效的预处理后素材，请先预处理素材'
+      });
+    }
+
+    const model = voiceService.createVoiceModel(avatarId, name, validMaterials, config);
+
+    res.json({
+      success: true,
+      data: {
+        modelId: model.id,
+        avatarId: model.avatarId,
+        name: model.name,
+        status: model.status,
+        progress: model.progress,
+        materialCount: validMaterials.length,
+        message: '声线训练任务已开始'
+      }
+    });
+  } catch (error) {
+    console.error('创建声音模型错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '创建声音模型失败，请重试'
+    });
+  }
+});
+
+app.get('/api/voice/models/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const model = voiceService.getVoiceModel(id);
+
+    if (!model) {
+      return res.status(404).json({
+        success: false,
+        error: '声音模型不存在'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: model.id,
+        avatarId: model.avatarId,
+        name: model.name,
+        status: model.status,
+        progress: model.progress,
+        materialIds: model.materialIds,
+        qualityMetrics: model.qualityMetrics,
+        trainingConfig: model.trainingConfig,
+        modelPath: model.modelPath,
+        sampleAudioPath: model.sampleAudioPath,
+        createdAt: model.createdAt,
+        updatedAt: model.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error('获取声音模型错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取声音模型失败，请重试'
+    });
+  }
+});
+
+app.get('/api/voice/models/:id/status', (req, res) => {
+  try {
+    const { id } = req.params;
+    const model = voiceService.getVoiceModel(id);
+
+    if (!model) {
+      return res.status(404).json({
+        success: false,
+        error: '声音模型不存在'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        modelId: model.id,
+        status: model.status,
+        progress: model.progress,
+        qualityMetrics: model.qualityMetrics,
+        estimatedTimeRemaining: model.status === 'training'
+          ? Math.max(0, Math.round((100 - model.progress) * 0.5))
+          : 0
+      }
+    });
+  } catch (error) {
+    console.error('获取训练状态错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取训练状态失败，请重试'
+    });
+  }
+});
+
+app.delete('/api/voice/models/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const success = voiceService.deleteVoiceModel(id);
+
+    if (!success) {
+      return res.status(404).json({
+        success: false,
+        error: '声音模型不存在'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: '声音模型已删除'
+    });
+  } catch (error) {
+    console.error('删除声音模型错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '删除声音模型失败，请重试'
+    });
+  }
+});
+
+app.post('/api/voice/synthesize', (req, res) => {
+  try {
+    const {
+      modelId,
+      avatarId,
+      text,
+      options
+    } = req.body;
+
+    if (!text) {
+      return res.status(400).json({
+        success: false,
+        error: '请提供要合成的文本'
+      });
+    }
+
+    let targetModelId = modelId;
+
+    if (!targetModelId && avatarId) {
+      const avatar = data.avatars.find(a => a.id === avatarId);
+      if (avatar && avatar.voiceModelId) {
+        targetModelId = avatar.voiceModelId;
+      }
+    }
+
+    if (!targetModelId) {
+      return res.status(400).json({
+        success: false,
+        error: '请提供 modelId 或 avatarId（需要已绑定声音模型）'
+      });
+    }
+
+    const task = voiceService.synthesizeVoice(targetModelId, text, options);
+
+    if (!task) {
+      return res.status(400).json({
+        success: false,
+        error: '声音模型不存在或未准备好'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        taskId: task.id,
+        modelId: task.modelId,
+        avatarId: task.avatarId,
+        text: task.text,
+        status: task.status,
+        progress: task.progress,
+        message: '语音合成任务已开始'
+      }
+    });
+  } catch (error) {
+    console.error('语音合成错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '语音合成失败，请重试'
+    });
+  }
+});
+
+app.get('/api/voice/synthesis/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const task = voiceService.getSynthesisTask(id);
+
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        error: '合成任务不存在'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        taskId: task.id,
+        modelId: task.modelId,
+        avatarId: task.avatarId,
+        text: task.text,
+        options: task.options,
+        status: task.status,
+        progress: task.progress,
+        audioPath: task.audioPath,
+        duration: task.duration,
+        createdAt: task.createdAt,
+        updatedAt: task.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error('获取合成任务错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取合成任务失败，请重试'
+    });
+  }
+});
+
+app.put('/api/avatars/:id/voice-model', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { modelId } = req.body;
+
+    if (!modelId) {
+      return res.status(400).json({
+        success: false,
+        error: '请提供 modelId'
+      });
+    }
+
+    const avatar = voiceService.bindVoiceModelToAvatar(id, modelId);
+
+    if (!avatar) {
+      return res.status(404).json({
+        success: false,
+        error: '数字人或声音模型不存在，或模型不属于该数字人'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        avatarId: avatar.id,
+        voiceModelId: avatar.voiceModelId,
+        voiceEnabled: avatar.voiceEnabled,
+        voiceBoundAt: avatar.voiceBoundAt,
+        message: '声音模型已绑定到数字人'
+      }
+    });
+  } catch (error) {
+    console.error('绑定声音模型错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '绑定声音模型失败，请重试'
+    });
+  }
+});
+
+app.delete('/api/avatars/:id/voice-model', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const avatar = voiceService.unbindVoiceModelFromAvatar(id);
+
+    if (!avatar) {
+      return res.status(404).json({
+        success: false,
+        error: '数字人不存在'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        avatarId: avatar.id,
+        voiceModelId: avatar.voiceModelId,
+        voiceEnabled: avatar.voiceEnabled,
+        message: '声音模型已解绑'
+      }
+    });
+  } catch (error) {
+    console.error('解绑声音模型错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '解绑声音模型失败，请重试'
     });
   }
 });

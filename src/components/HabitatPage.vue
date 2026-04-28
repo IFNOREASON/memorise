@@ -339,6 +339,442 @@
             </div>
           </div>
 
+          <div v-else-if="activeModule === 'voice-training'" class="flex-1 flex flex-col">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h2 class="text-2xl font-bold text-[#5C4A3A] font-serif">声音训练</h2>
+                <p class="text-sm text-gray-500 mt-1">训练数字人的专属声音模型，实现个性化语音合成</p>
+              </div>
+              <button @click="showVoiceMaterialModal = true" 
+                      class="px-6 py-3 bg-[#8B6F4E] text-white rounded-xl font-medium hover:bg-[#6B5342] transition-colors flex items-center space-x-2">
+                <Icon icon="solar:plus-bold" class="text-lg" />
+                <span>添加声音素材</span>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div class="bg-white rounded-2xl p-4 shadow-soft border border-stone-100">
+                <div class="flex items-center space-x-3">
+                  <div class="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center">
+                    <Icon icon="solar:document-add-bold" class="text-amber-500 text-xl" />
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-500">声音素材</p>
+                    <p class="text-lg font-bold text-[#5C4A3A]">{{ voiceMaterialCount }}</p>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-white rounded-2xl p-4 shadow-soft border border-stone-100">
+                <div class="flex items-center space-x-3">
+                  <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                    <Icon icon="solar:refresh-bold" class="text-blue-500 text-xl" />
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-500">预处理完成</p>
+                    <p class="text-lg font-bold text-[#5C4A3A]">{{ preprocessedMaterialCount }}</p>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-white rounded-2xl p-4 shadow-soft border border-stone-100">
+                <div class="flex items-center space-x-3">
+                  <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                    <Icon icon="solar:microphone-linear" class="text-green-500 text-xl" />
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-500">声音模型</p>
+                    <p class="text-lg font-bold text-[#5C4A3A]">{{ voiceModelCount }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto space-y-6">
+              <div class="bg-white rounded-2xl shadow-soft border border-stone-100 overflow-hidden">
+                <div class="p-4 border-b border-[#E8D5C4] bg-[#FAF7F2]/50">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                      <div class="w-8 h-8 bg-[#8B6F4E] rounded-lg flex items-center justify-center">
+                        <Icon icon="solar:folder-music-bold" class="text-white" />
+                      </div>
+                      <div>
+                        <h3 class="font-bold text-[#5C4A3A]">选择数字人</h3>
+                        <p class="text-xs text-gray-500">为哪个数字人训练声音模型</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="p-4">
+                  <select 
+                    v-model="selectedVoiceAvatarId" 
+                    @change="loadVoiceDataForAvatar"
+                    class="w-full px-4 py-3 bg-white rounded-xl border border-[#E8D5C4] text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#8B6F4E]/30"
+                  >
+                    <option value="">请选择数字人</option>
+                    <option v-for="avatar in digitalAvatars" :key="avatar.id" :value="avatar.id">
+                      {{ avatar.name }} ({{ avatar.relationship }})
+                      <span v-if="avatar.voiceEnabled"> - 已绑定声音</span>
+                    </option>
+                  </select>
+                  
+                  <div v-if="selectedVoiceAvatar && selectedVoiceAvatar.voiceEnabled" class="mt-4 p-3 bg-green-50 rounded-xl border border-green-200">
+                    <div class="flex items-center space-x-2">
+                      <Icon icon="solar:check-circle-bold" class="text-green-500" />
+                      <span class="text-sm text-green-700">该数字人已绑定声音模型，可直接使用语音合成</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="selectedVoiceAvatarId" class="bg-white rounded-2xl shadow-soft border border-stone-100 overflow-hidden">
+                <div class="p-4 border-b border-[#E8D5C4] bg-[#FAF7F2]/50">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                      <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center">
+                        <Icon icon="solar:music-library-bold" class="text-white" />
+                      </div>
+                      <div>
+                        <h3 class="font-bold text-[#5C4A3A]">声音素材列表</h3>
+                        <p class="text-xs text-gray-500">需要预处理后才能用于训练</p>
+                      </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <button 
+                        @click="showVoiceMaterialModal = true"
+                        class="px-4 py-2 bg-[#8B6F4E] text-white rounded-lg text-sm font-medium hover:bg-[#6B5342] transition-colors flex items-center space-x-1"
+                      >
+                        <Icon icon="solar:plus-bold" class="text-sm" />
+                        <span>添加素材</span>
+                      </button>
+                      <button 
+                        @click="batchPreprocessMaterials"
+                        :disabled="selectedMaterialsForPreprocess.length === 0"
+                        class="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                      >
+                        <Icon icon="solar:refresh-bold" class="text-sm" />
+                        <span>批量预处理 ({{ selectedMaterialsForPreprocess.length }})</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="p-4">
+                  <div v-if="loadingVoiceMaterials" class="flex items-center justify-center py-8">
+                    <div class="text-center">
+                      <div class="w-8 h-8 border-3 border-[#E8D5C4] border-t-[#8B6F4E] rounded-full animate-spin mx-auto mb-2"></div>
+                      <p class="text-gray-500 text-sm">加载素材中...</p>
+                    </div>
+                  </div>
+
+                  <div v-else-if="voiceMaterials.length === 0" class="text-center py-8">
+                    <div class="w-16 h-16 mx-auto mb-4 bg-[#E8D5C4] rounded-full flex items-center justify-center">
+                      <Icon icon="solar:music-note-bold" class="text-3xl text-[#8B6F4E]" />
+                    </div>
+                    <h4 class="font-medium text-gray-600 mb-2">还没有声音素材</h4>
+                    <p class="text-sm text-gray-500 mb-4">上传录音或音频文件来开始训练</p>
+                    <button @click="showVoiceMaterialModal = true" class="px-4 py-2 bg-[#8B6F4E] text-white rounded-lg text-sm font-medium hover:bg-[#6B5342] transition-colors">
+                      添加第一个素材
+                    </button>
+                  </div>
+
+                  <div v-else class="space-y-3">
+                    <div v-for="material in voiceMaterials" :key="material.id"
+                         class="p-3 rounded-xl border transition-all"
+                         :class="[
+                           getMaterialStatusClass(material.status),
+                           selectedMaterialsForPreprocess.includes(material.id) ? 'ring-2 ring-blue-400' : ''
+                         ]">
+                      <div class="flex items-start space-x-3">
+                        <div v-if="material.status === 'raw'" class="pt-1">
+                          <input 
+                            type="checkbox" 
+                            :checked="selectedMaterialsForPreprocess.includes(material.id)"
+                            @change="toggleMaterialSelection(material.id)"
+                            class="w-4 h-4 rounded border-gray-300 text-[#8B6F4E] focus:ring-[#8B6F4E]"
+                          >
+                        </div>
+                        <div v-else class="pt-1">
+                          <div class="w-4 h-4 flex items-center justify-center">
+                            <Icon v-if="material.status === 'preprocessed'" icon="solar:check-circle-bold" class="text-green-500" />
+                            <Icon v-else-if="material.status === 'preprocessing'" icon="solar:loader-bold" class="text-blue-500 animate-spin" />
+                          </div>
+                        </div>
+                        
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center justify-between">
+                            <h4 class="font-medium text-gray-800 truncate">{{ material.name }}</h4>
+                            <span 
+                              class="px-2 py-0.5 rounded-full text-xs font-medium"
+                              :class="getMaterialStatusBadgeClass(material.status)"
+                            >
+                              {{ getMaterialStatusLabel(material.status) }}
+                            </span>
+                          </div>
+                          <div class="flex items-center space-x-4 mt-1 text-xs text-gray-500">
+                            <span class="flex items-center space-x-1">
+                              <Icon icon="solar:clock-circle-outline" class="text-xs" />
+                              <span>{{ formatDuration(material.duration) }}</span>
+                            </span>
+                            <span class="flex items-center space-x-1">
+                              <Icon icon="solar:document-outline" class="text-xs" />
+                              <span>{{ material.format.toUpperCase() }}</span>
+                            </span>
+                            <span v-if="material.qualityScore > 0" class="flex items-center space-x-1">
+                              <Icon icon="solar:star-bold" class="text-xs text-amber-500" />
+                              <span>质量: {{ material.qualityScore }}分</span>
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-1">
+                          <button 
+                            v-if="material.status === 'raw'"
+                            @click="preprocessSingleMaterial(material.id)"
+                            class="p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                            title="预处理"
+                          >
+                            <Icon icon="solar:refresh-bold" class="text-blue-500" />
+                          </button>
+                          <button 
+                            @click="deleteVoiceMaterial(material.id)"
+                            class="p-2 rounded-lg hover:bg-red-50 transition-colors"
+                            title="删除"
+                          >
+                            <Icon icon="solar:trash-bin-trash-bold" class="text-red-400" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="selectedVoiceAvatarId" class="bg-white rounded-2xl shadow-soft border border-stone-100 overflow-hidden">
+                <div class="p-4 border-b border-[#E8D5C4] bg-[#FAF7F2]/50">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                      <div class="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                        <Icon icon="solar:cpu-bold" class="text-white" />
+                      </div>
+                      <div>
+                        <h3 class="font-bold text-[#5C4A3A]">训练声音模型</h3>
+                        <p class="text-xs text-gray-500">使用预处理后的素材训练专属声音</p>
+                      </div>
+                    </div>
+                    <button 
+                      @click="startVoiceTraining"
+                      :disabled="preprocessedMaterialsForAvatar.length === 0 || isTrainingVoice"
+                      class="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-medium hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                    >
+                      <Icon v-if="isTrainingVoice" icon="solar:loader-bold" class="text-sm animate-spin" />
+                      <span>{{ isTrainingVoice ? '训练中...' : '开始训练' }}</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="p-4">
+                  <div v-if="currentTrainingModel" class="mb-4 p-4 bg-purple-50 rounded-xl border border-purple-200">
+                    <div class="flex items-center space-x-3 mb-4">
+                      <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                        <Icon 
+                          v-if="currentTrainingStage" 
+                          :icon="currentTrainingStage.icon" 
+                          class="text-2xl text-purple-600 animate-pulse" 
+                        />
+                      </div>
+                      <div class="flex-1">
+                        <div class="flex items-center justify-between">
+                          <span class="text-sm font-medium text-purple-800">
+                            {{ currentTrainingStage?.label }}
+                          </span>
+                          <span class="text-sm text-purple-600 font-bold">
+                            {{ currentTrainingModel.progress }}%
+                          </span>
+                        </div>
+                        <p class="text-xs text-purple-500 mt-1">
+                          {{ currentTrainingStage?.description }}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-xs text-purple-600">阶段进度</span>
+                      <span class="text-xs text-purple-500">
+                        预计剩余: {{ Math.max(0, Math.round((100 - currentTrainingModel.progress) * 0.5)) }}秒
+                      </span>
+                    </div>
+                    
+                    <div class="w-full bg-purple-200 rounded-full h-2 mb-4">
+                      <div 
+                        class="bg-purple-500 h-2 rounded-full transition-all duration-500"
+                        :style="{ width: currentTrainingModel.progress + '%' }"
+                      ></div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                      <div v-for="i in 5" :key="i" class="flex flex-col items-center">
+                        <div 
+                          class="w-3 h-3 rounded-full transition-all duration-300"
+                          :class="[
+                            currentTrainingStage && i <= currentTrainingStage.stage
+                              ? 'bg-purple-500'
+                              : 'bg-purple-200'
+                          ]"
+                        ></div>
+                        <span 
+                          class="text-[10px] mt-1"
+                          :class="currentTrainingStage && i <= currentTrainingStage.stage ? 'text-purple-600' : 'text-gray-400'"
+                        >
+                          {{ i === 1 ? '数据' : i === 2 ? '特征' : i === 3 ? '训练' : i === 4 ? '优化' : '评估' }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-if="voiceModelsForAvatar.length > 0" class="mb-4">
+                    <h4 class="text-sm font-medium text-gray-600 mb-2">已有模型</h4>
+                    <div class="space-y-2">
+                      <div v-for="model in voiceModelsForAvatar" :key="model.id"
+                           class="p-3 rounded-xl border"
+                           :class="model.status === 'ready' ? 'border-green-200 bg-green-50' : 'border-gray-200'">
+                        <div class="flex items-center justify-between">
+                          <div>
+                            <h5 class="font-medium text-gray-800">{{ model.name }}</h5>
+                            <div class="flex items-center space-x-3 mt-1 text-xs text-gray-500">
+                              <span>{{ model.materialIds.length }} 个素材</span>
+                              <span v-if="model.qualityMetrics">
+                                MOS: {{ model.qualityMetrics.mos?.toFixed(2) }}
+                              </span>
+                            </div>
+                          </div>
+                          <div class="flex items-center space-x-2">
+                            <span 
+                              class="px-2 py-0.5 rounded-full text-xs font-medium"
+                              :class="getModelStatusBadgeClass(model.status)"
+                            >
+                              {{ getModelStatusLabel(model.status) }}
+                            </span>
+                            <button 
+                              v-if="model.status === 'ready'"
+                              @click="bindModelToAvatar(model.id)"
+                              :disabled="selectedVoiceAvatar?.voiceModelId === model.id"
+                              class="px-3 py-1 bg-green-500 text-white rounded text-xs font-medium hover:bg-green-600 transition-colors disabled:opacity-50"
+                            >
+                              {{ selectedVoiceAvatar?.voiceModelId === model.id ? '已绑定' : '绑定' }}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-if="preprocessedMaterialsForAvatar.length === 0" class="text-center py-6">
+                    <Icon icon="solar:document-missing-bold" class="text-4xl text-gray-300 mx-auto mb-2" />
+                    <p class="text-sm text-gray-500">需要先预处理声音素材</p>
+                  </div>
+                  
+                  <div v-else class="p-3 bg-[#FAF7F2] rounded-xl">
+                    <p class="text-sm text-gray-600">
+                      <span class="font-medium">{{ preprocessedMaterialsForAvatar.length }}</span> 个素材已准备就绪，可以开始训练
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="selectedVoiceAvatar?.voiceEnabled" class="bg-white rounded-2xl shadow-soft border border-stone-100 overflow-hidden">
+                <div class="p-4 border-b border-[#E8D5C4] bg-[#FAF7F2]/50">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                      <Icon icon="solar:volume-high-bold" class="text-white" />
+                    </div>
+                    <div>
+                      <h3 class="font-bold text-[#5C4A3A]">语音合成</h3>
+                      <p class="text-xs text-gray-500">使用专属声音模型合成语音</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="p-4 space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">输入文本</label>
+                    <textarea 
+                      v-model="synthesisText"
+                      rows="3"
+                      placeholder="请输入要合成的文本..."
+                      class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8B6F4E] focus:border-transparent transition-all resize-none"
+                    ></textarea>
+                  </div>
+                  
+                  <div class="grid grid-cols-3 gap-4">
+                    <div>
+                      <label class="block text-sm text-gray-600 mb-1">语速</label>
+                      <input 
+                        type="range" 
+                        v-model.number="synthesisOptions.speed" 
+                        min="0.5" 
+                        max="2" 
+                        step="0.1"
+                        class="w-full"
+                      >
+                      <span class="text-xs text-gray-500">{{ synthesisOptions.speed.toFixed(1) }}x</span>
+                    </div>
+                    <div>
+                      <label class="block text-sm text-gray-600 mb-1">音调</label>
+                      <input 
+                        type="range" 
+                        v-model.number="synthesisOptions.pitch" 
+                        min="0.5" 
+                        max="2" 
+                        step="0.1"
+                        class="w-full"
+                      >
+                      <span class="text-xs text-gray-500">{{ synthesisOptions.pitch.toFixed(1) }}x</span>
+                    </div>
+                    <div>
+                      <label class="block text-sm text-gray-600 mb-1">情感</label>
+                      <select 
+                        v-model="synthesisOptions.emotion"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#8B6F4E]"
+                      >
+                        <option value="neutral">中性</option>
+                        <option value="happy">愉快</option>
+                        <option value="sad">悲伤</option>
+                        <option value="angry">生气</option>
+                        <option value="calm">平静</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <button 
+                    @click="synthesizeVoice"
+                    :disabled="!synthesisText.trim() || isSynthesizing"
+                    class="w-full px-6 py-3 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  >
+                    <Icon v-if="isSynthesizing" icon="solar:loader-bold" class="animate-spin" />
+                    <Icon v-else icon="solar:play-bold" />
+                    <span>{{ isSynthesizing ? '合成中...' : '开始合成' }}</span>
+                  </button>
+                  
+                  <div v-if="currentSynthesisTask" class="p-4 bg-green-50 rounded-xl border border-green-200">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <p class="text-sm font-medium text-green-700">
+                          {{ currentSynthesisTask.status === 'completed' ? '合成完成' : '合成中...' }}
+                        </p>
+                        <p v-if="currentSynthesisTask.status === 'completed'" class="text-xs text-green-600 mt-1">
+                          时长: {{ currentSynthesisTask.duration }}秒
+                        </p>
+                      </div>
+                      <button 
+                        v-if="currentSynthesisTask.status === 'completed'"
+                        class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex items-center space-x-1"
+                      >
+                        <Icon icon="solar:play-bold" class="text-sm" />
+                        <span>播放</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div v-else class="flex-1 flex items-center justify-center bg-white rounded-2xl border border-stone-100 shadow-soft">
             <div class="text-center p-12">
               <div class="w-24 h-24 mx-auto mb-6 bg-[#E8D5C4] rounded-full flex items-center justify-center">
@@ -1563,6 +1999,244 @@
         </div>
       </div>
     </div>
+
+    <div v-if="showVoiceMaterialModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full">
+        <div class="p-6 border-b border-[#E8D5C4] flex items-center justify-between">
+          <h3 class="text-xl font-bold text-[#5C4A3A] font-serif">添加声音素材</h3>
+          <button @click="closeVoiceMaterialModal" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
+            <Icon icon="solar:close-bold" class="text-gray-500" />
+          </button>
+        </div>
+
+        <div class="flex border-b border-[#E8D5C4]">
+          <button 
+            @click="voiceMaterialTab = 'recording'"
+            class="flex-1 py-4 text-center font-medium transition-all"
+            :class="[
+              voiceMaterialTab === 'recording' 
+                ? 'text-[#8B6F4E] border-b-2 border-[#8B6F4E]' 
+                : 'text-gray-500 hover:text-gray-700'
+            ]"
+          >
+            <div class="flex items-center justify-center space-x-2">
+              <Icon icon="solar:microphone-2-bold" class="text-lg" />
+              <span>在线录音</span>
+            </div>
+          </button>
+          <button 
+            @click="voiceMaterialTab = 'import'"
+            class="flex-1 py-4 text-center font-medium transition-all"
+            :class="[
+              voiceMaterialTab === 'import' 
+                ? 'text-[#8B6F4E] border-b-2 border-[#8B6F4E]' 
+                : 'text-gray-500 hover:text-gray-700'
+            ]"
+          >
+            <div class="flex items-center justify-center space-x-2">
+              <Icon icon="solar:folder-upload-bold" class="text-lg" />
+              <span>导入音频</span>
+            </div>
+          </button>
+        </div>
+
+        <div class="p-6">
+          <div v-if="voiceMaterialTab === 'recording'" class="space-y-6">
+            <div class="text-center">
+              <div 
+                class="w-32 h-32 mx-auto mb-6 rounded-full flex items-center justify-center transition-all cursor-pointer"
+                :class="[
+                  recordingState === 'idle' ? 'bg-gray-100 hover:bg-gray-200' :
+                  recordingState === 'recording' ? 'bg-red-100 animate-pulse' :
+                  'bg-green-100'
+                ]"
+                @click="handleRecordClick"
+              >
+                <Icon 
+                  v-if="recordingState === 'idle'" 
+                  icon="solar:microphone-3-bold" 
+                  class="text-5xl text-gray-400" 
+                />
+                <Icon 
+                  v-else-if="recordingState === 'recording'" 
+                  icon="solar:stop-circle-bold" 
+                  class="text-5xl text-red-500" 
+                />
+                <Icon 
+                  v-else 
+                  icon="solar:check-circle-bold" 
+                  class="text-5xl text-green-500" 
+                />
+              </div>
+              
+              <p v-if="recordingState === 'idle'" class="text-gray-600 mb-2">
+                点击麦克风图标开始录音
+              </p>
+              <p v-else-if="recordingState === 'recording'" class="text-red-500 font-medium text-lg mb-2">
+                正在录音...
+              </p>
+              <p v-else class="text-green-600 mb-2">
+                录音完成
+              </p>
+              
+              <div v-if="recordingState === 'recording'" class="text-2xl font-mono font-bold text-[#5C4A3A]">
+                {{ formatRecordingTime(recordingDuration) }}
+              </div>
+              
+              <div v-if="recordingState === 'recording'" class="flex justify-center items-center space-x-1 mt-4">
+                <div 
+                  v-for="i in 5" 
+                  :key="i" 
+                  class="w-1.5 bg-red-400 rounded-full animate-bounce"
+                  :style="{
+                    height: `${20 + Math.random() * 20}px`,
+                    animationDelay: `${i * 0.1}s`
+                  }"
+                ></div>
+              </div>
+            </div>
+
+            <div v-if="recordedAudioUrl" class="p-4 bg-gray-50 rounded-xl">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center space-x-3">
+                  <Icon icon="solar:music-note-bold" class="text-2xl text-[#8B6F4E]" />
+                  <div>
+                    <p class="font-medium text-gray-800">录音素材</p>
+                    <p class="text-sm text-gray-500">{{ formatRecordingTime(recordingDuration) }} · WAV格式</p>
+                  </div>
+                </div>
+                <button 
+                  @click="clearRecording"
+                  class="text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <Icon icon="solar:close-circle-bold" class="text-xl" />
+                </button>
+              </div>
+              <audio 
+                v-if="recordedAudioUrl" 
+                :src="recordedAudioUrl" 
+                controls 
+                class="w-full"
+              ></audio>
+              <div class="flex justify-end space-x-3 mt-3">
+                <button 
+                  @click="reRecord"
+                  class="px-4 py-2 border border-[#E8D5C4] text-[#8B6F4E] rounded-lg text-sm font-medium hover:bg-[#E8D5C4]/50 transition-colors"
+                >
+                  重新录制
+                </button>
+              </div>
+            </div>
+
+            <div v-if="recordingState === 'idle' && !recordedAudioUrl" class="p-4 bg-amber-50 rounded-xl border border-amber-200">
+              <div class="flex items-start space-x-3">
+                <Icon icon="solar:info-circle-bold" class="text-amber-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p class="text-sm font-medium text-amber-800 mb-1">录音提示</p>
+                  <p class="text-xs text-amber-700">
+                    建议在安静环境下录制，时长30秒以上效果最佳。<br>
+                    录音内容建议是清晰的日常对话或朗读，尽量接近数字人的真实说话风格。
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else-if="voiceMaterialTab === 'import'" class="space-y-6">
+            <div 
+              @click="triggerFileUpload"
+              @dragover.prevent="isDraggingOver = true"
+              @dragleave.prevent="isDraggingOver = false"
+              @drop.prevent="handleFileDrop"
+              class="border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all"
+              :class="[
+                importedAudioFile ? 'border-[#8B6F4E] bg-[#FAF7F2]/30' :
+                isDraggingOver ? 'border-[#8B6F4E] bg-[#FAF7F2]/30' :
+                'border-gray-300 hover:border-[#8B6F4E] hover:bg-[#FAF7F2]/50'
+              ]"
+            >
+              <div v-if="!importedAudioFile">
+                <Icon icon="solar:folder-upload-bold" class="text-5xl text-gray-400 mx-auto mb-4" />
+                <p class="text-gray-600 mb-2">点击选择或拖拽音频文件到此处</p>
+                <p class="text-xs text-gray-400">支持 WAV、MP3、M4A 格式</p>
+              </div>
+              <div v-else class="flex items-center justify-center space-x-4">
+                <div class="w-16 h-16 bg-[#8B6F4E]/10 rounded-xl flex items-center justify-center">
+                  <Icon icon="solar:music-note-bold" class="text-3xl text-[#8B6F4E]" />
+                </div>
+                <div class="text-left">
+                  <p class="font-medium text-gray-800">{{ importedAudioFile.name }}</p>
+                  <p class="text-sm text-gray-500">{{ formatFileSize(importedAudioFile.size) }}</p>
+                </div>
+                <button 
+                  @click.stop="clearImportedFile"
+                  class="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                >
+                  <Icon icon="solar:close-circle-bold" class="text-gray-400 text-xl" />
+                </button>
+              </div>
+            </div>
+
+            <input 
+              type="file" 
+              ref="audioFileInput"
+              @change="handleFileSelect"
+              accept="audio/*"
+              class="hidden"
+            />
+
+            <div v-if="importedAudioUrl" class="p-4 bg-gray-50 rounded-xl">
+              <p class="text-sm font-medium text-gray-700 mb-3">音频预览</p>
+              <audio 
+                :src="importedAudioUrl" 
+                controls 
+                class="w-full"
+              ></audio>
+            </div>
+
+            <div class="p-4 bg-amber-50 rounded-xl border border-amber-200">
+              <div class="flex items-start space-x-3">
+                <Icon icon="solar:info-circle-bold" class="text-amber-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p class="text-sm font-medium text-amber-800 mb-1">导入提示</p>
+                  <p class="text-xs text-amber-700">
+                    建议导入时长30秒以上、质量清晰的音频文件。<br>
+                    音频内容建议是清晰的日常对话或朗读，尽量接近数字人的真实说话风格。
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-6 border-t border-[#E8D5C4]">
+            <label class="block text-sm font-medium text-gray-700 mb-2">素材名称 <span class="text-red-500">*</span></label>
+            <input 
+              type="text" 
+              v-model="newMaterialName"
+              placeholder="请输入素材名称"
+              class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8B6F4E] focus:border-transparent transition-all"
+            />
+          </div>
+        </div>
+
+        <div class="p-6 border-t border-[#E8D5C4] flex justify-end space-x-3">
+          <button 
+            @click="closeVoiceMaterialModal"
+            class="px-6 py-3 border border-gray-200 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+          >
+            取消
+          </button>
+          <button 
+            @click="submitVoiceMaterial"
+            :disabled="!canSubmitMaterial || isUploadingMaterial"
+            class="px-6 py-3 bg-[#8B6F4E] text-white rounded-xl font-medium hover:bg-[#6B5342] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+          >
+            <Icon v-if="isUploadingMaterial" icon="solar:loader-bold" class="animate-spin" />
+            <span>{{ isUploadingMaterial ? '保存中...' : '确认保存' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1593,6 +2267,9 @@ interface DigitalAvatar {
   generationMethod?: 'photo' | 'text' | 'manual'
   description?: string
   fineTuneAdjustments?: FineTuneAdjustments
+  voiceModelId?: string
+  voiceEnabled?: boolean
+  voiceBoundAt?: string
 }
 
 interface HabitatModule {
@@ -1640,7 +2317,10 @@ const loadAvatars = async () => {
         lastInteraction: avatar.lastInteraction,
         generationMethod: avatar.generationMethod as 'photo' | 'text' | 'manual',
         description: avatar.description,
-        fineTuneAdjustments: avatar.fineTuneAdjustments
+        fineTuneAdjustments: avatar.fineTuneAdjustments,
+        voiceModelId: avatar.voiceModelId,
+        voiceEnabled: avatar.voiceEnabled || false,
+        voiceBoundAt: avatar.voiceBoundAt
       }))
     }
   } catch (error) {
@@ -2624,6 +3304,723 @@ const deleteMemoryForHabitat = async () => {
   } catch (error) {
     console.error('删除记忆失败:', error)
     alert('删除记忆失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  }
+}
+
+interface VoiceMaterial {
+  id: string
+  avatarId: string
+  name: string
+  type: 'recording' | 'upload'
+  format: string
+  duration: number
+  size: number
+  status: 'raw' | 'preprocessing' | 'preprocessed'
+  qualityScore: number
+  transcription: string
+  preprocessInfo?: {
+    noiseReduction: string
+    volumeNormalized: boolean
+    silenceRemoved: boolean
+    formatConverted: string
+    processedAt: string
+  }
+  createdAt: string
+  updatedAt: string
+}
+
+interface VoiceModel {
+  id: string
+  avatarId: string
+  name: string
+  status: 'training' | 'ready' | 'failed'
+  progress: number
+  materialIds: string[]
+  qualityMetrics?: {
+    mos: number
+    similarity: number
+    naturalness: number
+  }
+  trainingConfig: {
+    epochs: number
+    batchSize: number
+    learningRate: number
+  }
+  modelPath?: string
+  sampleAudioPath?: string
+  createdAt: string
+  updatedAt: string
+}
+
+interface VoiceSynthesisTask {
+  id: string
+  modelId: string
+  avatarId: string
+  text: string
+  options: {
+    speed: number
+    pitch: number
+    emotion: string
+  }
+  status: 'synthesizing' | 'completed' | 'failed'
+  progress: number
+  audioPath?: string
+  duration: number
+  createdAt: string
+  updatedAt: string
+}
+
+const selectedVoiceAvatarId = ref('')
+const voiceMaterials = ref<VoiceMaterial[]>([])
+const voiceModelsForAvatar = ref<VoiceModel[]>([])
+const loadingVoiceMaterials = ref(false)
+const selectedMaterialsForPreprocess = ref<string[]>([])
+const isTrainingVoice = ref(false)
+const currentTrainingModel = ref<VoiceModel | null>(null)
+const isSynthesizing = ref(false)
+const currentSynthesisTask = ref<VoiceSynthesisTask | null>(null)
+const showVoiceMaterialModal = ref(false)
+const trainingPollInterval = ref<number | null>(null)
+
+const voiceMaterialTab = ref<'recording' | 'import'>('recording')
+
+const recordingState = ref<'idle' | 'recording' | 'finished'>('idle')
+const recordingDuration = ref(0)
+const recordingTimer = ref<number | null>(null)
+const mediaRecorder = ref<MediaRecorder | null>(null)
+const recordedChunks = ref<Blob[]>([])
+const recordedAudioUrl = ref<string | null>(null)
+
+const isDraggingOver = ref(false)
+const importedAudioFile = ref<File | null>(null)
+const importedAudioUrl = ref<string | null>(null)
+const audioFileInput = ref<HTMLInputElement | null>(null)
+
+const newMaterialName = ref('')
+const isUploadingMaterial = ref(false)
+
+const canSubmitMaterial = computed(() => {
+  if (!newMaterialName.value.trim()) return false
+  if (voiceMaterialTab.value === 'recording') {
+    return recordedAudioUrl.value !== null
+  }
+  return importedAudioFile.value !== null
+})
+
+const selectedVoiceAvatar = computed(() => {
+  return digitalAvatars.value.find(a => a.id === selectedVoiceAvatarId.value) || null
+})
+
+const voiceMaterialCount = computed(() => voiceMaterials.value.length)
+const preprocessedMaterialCount = computed(() => 
+  voiceMaterials.value.filter(m => m.status === 'preprocessed').length
+)
+const voiceModelCount = computed(() => voiceModelsForAvatar.value.length)
+
+const preprocessedMaterialsForAvatar = computed(() => 
+  voiceMaterials.value.filter(m => m.status === 'preprocessed')
+)
+
+const currentTrainingStage = computed(() => {
+  if (!currentTrainingModel.value) return null
+  
+  const progress = currentTrainingModel.value.progress
+  
+  if (progress < 25) {
+    return {
+      stage: 1,
+      label: '数据预处理',
+      description: '正在分析和处理音频数据...',
+      icon: 'solar:slider-horizontal-bold'
+    }
+  } else if (progress < 50) {
+    return {
+      stage: 2,
+      label: '特征提取',
+      description: '正在提取声纹特征...',
+      icon: 'solar:graph-up-bold'
+    }
+  } else if (progress < 75) {
+    return {
+      stage: 3,
+      label: '模型训练',
+      description: '正在训练声音模型...',
+      icon: 'solar:cpu-bold'
+    }
+  } else if (progress < 95) {
+    return {
+      stage: 4,
+      label: '模型优化',
+      description: '正在优化模型参数...',
+      icon: 'solar:magic-stick-2-bold'
+    }
+  } else {
+    return {
+      stage: 5,
+      label: '质量评估',
+      description: '正在评估模型质量...',
+      icon: 'solar:check-circle-bold'
+    }
+  }
+})
+
+const loadVoiceDataForAvatar = async () => {
+  if (!selectedVoiceAvatarId.value) {
+    voiceMaterials.value = []
+    voiceModelsForAvatar.value = []
+    return
+  }
+
+  loadingVoiceMaterials.value = true
+  try {
+    const [materialsResponse, modelsResponse] = await Promise.all([
+      apiService.getVoiceMaterials({ avatarId: selectedVoiceAvatarId.value }),
+      apiService.getVoiceModels({ avatarId: selectedVoiceAvatarId.value })
+    ])
+
+    if (materialsResponse.success && materialsResponse.data) {
+      voiceMaterials.value = materialsResponse.data.materials as VoiceMaterial[]
+    }
+    if (modelsResponse.success && modelsResponse.data) {
+      voiceModelsForAvatar.value = modelsResponse.data.models as VoiceModel[]
+      
+      const trainingModel = voiceModelsForAvatar.value.find(m => m.status === 'training')
+      if (trainingModel) {
+        currentTrainingModel.value = trainingModel
+        isTrainingVoice.value = true
+        startTrainingPolling(trainingModel.id)
+      }
+    }
+  } catch (error) {
+    console.error('加载声音数据失败:', error)
+  } finally {
+    loadingVoiceMaterials.value = false
+  }
+}
+
+const toggleMaterialSelection = (materialId: string) => {
+  const index = selectedMaterialsForPreprocess.value.indexOf(materialId)
+  if (index > -1) {
+    selectedMaterialsForPreprocess.value.splice(index, 1)
+  } else {
+    selectedMaterialsForPreprocess.value.push(materialId)
+  }
+}
+
+const preprocessSingleMaterial = async (materialId: string) => {
+  try {
+    const response = await apiService.preprocessVoiceMaterial(materialId)
+    if (response.success) {
+      const material = voiceMaterials.value.find(m => m.id === materialId)
+      if (material) {
+        material.status = 'preprocessing'
+      }
+      setTimeout(() => loadVoiceDataForAvatar(), 4000)
+    } else {
+      alert('预处理失败: ' + (response.error || '未知错误'))
+    }
+  } catch (error) {
+    console.error('预处理失败:', error)
+    alert('预处理失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  }
+}
+
+const batchPreprocessMaterials = async () => {
+  if (selectedMaterialsForPreprocess.value.length === 0) return
+  
+  try {
+    const response = await apiService.batchPreprocessVoiceMaterials(selectedMaterialsForPreprocess.value)
+    if (response.success) {
+      selectedMaterialsForPreprocess.value.forEach(id => {
+        const material = voiceMaterials.value.find(m => m.id === id)
+        if (material) {
+          material.status = 'preprocessing'
+        }
+      })
+      selectedMaterialsForPreprocess.value = []
+      setTimeout(() => loadVoiceDataForAvatar(), 4000)
+    } else {
+      alert('批量预处理失败: ' + (response.error || '未知错误'))
+    }
+  } catch (error) {
+    console.error('批量预处理失败:', error)
+    alert('批量预处理失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  }
+}
+
+const deleteVoiceMaterial = async (materialId: string) => {
+  if (!confirm('确定要删除这个声音素材吗？')) return
+  
+  try {
+    const response = await apiService.deleteVoiceMaterial(materialId)
+    if (response.success) {
+      const index = voiceMaterials.value.findIndex(m => m.id === materialId)
+      if (index > -1) {
+        voiceMaterials.value.splice(index, 1)
+      }
+    } else {
+      alert('删除素材失败: ' + (response.error || '未知错误'))
+    }
+  } catch (error) {
+    console.error('删除素材失败:', error)
+    alert('删除素材失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  }
+}
+
+const startVoiceTraining = async () => {
+  if (preprocessedMaterialsForAvatar.value.length === 0) {
+    alert('需要至少一个预处理完成的素材才能开始训练')
+    return
+  }
+
+  if (!selectedVoiceAvatar.value) {
+    alert('请先选择数字人')
+    return
+  }
+
+  try {
+    const response = await apiService.createVoiceModel({
+      avatarId: selectedVoiceAvatarId.value,
+      name: `${selectedVoiceAvatar.value.name}的专属声音`,
+      materialIds: preprocessedMaterialsForAvatar.value.map(m => m.id)
+    })
+
+    if (response.success && response.data) {
+      currentTrainingModel.value = {
+        id: response.data.modelId,
+        avatarId: selectedVoiceAvatarId.value,
+        name: `${selectedVoiceAvatar.value.name}的专属声音`,
+        status: 'training',
+        progress: 0,
+        materialIds: preprocessedMaterialsForAvatar.value.map(m => m.id),
+        trainingConfig: {
+          epochs: 100,
+          batchSize: 16,
+          learningRate: 0.0001
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+      
+      isTrainingVoice.value = true
+      startTrainingPolling(response.data.modelId)
+      alert('训练任务已开始，请耐心等待')
+    } else {
+      alert('创建训练任务失败: ' + (response.error || '未知错误'))
+    }
+  } catch (error) {
+    console.error('开始训练失败:', error)
+    alert('开始训练失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  }
+}
+
+const startTrainingPolling = (modelId: string) => {
+  if (trainingPollInterval.value) {
+    clearInterval(trainingPollInterval.value)
+  }
+
+  if (!currentTrainingModel.value) {
+    const existingModel = voiceModelsForAvatar.value.find(m => m.id === modelId)
+    if (existingModel) {
+      currentTrainingModel.value = { ...existingModel }
+    }
+  }
+
+  trainingPollInterval.value = window.setInterval(async () => {
+    try {
+      const response = await apiService.getVoiceModelStatus(modelId)
+      if (response.success && response.data) {
+        if (currentTrainingModel.value) {
+          currentTrainingModel.value.progress = response.data.progress
+          currentTrainingModel.value.status = response.data.status as 'training' | 'ready' | 'failed'
+          if (response.data.qualityMetrics) {
+            currentTrainingModel.value.qualityMetrics = response.data.qualityMetrics
+          }
+        }
+
+        if (response.data.status === 'ready' || response.data.status === 'failed') {
+          if (trainingPollInterval.value) {
+            clearInterval(trainingPollInterval.value)
+            trainingPollInterval.value = null
+          }
+          isTrainingVoice.value = false
+          
+          if (response.data.status === 'ready') {
+            alert('训练完成！声音模型已准备就绪')
+          } else {
+            alert('训练失败，请重试')
+          }
+          
+          loadVoiceDataForAvatar()
+          loadAvatars()
+        }
+      }
+    } catch (error) {
+      console.error('轮询训练状态失败:', error)
+    }
+  }, 2000)
+}
+
+const bindModelToAvatar = async (modelId: string) => {
+  if (!selectedVoiceAvatarId.value) return
+  
+  try {
+    const response = await apiService.bindVoiceModelToAvatar(selectedVoiceAvatarId.value, modelId)
+    if (response.success) {
+      alert('声音模型已绑定到数字人')
+      loadAvatars()
+      loadVoiceDataForAvatar()
+    } else {
+      alert('绑定失败: ' + (response.error || '未知错误'))
+    }
+  } catch (error) {
+    console.error('绑定模型失败:', error)
+    alert('绑定失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  }
+}
+
+const synthesisText = ref('')
+const synthesisOptions = ref<{
+  speed: number
+  pitch: number
+  emotion: 'neutral' | 'happy' | 'sad' | 'angry' | 'calm'
+}>({
+  speed: 1.0,
+  pitch: 1.0,
+  emotion: 'neutral'
+})
+
+const synthesizeVoice = async () => {
+  if (!synthesisText.value.trim()) {
+    alert('请输入要合成的文本')
+    return
+  }
+
+  if (!selectedVoiceAvatar.value?.voiceModelId) {
+    alert('数字人没有绑定声音模型')
+    return
+  }
+
+  isSynthesizing.value = true
+  currentSynthesisTask.value = null
+
+  try {
+    const response = await apiService.synthesizeVoice({
+      avatarId: selectedVoiceAvatarId.value,
+      text: synthesisText.value,
+      options: {
+        speed: synthesisOptions.value.speed,
+        pitch: synthesisOptions.value.pitch,
+        emotion: synthesisOptions.value.emotion
+      }
+    })
+
+    if (response.success && response.data) {
+      pollSynthesisStatus(response.data.taskId)
+    } else {
+      alert('创建合成任务失败: ' + (response.error || '未知错误'))
+      isSynthesizing.value = false
+    }
+  } catch (error) {
+    console.error('语音合成失败:', error)
+    alert('语音合成失败: ' + (error instanceof Error ? error.message : '未知错误'))
+    isSynthesizing.value = false
+  }
+}
+
+const pollSynthesisStatus = async (taskId: string) => {
+  const poll = async () => {
+    try {
+      const response = await apiService.getVoiceSynthesisTask(taskId)
+      if (response.success && response.data) {
+        currentSynthesisTask.value = response.data as VoiceSynthesisTask
+        
+        if (response.data.status === 'completed') {
+          isSynthesizing.value = false
+        } else if (response.data.status === 'failed') {
+          isSynthesizing.value = false
+          alert('语音合成失败')
+        } else {
+          setTimeout(poll, 1000)
+        }
+      }
+    } catch (error) {
+      console.error('轮询合成状态失败:', error)
+      isSynthesizing.value = false
+    }
+  }
+  poll()
+}
+
+const getMaterialStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
+    raw: '待预处理',
+    preprocessing: '预处理中',
+    preprocessed: '已预处理'
+  }
+  return labels[status] || status
+}
+
+const getMaterialStatusClass = (status: string) => {
+  const classes: Record<string, string> = {
+    raw: 'border-gray-200 bg-gray-50',
+    preprocessing: 'border-blue-200 bg-blue-50',
+    preprocessed: 'border-green-200 bg-green-50'
+  }
+  return classes[status] || 'border-gray-200'
+}
+
+const getMaterialStatusBadgeClass = (status: string) => {
+  const classes: Record<string, string> = {
+    raw: 'bg-gray-100 text-gray-600',
+    preprocessing: 'bg-blue-100 text-blue-600',
+    preprocessed: 'bg-green-100 text-green-600'
+  }
+  return classes[status] || 'bg-gray-100'
+}
+
+const getModelStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
+    training: '训练中',
+    ready: '已就绪',
+    failed: '训练失败'
+  }
+  return labels[status] || status
+}
+
+const getModelStatusBadgeClass = (status: string) => {
+  const classes: Record<string, string> = {
+    training: 'bg-blue-100 text-blue-600',
+    ready: 'bg-green-100 text-green-600',
+    failed: 'bg-red-100 text-red-600'
+  }
+  return classes[status] || 'bg-gray-100'
+}
+
+const formatDuration = (seconds: number) => {
+  if (!seconds) return '0秒'
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return mins > 0 ? `${mins}分${secs}秒` : `${secs}秒`
+}
+
+const formatFileSize = (bytes: number) => {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const formatRecordingTime = (seconds: number) => {
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+}
+
+const handleRecordClick = () => {
+  if (recordingState.value === 'idle') {
+    startRecording()
+  } else if (recordingState.value === 'recording') {
+    stopRecording()
+  }
+}
+
+const startRecording = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    recordedChunks.value = []
+    recordingDuration.value = 0
+    
+    const recorder = new MediaRecorder(stream)
+    mediaRecorder.value = recorder
+    
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        recordedChunks.value.push(event.data)
+      }
+    }
+    
+    recorder.onstop = () => {
+      const audioBlob = new Blob(recordedChunks.value, { type: 'audio/wav' })
+      if (recordedAudioUrl.value) {
+        URL.revokeObjectURL(recordedAudioUrl.value)
+      }
+      recordedAudioUrl.value = URL.createObjectURL(audioBlob)
+      recordingState.value = 'finished'
+      stream.getTracks().forEach(track => track.stop())
+    }
+    
+    recorder.start()
+    recordingState.value = 'recording'
+    
+    recordingTimer.value = window.setInterval(() => {
+      recordingDuration.value++
+    }, 1000)
+    
+  } catch (error) {
+    console.error('无法访问麦克风:', error)
+    alert('无法访问麦克风，请确保已授权麦克风权限')
+  }
+}
+
+const stopRecording = () => {
+  if (mediaRecorder.value && recordingState.value === 'recording') {
+    mediaRecorder.value.stop()
+    if (recordingTimer.value) {
+      clearInterval(recordingTimer.value)
+      recordingTimer.value = null
+    }
+  }
+}
+
+const clearRecording = () => {
+  if (recordingTimer.value) {
+    clearInterval(recordingTimer.value)
+    recordingTimer.value = null
+  }
+  if (recordedAudioUrl.value) {
+    URL.revokeObjectURL(recordedAudioUrl.value)
+  }
+  recordedAudioUrl.value = null
+  recordedChunks.value = []
+  recordingDuration.value = 0
+  recordingState.value = 'idle'
+  mediaRecorder.value = null
+}
+
+const reRecord = () => {
+  clearRecording()
+}
+
+const triggerFileUpload = () => {
+  audioFileInput.value?.click()
+}
+
+const handleFileSelect = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  if (target.files && target.files.length > 0) {
+    const file = target.files[0]
+    if (file.type.startsWith('audio/') || 
+        file.name.toLowerCase().endsWith('.wav') || 
+        file.name.toLowerCase().endsWith('.mp3') ||
+        file.name.toLowerCase().endsWith('.m4a')) {
+      importedAudioFile.value = file
+      if (importedAudioUrl.value) {
+        URL.revokeObjectURL(importedAudioUrl.value)
+      }
+      importedAudioUrl.value = URL.createObjectURL(file)
+      if (!newMaterialName.value) {
+        newMaterialName.value = file.name.replace(/\.[^/.]+$/, '')
+      }
+      isDraggingOver.value = false
+    } else {
+      alert('请选择音频文件（WAV、MP3、M4A格式）')
+    }
+  }
+}
+
+const handleFileDrop = (event: DragEvent) => {
+  isDraggingOver.value = false
+  if (event.dataTransfer && event.dataTransfer.files.length > 0) {
+    const file = event.dataTransfer.files[0]
+    if (file.type.startsWith('audio/') || 
+        file.name.toLowerCase().endsWith('.wav') || 
+        file.name.toLowerCase().endsWith('.mp3') ||
+        file.name.toLowerCase().endsWith('.m4a')) {
+      importedAudioFile.value = file
+      if (importedAudioUrl.value) {
+        URL.revokeObjectURL(importedAudioUrl.value)
+      }
+      importedAudioUrl.value = URL.createObjectURL(file)
+      if (!newMaterialName.value) {
+        newMaterialName.value = file.name.replace(/\.[^/.]+$/, '')
+      }
+    } else {
+      alert('请选择音频文件（WAV、MP3、M4A格式）')
+    }
+  }
+}
+
+const clearImportedFile = () => {
+  if (importedAudioUrl.value) {
+    URL.revokeObjectURL(importedAudioUrl.value)
+  }
+  importedAudioFile.value = null
+  importedAudioUrl.value = null
+  isDraggingOver.value = false
+  if (audioFileInput.value) {
+    audioFileInput.value.value = ''
+  }
+}
+
+const closeVoiceMaterialModal = () => {
+  showVoiceMaterialModal.value = false
+  voiceMaterialTab.value = 'recording'
+  clearRecording()
+  clearImportedFile()
+  newMaterialName.value = ''
+  isUploadingMaterial.value = false
+}
+
+const submitVoiceMaterial = async () => {
+  if (!newMaterialName.value.trim()) {
+    alert('请输入素材名称')
+    return
+  }
+
+  if (!selectedVoiceAvatarId.value) {
+    alert('请先选择数字人')
+    return
+  }
+
+  let materialType: 'recording' | 'upload'
+  let format = 'wav'
+  let duration = 0
+  let size = 0
+
+  if (voiceMaterialTab.value === 'recording') {
+    if (!recordedAudioUrl.value) {
+      alert('请先录制音频')
+      return
+    }
+    materialType = 'recording'
+    duration = recordingDuration.value
+    size = 0
+  } else {
+    if (!importedAudioFile.value) {
+      alert('请选择音频文件')
+      return
+    }
+    materialType = 'upload'
+    format = importedAudioFile.value.type.split('/')[1] || 'wav'
+    size = importedAudioFile.value.size
+  }
+
+  isUploadingMaterial.value = true
+
+  try {
+    const response = await apiService.createVoiceMaterial({
+      avatarId: selectedVoiceAvatarId.value,
+      name: newMaterialName.value,
+      type: materialType,
+      format: format,
+      duration: duration,
+      size: size
+    })
+
+    if (response.success) {
+      alert('素材保存成功！')
+      closeVoiceMaterialModal()
+      loadVoiceDataForAvatar()
+    } else {
+      alert('保存失败: ' + (response.error || '未知错误'))
+    }
+  } catch (error) {
+    console.error('保存素材失败:', error)
+    alert('保存失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  } finally {
+    isUploadingMaterial.value = false
   }
 }
 </script>
