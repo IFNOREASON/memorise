@@ -97,7 +97,13 @@
             </div>
 
             <div class="flex-1 overflow-y-auto">
-              <div v-if="digitalAvatars.length === 0" class="flex-1 flex items-center justify-center bg-white rounded-2xl border border-stone-100 shadow-soft">
+              <div v-if="isLoadingAvatars" class="flex-1 flex items-center justify-center">
+                <div class="text-center">
+                  <div class="w-12 h-12 border-4 border-[#E8D5C4] border-t-[#8B6F4E] rounded-full animate-spin mx-auto mb-4"></div>
+                  <p class="text-gray-500 text-sm">加载中...</p>
+                </div>
+              </div>
+              <div v-else-if="digitalAvatars.length === 0" class="flex-1 flex items-center justify-center bg-white rounded-2xl border border-stone-100 shadow-soft">
                 <div class="text-center p-12">
                   <div class="w-24 h-24 mx-auto mb-6 bg-[#E8D5C4] rounded-full flex items-center justify-center">
                     <Icon icon="solar:user-square-bold" class="text-5xl text-[#8B6F4E]" />
@@ -195,7 +201,7 @@
               <button @click="goToCreateMemory" 
                       class="px-6 py-3 bg-[#8B6F4E] text-white rounded-xl font-medium hover:bg-[#6B5342] transition-colors flex items-center space-x-2">
                 <Icon icon="solar:plus-bold" class="text-lg" />
-                <span>上传新记忆</span>
+                <span>新建记忆</span>
               </button>
             </div>
 
@@ -266,7 +272,7 @@
                   <p class="text-sm text-gray-500 mb-6">上传您的第一个记忆，让数字人更加生动</p>
                   <button @click="goToCreateMemory" class="px-6 py-3 bg-[#8B6F4E] text-white rounded-xl font-medium hover:bg-[#6B5342] transition-colors flex items-center space-x-2 mx-auto">
                     <Icon icon="solar:plus-bold" class="text-lg" />
-                    <span>上传第一个记忆</span>
+                    <span>新建记忆</span>
                   </button>
                 </div>
               </div>
@@ -439,6 +445,7 @@
                     </div>
                     <div class="flex items-center space-x-2">
                       <button 
+                        type="button"
                         @click="showVoiceMaterialModal = true"
                         class="px-4 py-2 bg-[#8B6F4E] text-white rounded-lg text-sm font-medium hover:bg-[#6B5342] transition-colors flex items-center space-x-1"
                       >
@@ -446,6 +453,7 @@
                         <span>添加素材</span>
                       </button>
                       <button 
+                        type="button"
                         @click="batchPreprocessMaterials"
                         :disabled="selectedMaterialsForPreprocess.length === 0"
                         class="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
@@ -526,6 +534,7 @@
                         
                         <div class="flex items-center space-x-1">
                           <button 
+                            type="button"
                             v-if="material.status === 'raw'"
                             @click="preprocessSingleMaterial(material.id)"
                             class="p-2 rounded-lg hover:bg-blue-50 transition-colors"
@@ -534,6 +543,7 @@
                             <Icon icon="solar:refresh-bold" class="text-blue-500" />
                           </button>
                           <button 
+                            type="button"
                             @click="deleteVoiceMaterial(material.id)"
                             class="p-2 rounded-lg hover:bg-red-50 transition-colors"
                             title="删除"
@@ -560,6 +570,7 @@
                       </div>
                     </div>
                     <button 
+                      type="button"
                       @click="startVoiceTraining"
                       :disabled="preprocessedMaterialsForAvatar.length === 0 || isTrainingVoice"
                       class="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-medium hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
@@ -792,7 +803,7 @@
       </div>
     </div>
 
-    <div v-if="showCreateAvatarModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div v-if="showCreateAvatarModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="closeCreateAvatarModal">
       <div class="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <div class="p-6 border-b border-[#E8D5C4] flex items-center justify-between">
           <div>
@@ -1460,7 +1471,7 @@
       </div>
     </div>
 
-    <div v-if="showDeleteMemoryModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div v-if="showDeleteMemoryModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="showDeleteMemoryModal = false">
       <div class="bg-white rounded-2xl shadow-xl max-w-md w-full">
         <div class="p-6 text-center">
           <div class="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
@@ -1484,7 +1495,7 @@
       </div>
     </div>
 
-    <div v-if="showDetailModal && selectedAvatar" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div v-if="showDetailModal && selectedAvatar" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="showDetailModal = false">
       <div class="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <div class="p-6 border-b border-[#E8D5C4] flex items-center justify-between">
           <h3 class="text-xl font-bold text-[#5C4A3A] font-serif">{{ selectedAvatar.name }} - 详情</h3>
@@ -2000,7 +2011,7 @@
       </div>
     </div>
 
-    <div v-if="showVoiceMaterialModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div v-if="showVoiceMaterialModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="closeVoiceMaterialModal">
       <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full">
         <div class="p-6 border-b border-[#E8D5C4] flex items-center justify-between">
           <h3 class="text-xl font-bold text-[#5C4A3A] font-serif">添加声音素材</h3>
