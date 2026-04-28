@@ -129,8 +129,17 @@
                     </div>
                     <div class="absolute top-3 right-3">
                       <span v-if="avatar.status === 'active'" class="px-2 py-1 bg-green-500 text-white text-xs rounded-full">已激活</span>
+                      <span v-else-if="avatar.status === 'pending'" class="px-2 py-1 bg-purple-400 text-white text-xs rounded-full">等待中</span>
                       <span v-else-if="avatar.status === 'training'" class="px-2 py-1 bg-amber-400 text-white text-xs rounded-full">训练中</span>
                       <span v-else-if="avatar.status === 'generating'" class="px-2 py-1 bg-blue-500 text-white text-xs rounded-full">生成中</span>
+                      <span v-else-if="avatar.status === 'retry_pending'" class="px-2 py-1 bg-orange-500 text-white text-xs rounded-full flex items-center space-x-1">
+                        <Icon icon="solar:refresh-circle-bold" class="text-xs" />
+                        <span>待重试</span>
+                      </span>
+                      <span v-else-if="avatar.status === 'failed'" class="px-2 py-1 bg-red-500 text-white text-xs rounded-full flex items-center space-x-1">
+                        <Icon icon="solar:danger-circle-bold" class="text-xs" />
+                        <span>失败</span>
+                      </span>
                       <span v-else class="px-2 py-1 bg-gray-400 text-white text-xs rounded-full">未激活</span>
                     </div>
                     <div v-if="avatar.status === 'training' || avatar.status === 'generating'" class="absolute bottom-0 left-0 right-0 bg-black/50 p-3">
@@ -160,16 +169,24 @@
                   </div>
 
                   <div class="px-4 pb-4 flex items-center space-x-2">
-                    <button @click="viewAvatarDetail(avatar)" 
-                            class="flex-1 py-2 bg-[#E8D5C4] text-[#8B6F4E] rounded-lg text-sm font-medium hover:bg-[#D4A574] transition-colors flex items-center justify-center space-x-1">
-                      <Icon icon="solar:eye-bold" class="text-sm" />
-                      <span>查看</span>
+                    <button v-if="avatar.status === 'retry_pending' || avatar.status === 'failed'" 
+                            @click="confirmRetryAvatar(avatar)" 
+                            class="flex-1 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors flex items-center justify-center space-x-1">
+                      <Icon icon="solar:refresh-bold" class="text-sm" />
+                      <span>重试生成</span>
                     </button>
-                    <button @click="editAvatar(avatar)" 
-                            class="flex-1 py-2 border border-[#E8D5C4] text-[#8B6F4E] rounded-lg text-sm font-medium hover:bg-[#E8D5C4]/50 transition-colors flex items-center justify-center space-x-1">
-                      <Icon icon="solar:pen-bold" class="text-sm" />
-                      <span>编辑</span>
-                    </button>
+                    <template v-else>
+                      <button @click="viewAvatarDetail(avatar)" 
+                              class="flex-1 py-2 bg-[#E8D5C4] text-[#8B6F4E] rounded-lg text-sm font-medium hover:bg-[#D4A574] transition-colors flex items-center justify-center space-x-1">
+                        <Icon icon="solar:eye-bold" class="text-sm" />
+                        <span>查看</span>
+                      </button>
+                      <button @click="editAvatar(avatar)" 
+                              class="flex-1 py-2 border border-[#E8D5C4] text-[#8B6F4E] rounded-lg text-sm font-medium hover:bg-[#E8D5C4]/50 transition-colors flex items-center justify-center space-x-1">
+                        <Icon icon="solar:pen-bold" class="text-sm" />
+                        <span>编辑</span>
+                      </button>
+                    </template>
                     <button @click="confirmDeleteAvatar(avatar)" 
                             class="py-2 px-3 border border-red-200 text-red-500 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors">
                       <Icon icon="solar:trash-bin-trash-bold" class="text-sm" />
@@ -1471,6 +1488,38 @@
       </div>
     </div>
 
+    <div v-if="showRetryModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="closeRetryModal">
+      <div class="bg-white rounded-2xl shadow-xl max-w-md w-full">
+        <div class="p-6 text-center">
+          <div class="w-16 h-16 mx-auto mb-4 bg-orange-100 rounded-full flex items-center justify-center">
+            <Icon icon="solar:refresh-circle-bold" class="text-3xl text-orange-500" />
+          </div>
+          <h3 class="text-xl font-bold text-gray-800 mb-2">重试生成</h3>
+          <p class="text-gray-500 mb-4">
+            确定要重新生成数字人 <span class="font-semibold text-gray-800">{{ avatarToRetry?.name }}</span> 吗？
+          </p>
+          <div v-if="avatarToRetry?.lastError" class="mb-4 p-3 bg-red-50 rounded-lg border border-red-200 text-left">
+            <p class="text-xs text-red-600 font-medium mb-1">上次错误信息：</p>
+            <p class="text-sm text-red-500">{{ avatarToRetry.lastError }}</p>
+          </div>
+          <p v-if="avatarToRetry?.retryCount" class="text-sm text-gray-400 mb-4">
+            已重试 {{ avatarToRetry.retryCount }} 次
+          </p>
+          <div class="flex space-x-3">
+            <button @click="closeRetryModal" class="flex-1 py-3 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50 transition-colors">
+              取消
+            </button>
+            <button @click="retryAvatar" 
+                    :disabled="isRetryingAvatar"
+                    class="flex-1 py-3 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-1">
+              <Icon v-if="isRetryingAvatar" icon="solar:loader-bold" class="animate-spin" />
+              <span>{{ isRetryingAvatar ? '重试中...' : '确认重试' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div v-if="showDeleteMemoryModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="showDeleteMemoryModal = false">
       <div class="bg-white rounded-2xl shadow-xl max-w-md w-full">
         <div class="p-6 text-center">
@@ -2269,7 +2318,7 @@ interface DigitalAvatar {
   gender: 'male' | 'female'
   avatar?: string
   modelUrl?: string
-  status: 'active' | 'training' | 'generating' | 'inactive' | 'fine-tuning'
+  status: 'active' | 'training' | 'generating' | 'inactive' | 'fine-tuning' | 'failed' | 'retry_pending' | 'pending'
   progress: number
   birthYear?: string
   deathYear?: string
@@ -2281,6 +2330,8 @@ interface DigitalAvatar {
   voiceModelId?: string
   voiceEnabled?: boolean
   voiceBoundAt?: string
+  lastError?: string
+  retryCount?: number
 }
 
 interface HabitatModule {
@@ -2331,7 +2382,9 @@ const loadAvatars = async () => {
         fineTuneAdjustments: avatar.fineTuneAdjustments,
         voiceModelId: avatar.voiceModelId,
         voiceEnabled: avatar.voiceEnabled || false,
-        voiceBoundAt: avatar.voiceBoundAt
+        voiceBoundAt: avatar.voiceBoundAt,
+        lastError: avatar.lastError,
+        retryCount: avatar.retryCount
       }))
     }
   } catch (error) {
@@ -3003,6 +3056,46 @@ const deleteAvatar = () => {
 
   showDeleteModal.value = false
   avatarToDelete.value = null
+}
+
+const avatarToRetry = ref<DigitalAvatar | null>(null)
+const isRetryingAvatar = ref(false)
+const showRetryModal = ref(false)
+
+const confirmRetryAvatar = (avatar: DigitalAvatar) => {
+  avatarToRetry.value = avatar
+  showRetryModal.value = true
+}
+
+const closeRetryModal = () => {
+  showRetryModal.value = false
+  avatarToRetry.value = null
+}
+
+const retryAvatar = async () => {
+  if (!avatarToRetry.value) return
+
+  isRetryingAvatar.value = true
+  try {
+    const response = await apiService.retryAvatar(avatarToRetry.value.id)
+    if (response.success && response.data) {
+      const successAvatar = digitalAvatars.value.find(a => a.id === avatarToRetry.value!.id)
+      if (successAvatar) {
+        successAvatar.status = 'generating'
+        successAvatar.progress = 0
+        successAvatar.lastError = undefined
+      }
+      pendingAvatarId.value = response.data.avatarId
+      startGenerationTracking(response.data.avatarId)
+      closeRetryModal()
+    } else {
+      console.error('重试失败:', response.error)
+    }
+  } catch (error) {
+    console.error('重试数字人生成失败:', error)
+  } finally {
+    isRetryingAvatar.value = false
+  }
 }
 
 const showFineTuneModal = ref(false)

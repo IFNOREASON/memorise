@@ -146,131 +146,80 @@
         </div>
       </section>
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-        <section class="lg:col-span-2">
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-bold text-[#5C4A3A] font-serif">我的数字家人</h3>
-            <button class="text-sm text-[#8B6F4E] font-medium flex items-center hover:underline">
-              查看全部
-              <Icon icon="material-symbols:chevron-right" class="ml-1" />
-            </button>
-          </div>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div v-for="member in digitalFamily" :key="member.id"
-              class="bg-white rounded-2xl p-5 shadow-soft border border-stone-100 hover-lift cursor-pointer">
-              <div class="flex items-start space-x-4">
-                <div class="relative">
-                  <div class="w-16 h-16 rounded-full p-0.5"
-                       :class="[
-                         member.status === 'active' 
-                           ? 'bg-gradient-to-br from-[#E8D5C4] to-[#D4A574]' 
-                           : 'bg-gradient-to-br from-gray-200 to-gray-300'
-                       ]">
-                    <div class="w-full h-full rounded-full bg-gray-200 overflow-hidden">
-                      <img :src="member.avatar" class="w-full h-full object-cover" 
-                           :class="{ 'grayscale': member.status === 'training' }"
-                           :alt="member.name">
-                    </div>
-                  </div>
-                  <div class="absolute bottom-0 right-0 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center"
-                       :class="[
-                         member.status === 'active' ? 'bg-green-500' : 'bg-amber-400'
-                       ]">
-                    <Icon :icon="member.status === 'active' ? 'solar:check-bold' : 'solar:pause-bold'" 
-                          class="text-white text-xs" />
+      <section class="mb-10">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-xl font-bold text-[#5C4A3A] font-serif">我的数字家人</h3>
+          <button class="text-sm text-[#8B6F4E] font-medium flex items-center hover:underline">
+            查看全部
+            <Icon icon="material-symbols:chevron-right" class="ml-1" />
+          </button>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div v-for="member in digitalFamily" :key="member.id"
+            class="bg-white rounded-2xl p-5 shadow-soft border border-stone-100 hover-lift cursor-pointer">
+            <div class="flex items-start space-x-4">
+              <div class="relative">
+                <div class="w-16 h-16 rounded-full p-0.5"
+                     :class="[
+                       member.status === 'active' 
+                         ? 'bg-gradient-to-br from-[#E8D5C4] to-[#D4A574]' 
+                         : 'bg-gradient-to-br from-gray-200 to-gray-300'
+                     ]">
+                  <div class="w-full h-full rounded-full bg-gray-200 overflow-hidden">
+                    <img :src="member.avatar" class="w-full h-full object-cover" 
+                         :class="{ 'grayscale': member.status === 'training' }"
+                         :alt="member.name">
                   </div>
                 </div>
-                <div class="flex-1">
-                  <div class="flex items-center space-x-2">
-                    <h4 class="font-bold text-gray-800">{{ member.name }}</h4>
-                    <span class="px-2 py-0.5 text-[10px] rounded-full"
-                          :class="[
-                            member.status === 'active' 
-                              ? 'bg-[#E8D5C4] text-[#8B6F4E]' 
-                              : 'bg-gray-100 text-gray-500'
-                          ]">
-                      {{ member.status === 'active' ? '已激活' : '训练中' }}
+                <div class="absolute bottom-0 right-0 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center"
+                     :class="[
+                       member.status === 'active' ? 'bg-green-500' : 'bg-amber-400'
+                     ]">
+                  <Icon :icon="member.status === 'active' ? 'solar:check-bold' : 'solar:pause-bold'" 
+                        class="text-white text-xs" />
+                </div>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center space-x-2">
+                  <h4 class="font-bold text-gray-800">{{ member.name }}</h4>
+                  <span class="px-2 py-0.5 text-[10px] rounded-full"
+                        :class="[
+                          member.status === 'active' 
+                            ? 'bg-[#E8D5C4] text-[#8B6F4E]' 
+                            : 'bg-gray-100 text-gray-500'
+                        ]">
+                    {{ member.status === 'active' ? '已激活' : '训练中' }}
+                  </span>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">{{ member.years }} · 训练度 {{ member.trainingProgress }}%</p>
+                
+                <template v-if="member.status === 'active'">
+                  <div class="flex items-center mt-2 space-x-3">
+                    <span class="text-xs text-gray-400 flex items-center">
+                      <Icon icon="solar:chat-dots-linear" class="mr-1" style="font-size: 14px;" />
+                      {{ member.chatCount }} 对话
+                    </span>
+                    <span class="text-xs text-gray-400 flex items-center">
+                      <Icon icon="solar:clock-circle-linear" class="mr-1" style="font-size: 14px;" />
+                      {{ member.lastInteraction }}
                     </span>
                   </div>
-                  <p class="text-xs text-gray-500 mt-1">{{ member.years }} · 训练度 {{ member.trainingProgress }}%</p>
-                  
-                  <template v-if="member.status === 'active'">
-                    <div class="flex items-center mt-2 space-x-3">
-                      <span class="text-xs text-gray-400 flex items-center">
-                        <Icon icon="solar:chat-dots-linear" class="mr-1" style="font-size: 14px;" />
-                        {{ member.chatCount }} 对话
-                      </span>
-                      <span class="text-xs text-gray-400 flex items-center">
-                        <Icon icon="solar:clock-circle-linear" class="mr-1" style="font-size: 14px;" />
-                        {{ member.lastInteraction }}
-                      </span>
-                    </div>
-                    <button class="mt-3 w-10 h-10 rounded-full bg-[#8B6F4E] flex items-center justify-center shadow-md hover:shadow-lg transition-shadow">
-                      <Icon icon="solar:phone-bold" class="text-white text-lg" />
-                    </button>
-                  </template>
-                  <template v-else>
-                    <div class="w-full bg-gray-100 rounded-full h-1.5 mt-3">
-                      <div class="bg-amber-400 h-1.5 rounded-full transition-all" 
-                           :style="{ width: member.trainingProgress + '%' }"></div>
-                    </div>
-                  </template>
-                </div>
+                  <button class="mt-3 w-10 h-10 rounded-full bg-[#8B6F4E] flex items-center justify-center shadow-md hover:shadow-lg transition-shadow">
+                    <Icon icon="solar:phone-bold" class="text-white text-lg" />
+                  </button>
+                </template>
+                <template v-else>
+                  <div class="w-full bg-gray-100 rounded-full h-1.5 mt-3">
+                    <div class="bg-amber-400 h-1.5 rounded-full transition-all" 
+                         :style="{ width: member.trainingProgress + '%' }"></div>
+                  </div>
+                </template>
               </div>
             </div>
           </div>
-        </section>
-
-        <section>
-          <h3 class="text-xl font-bold text-[#5C4A3A] font-serif mb-6">快捷操作</h3>
-          <div class="space-y-4">
-            <button class="w-full bg-white rounded-2xl p-5 shadow-soft border border-stone-100 flex items-center space-x-4 hover-lift">
-              <div class="w-14 h-14 bg-[#E8D5C4] rounded-2xl flex items-center justify-center">
-                <Icon icon="solar:upload-minimalistic-bold" class="text-[#8B6F4E] text-2xl" />
-              </div>
-              <div class="text-left">
-                <span class="block font-medium text-gray-800">上传老照片</span>
-                <span class="block text-sm text-gray-400">智能修复 & AI上色</span>
-              </div>
-              <Icon icon="material-symbols:chevron-right" class="ml-auto text-gray-400" />
-            </button>
-
-            <button class="w-full bg-white rounded-2xl p-5 shadow-soft border border-stone-100 flex items-center space-x-4 hover-lift">
-              <div class="w-14 h-14 bg-[#F5E6D3] rounded-2xl flex items-center justify-center">
-                <Icon icon="solar:video-frame-play-horizontal-bold" class="text-[#D4A574] text-2xl" />
-              </div>
-              <div class="text-left">
-                <span class="block font-medium text-gray-800">生成影像</span>
-                <span class="block text-sm text-gray-400">动态回忆视频</span>
-              </div>
-              <Icon icon="material-symbols:chevron-right" class="ml-auto text-gray-400" />
-            </button>
-
-            <button class="w-full bg-white rounded-2xl p-5 shadow-soft border border-stone-100 flex items-center space-x-4 hover-lift">
-              <div class="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center">
-                <Icon icon="solar:pen-new-square-bold" class="text-emerald-600 text-2xl" />
-              </div>
-              <div class="text-left">
-                <span class="block font-medium text-gray-800">时光信箱</span>
-                <span class="block text-sm text-gray-400">写下心中思念</span>
-              </div>
-              <Icon icon="material-symbols:chevron-right" class="ml-auto text-gray-400" />
-            </button>
-
-            <button class="w-full bg-gradient-to-r from-[#8B6F4E] to-[#A67B5B] rounded-2xl p-5 shadow-glow flex items-center space-x-4 hover:scale-[1.02] transition-transform">
-              <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
-                <Icon icon="solar:magic-stick-3-bold-duotone" class="text-white text-2xl" />
-              </div>
-              <div class="text-left">
-                <span class="block font-medium text-white">创建数字生命</span>
-                <span class="block text-sm text-white/80">开始永恒传承之旅</span>
-              </div>
-              <Icon icon="material-symbols:arrow-forward" class="ml-auto text-white" />
-            </button>
-          </div>
-        </section>
-      </div>
+        </div>
+      </section>
 
       <section class="bg-white border-t border-[#E8D5C4] py-10">
         <div class="max-w-7xl mx-auto px-6">

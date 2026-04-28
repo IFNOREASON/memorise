@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 interface ApiResponse<T = unknown> {
   success: boolean;
@@ -103,12 +103,18 @@ interface GenerateAvatarResponse {
   message: string;
 }
 
+interface RetryAvatarRequest {
+  avatarId: string;
+}
+
 interface AvatarStatusResponse {
   avatarId: string;
-  status: 'active' | 'training' | 'generating' | 'inactive';
+  status: 'active' | 'training' | 'generating' | 'inactive' | 'failed' | 'retry_pending' | 'pending';
   progress: number;
   generationMethod: string;
   estimatedTimeRemaining?: number;
+  lastError?: string;
+  retryCount?: number;
 }
 
 interface TaskStatusResponse {
@@ -128,7 +134,7 @@ interface Avatar {
   deathYear?: string;
   description?: string;
   generationMethod: 'photo' | 'text' | 'manual';
-  status: 'active' | 'training' | 'generating' | 'inactive';
+  status: 'active' | 'training' | 'generating' | 'inactive' | 'failed' | 'retry_pending' | 'pending';
   progress: number;
   avatar?: string;
   modelUrl?: string;
@@ -137,6 +143,8 @@ interface Avatar {
   voiceModelId?: string;
   voiceEnabled?: boolean;
   voiceBoundAt?: string;
+  lastError?: string;
+  retryCount?: number;
 }
 
 type MemoryType = 'text' | 'image' | 'video' | 'richtext' | 'document';
@@ -474,6 +482,13 @@ class ApiService {
     }>(`/api/avatars/${avatarId}/fine-tune`, {
       method: 'POST',
       body: JSON.stringify({ adjustments })
+    });
+  }
+
+  async retryAvatar(avatarId: string): Promise<ApiResponse<GenerateAvatarResponse>> {
+    return this.request<GenerateAvatarResponse>('/api/avatars/retry', {
+      method: 'POST',
+      body: JSON.stringify({ avatarId })
     });
   }
 
