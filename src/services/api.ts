@@ -134,6 +134,9 @@ interface Avatar {
   modelUrl?: string;
   createdAt: string;
   chatCount?: number;
+  voiceModelId?: string;
+  voiceEnabled?: boolean;
+  voiceBoundAt?: string;
 }
 
 type MemoryType = 'text' | 'image' | 'video' | 'richtext' | 'document';
@@ -194,6 +197,121 @@ interface AvatarMemoriesResponse {
   avatarName: string;
   total: number;
   memories: MemoryListItem[];
+}
+
+type VoiceMaterialStatus = 'raw' | 'preprocessing' | 'preprocessed';
+
+interface VoiceMaterial {
+  id: string;
+  avatarId: string;
+  name: string;
+  type: 'recording' | 'upload';
+  format: string;
+  duration: number;
+  size: number;
+  status: VoiceMaterialStatus;
+  qualityScore: number;
+  transcription: string;
+  preprocessInfo?: {
+    noiseReduction: string;
+    volumeNormalized: boolean;
+    silenceRemoved: boolean;
+    formatConverted: string;
+    processedAt: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CreateVoiceMaterialRequest {
+  avatarId: string;
+  name: string;
+  type?: 'recording' | 'upload';
+  format?: string;
+  duration?: number;
+  size?: number;
+  audioData?: string;
+}
+
+type VoiceModelStatus = 'training' | 'ready' | 'failed';
+
+interface VoiceModel {
+  id: string;
+  avatarId: string;
+  name: string;
+  status: VoiceModelStatus;
+  progress: number;
+  materialIds: string[];
+  qualityMetrics?: {
+    mos: number;
+    similarity: number;
+    naturalness: number;
+  };
+  trainingConfig: {
+    epochs: number;
+    batchSize: number;
+    learningRate: number;
+  };
+  modelPath?: string;
+  sampleAudioPath?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CreateVoiceModelRequest {
+  avatarId: string;
+  name: string;
+  materialIds: string[];
+  config?: {
+    epochs?: number;
+    batchSize?: number;
+    learningRate?: number;
+  };
+}
+
+interface VoiceModelStatusResponse {
+  modelId: string;
+  status: VoiceModelStatus;
+  progress: number;
+  qualityMetrics?: {
+    mos: number;
+    similarity: number;
+    naturalness: number;
+  };
+  estimatedTimeRemaining?: number;
+}
+
+type VoiceSynthesisStatus = 'synthesizing' | 'completed' | 'failed';
+
+interface VoiceSynthesisOptions {
+  speed?: number;
+  pitch?: number;
+  emotion?: 'neutral' | 'happy' | 'sad' | 'angry' | 'calm';
+}
+
+interface VoiceSynthesisTask {
+  id: string;
+  modelId: string;
+  avatarId: string;
+  text: string;
+  options: VoiceSynthesisOptions;
+  status: VoiceSynthesisStatus;
+  progress: number;
+  audioPath?: string;
+  duration: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CreateVoiceSynthesisRequest {
+  modelId?: string;
+  avatarId?: string;
+  text: string;
+  options?: VoiceSynthesisOptions;
+}
+
+interface BindVoiceModelRequest {
+  modelId: string;
 }
 
 class ApiService {
@@ -417,6 +535,231 @@ class ApiService {
       body: JSON.stringify({ memories })
     });
   }
+
+  async getVoiceMaterials(options?: {
+    avatarId?: string;
+  }): Promise<ApiResponse<{ total: number; materials: VoiceMaterial[] }>> {
+    let endpoint = '/api/voice/materials';
+    const params = new URLSearchParams();
+    
+    if (options?.avatarId) params.append('avatarId', options.avatarId);
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`;
+    }
+    
+    return this.request<{ total: number; materials: VoiceMaterial[] }>(endpoint);
+  }
+
+  async getVoiceMaterial(materialId: string): Promise<ApiResponse<VoiceMaterial>> {
+    return this.request<VoiceMaterial>(`/api/voice/materials/${materialId}`);
+  }
+
+  async createVoiceMaterial(material: CreateVoiceMaterialRequest): Promise<ApiResponse<{
+    id: string;
+    avatarId: string;
+    name: string;
+    status: VoiceMaterialStatus;
+    createdAt: string;
+    message: string;
+  }>> {
+    return this.request<{
+      id: string;
+      avatarId: string;
+      name: string;
+      status: VoiceMaterialStatus;
+      createdAt: string;
+      message: string;
+    }>('/api/voice/materials', {
+      method: 'POST',
+      body: JSON.stringify(material)
+    });
+  }
+
+  async updateVoiceMaterial(
+    materialId: string,
+    updates: {
+      name?: string;
+      transcription?: string;
+    }
+  ): Promise<ApiResponse<{
+    id: string;
+    name: string;
+    updatedAt: string;
+    message: string;
+  }>> {
+    return this.request<{
+      id: string;
+      name: string;
+      updatedAt: string;
+      message: string;
+    }>(`/api/voice/materials/${materialId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates)
+    });
+  }
+
+  async deleteVoiceMaterial(materialId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<{ message: string }>(`/api/voice/materials/${materialId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async preprocessVoiceMaterial(materialId: string): Promise<ApiResponse<{
+    materialId: string;
+    status: VoiceMaterialStatus;
+    message: string;
+  }>> {
+    return this.request<{
+      materialId: string;
+      status: VoiceMaterialStatus;
+      message: string;
+    }>(`/api/voice/materials/${materialId}/preprocess`, {
+      method: 'POST'
+    });
+  }
+
+  async batchPreprocessVoiceMaterials(materialIds: string[]): Promise<ApiResponse<{
+    total: number;
+    results: Array<{
+      materialId: string;
+      success: boolean;
+      status: string;
+    }>;
+    message: string;
+  }>> {
+    return this.request<{
+      total: number;
+      results: Array<{
+        materialId: string;
+        success: boolean;
+        status: string;
+      }>;
+      message: string;
+    }>('/api/voice/materials/batch-preprocess', {
+      method: 'POST',
+      body: JSON.stringify({ materialIds })
+    });
+  }
+
+  async getVoiceModels(options?: {
+    avatarId?: string;
+  }): Promise<ApiResponse<{ total: number; models: VoiceModel[] }>> {
+    let endpoint = '/api/voice/models';
+    const params = new URLSearchParams();
+    
+    if (options?.avatarId) params.append('avatarId', options.avatarId);
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`;
+    }
+    
+    return this.request<{ total: number; models: VoiceModel[] }>(endpoint);
+  }
+
+  async getVoiceModel(modelId: string): Promise<ApiResponse<VoiceModel>> {
+    return this.request<VoiceModel>(`/api/voice/models/${modelId}`);
+  }
+
+  async createVoiceModel(model: CreateVoiceModelRequest): Promise<ApiResponse<{
+    modelId: string;
+    avatarId: string;
+    name: string;
+    status: VoiceModelStatus;
+    progress: number;
+    materialCount: number;
+    message: string;
+  }>> {
+    return this.request<{
+      modelId: string;
+      avatarId: string;
+      name: string;
+      status: VoiceModelStatus;
+      progress: number;
+      materialCount: number;
+      message: string;
+    }>('/api/voice/models', {
+      method: 'POST',
+      body: JSON.stringify(model)
+    });
+  }
+
+  async getVoiceModelStatus(modelId: string): Promise<ApiResponse<VoiceModelStatusResponse>> {
+    return this.request<VoiceModelStatusResponse>(`/api/voice/models/${modelId}/status`);
+  }
+
+  async deleteVoiceModel(modelId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<{ message: string }>(`/api/voice/models/${modelId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async synthesizeVoice(synthesis: CreateVoiceSynthesisRequest): Promise<ApiResponse<{
+    taskId: string;
+    modelId: string;
+    avatarId: string;
+    text: string;
+    status: VoiceSynthesisStatus;
+    progress: number;
+    message: string;
+  }>> {
+    return this.request<{
+      taskId: string;
+      modelId: string;
+      avatarId: string;
+      text: string;
+      status: VoiceSynthesisStatus;
+      progress: number;
+      message: string;
+    }>('/api/voice/synthesize', {
+      method: 'POST',
+      body: JSON.stringify(synthesis)
+    });
+  }
+
+  async getVoiceSynthesisTask(taskId: string): Promise<ApiResponse<VoiceSynthesisTask>> {
+    return this.request<VoiceSynthesisTask>(`/api/voice/synthesis/${taskId}`);
+  }
+
+  async bindVoiceModelToAvatar(
+    avatarId: string,
+    modelId: string
+  ): Promise<ApiResponse<{
+    avatarId: string;
+    voiceModelId: string;
+    voiceEnabled: boolean;
+    voiceBoundAt?: string;
+    message: string;
+  }>> {
+    return this.request<{
+      avatarId: string;
+      voiceModelId: string;
+      voiceEnabled: boolean;
+      voiceBoundAt?: string;
+      message: string;
+    }>(`/api/avatars/${avatarId}/voice-model`, {
+      method: 'PUT',
+      body: JSON.stringify({ modelId })
+    });
+  }
+
+  async unbindVoiceModelFromAvatar(
+    avatarId: string
+  ): Promise<ApiResponse<{
+    avatarId: string;
+    voiceModelId?: string;
+    voiceEnabled: boolean;
+    message: string;
+  }>> {
+    return this.request<{
+      avatarId: string;
+      voiceModelId?: string;
+      voiceEnabled: boolean;
+      message: string;
+    }>(`/api/avatars/${avatarId}/voice-model`, {
+      method: 'DELETE'
+    });
+  }
 }
 
 export const apiService = new ApiService();
@@ -439,5 +782,17 @@ export type {
   CreateMemoryRequest,
   UpdateMemoryRequest,
   BatchMemoryResult,
-  AvatarMemoriesResponse
+  AvatarMemoriesResponse,
+  VoiceMaterial,
+  VoiceMaterialStatus,
+  CreateVoiceMaterialRequest,
+  VoiceModel,
+  VoiceModelStatus,
+  CreateVoiceModelRequest,
+  VoiceModelStatusResponse,
+  VoiceSynthesisTask,
+  VoiceSynthesisStatus,
+  VoiceSynthesisOptions,
+  CreateVoiceSynthesisRequest,
+  BindVoiceModelRequest
 };
