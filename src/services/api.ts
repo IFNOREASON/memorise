@@ -324,27 +324,37 @@ class ApiService {
     try {
       const response = await fetch(url, {
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
           ...options.headers
         },
         ...options
       });
 
-      const data = await response.json();
+      const responseText = await response.text();
 
       if (!response.ok) {
+        let errorMessage = `请求失败: ${response.status}`;
+        if (responseText) {
+          try {
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.error || errorMessage;
+          } catch {
+            errorMessage = responseText.substring(0, 200);
+          }
+        }
         return {
           success: false,
-          error: data.error || `请求失败: ${response.status}`
+          error: errorMessage
         };
       }
 
+      const data = JSON.parse(responseText);
       return data as ApiResponse<T>;
     } catch (error) {
       console.error('API 请求错误:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : '网络错误'
+        error: error instanceof Error ? error.message : '网络错误或后端服务未启动'
       };
     }
   }
