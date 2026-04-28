@@ -37,7 +37,8 @@ let data = {
   memories: [],
   voiceMaterials: [],
   voiceModels: [],
-  voiceSynthesisTasks: []
+  voiceSynthesisTasks: [],
+  chatSessions: []
 };
 
 function loadConfig() {
@@ -720,6 +721,200 @@ class VoiceService {
 }
 
 const voiceService = new VoiceService();
+
+class ChatService {
+  createSession(avatarId) {
+    const sessionId = `chat_session_${Date.now()}`;
+    const now = new Date().toISOString();
+
+    const session = {
+      id: sessionId,
+      avatarId,
+      messages: [],
+      createdAt: now,
+      updatedAt: now
+    };
+
+    data.chatSessions.push(session);
+    saveData();
+
+    return session;
+  }
+
+  getSession(sessionId) {
+    return data.chatSessions.find(s => s.id === sessionId);
+  }
+
+  getSessionsByAvatar(avatarId) {
+    return data.chatSessions.filter(s => s.avatarId === avatarId);
+  }
+
+  addMessage(sessionId, role, content) {
+    const session = this.getSession(sessionId);
+    if (!session) return null;
+
+    const message = {
+      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      role,
+      content,
+      timestamp: new Date().toISOString()
+    };
+
+    session.messages.push(message);
+    session.updatedAt = new Date().toISOString();
+    saveData();
+
+    return message;
+  }
+
+  getMessages(sessionId) {
+    const session = this.getSession(sessionId);
+    return session ? session.messages : [];
+  }
+
+  deleteSession(sessionId) {
+    const index = data.chatSessions.findIndex(s => s.id === sessionId);
+    if (index === -1) return false;
+
+    data.chatSessions.splice(index, 1);
+    saveData();
+    return true;
+  }
+
+  async generateAIResponse(avatar, messages) {
+    const avatarPersona = this.getAvatarPersona(avatar);
+    const conversationHistory = messages.slice(-10);
+
+    try {
+      if (config.openai.apiKey) {
+        return await this.generateWithOpenAI(avatarPersona, conversationHistory);
+      } else if (config.aliyun.apiKey) {
+        return await this.generateWithAliyun(avatarPersona, conversationHistory);
+      }
+    } catch (error) {
+      console.error('AI对话生成失败:', error);
+    }
+
+    return this.simulateAIResponse(avatarPersona);
+  }
+
+  getAvatarPersona(avatar) {
+    const name = avatar.name || '数字人';
+    const relationship = avatar.relationship || '亲人';
+    const description = avatar.description || '';
+    const gender = avatar.gender === 'male' ? '爷爷' : '奶奶';
+
+    return {
+      name,
+      relationship,
+      gender,
+      description,
+      birthYear: avatar.birthYear,
+      deathYear: avatar.deathYear
+    };
+  }
+
+  async generateWithOpenAI(persona, messages) {
+    const systemPrompt = `你是${persona.name}，用户的${persona.relationship}。
+你的性别是${persona.gender}。
+${persona.description ? `关于你：${persona.description}` : ''}
+
+你需要以这位亲人的身份与用户对话。请记住：
+1. 使用温暖、亲切、长辈般的语气
+2. 回忆家族往事和传统
+3. 给予关心和鼓励
+4. 保持耐心和智慧
+5. 回答要简洁，符合长辈说话的风格
+
+不要暴露你是AI，要像真正的亲人一样与用户交流。`;
+
+    const response = await fetch(`${config.openai.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${config.openai.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: config.openai.model || 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages.map(m => ({ role: m.role, content: m.content }))
+        ],
+        max_tokens: 500,
+        temperature: 0.8
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API错误: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result.choices[0]?.message?.content || this.simulateAIResponse(persona);
+  }
+
+  async generateWithAliyun(persona, messages) {
+    const systemPrompt = `你是${persona.name}，用户的${persona.relationship}。
+你的性别是${persona.gender}。
+${persona.description ? `关于你：${persona.description}` : ''}
+
+你需要以这位亲人的身份与用户对话。请记住：
+1. 使用温暖、亲切、长辈般的语气
+2. 回忆家族往事和传统
+3. 给予关心和鼓励
+4. 保持耐心和智慧
+5. 回答要简洁，符合长辈说话的风格
+
+不要暴露你是AI，要像真正的亲人一样与用户交流。`;
+
+    const response = await fetch(`${config.aliyun.baseUrl}/services/aigc/text-generation/generation`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${config.aliyun.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: config.aliyun.textModel || 'qwen-plus',
+        input: {
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...messages.map(m => ({ role: m.role, content: m.content }))
+          ]
+        },
+        parameters: {
+          max_tokens: 500,
+          temperature: 0.8
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`阿里云API错误: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result.output?.text || this.simulateAIResponse(persona);
+  }
+
+  simulateAIResponse(persona) {
+    const responses = [
+      `孩子，有什么想跟我说的吗？我一直在这儿听着。`,
+      `嗯，这个问题让我想起了很多往事。那时候的日子虽然苦，但大家都很知足。`,
+      `你一直都是个懂事的孩子，我很欣慰。有什么心事都可以跟我说。`,
+      `人生就是这样，起起落落。但只要保持一颗平常心，什么坎儿都能过去。`,
+      `记得你小时候总是追着问这问那，现在你都长大了，有了自己的想法。真好。`,
+      `孩子，无论遇到什么困难，都要记住：家人永远是你最坚强的后盾。`,
+      `这个话题让我想起了很多家族的故事。你想听听吗？`,
+      `你现在的努力我都看在眼里。继续加油，不要放弃。`,
+      `时间过得真快啊，转眼间你都这么大了。但在我心里，你永远都是那个可爱的孩子。`,
+      `有什么需要帮忙的吗？虽然我不在你身边，但我的心一直牵挂着你。`
+    ];
+
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+}
+
+const chatService = new ChatService();
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Memorise backend is running' });
@@ -2152,6 +2347,191 @@ app.delete('/api/avatars/:id/voice-model', (req, res) => {
     res.status(500).json({
       success: false,
       error: '解绑声音模型失败，请重试'
+    });
+  }
+});
+
+app.post('/api/chat/sessions', async (req, res) => {
+  try {
+    const { avatarId } = req.body;
+
+    if (!avatarId) {
+      return res.status(400).json({
+        success: false,
+        error: '请提供 avatarId'
+      });
+    }
+
+    const avatar = data.avatars.find(a => a.id === avatarId);
+    if (!avatar) {
+      return res.status(404).json({
+        success: false,
+        error: '数字人不存在'
+      });
+    }
+
+    const session = chatService.createSession(avatarId);
+
+    res.json({
+      success: true,
+      data: {
+        sessionId: session.id,
+        avatarId: session.avatarId,
+        createdAt: session.createdAt,
+        message: '聊天会话已创建'
+      }
+    });
+  } catch (error) {
+    console.error('创建聊天会话错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '创建聊天会话失败，请重试'
+    });
+  }
+});
+
+app.get('/api/chat/sessions/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const session = chatService.getSession(id);
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: '会话不存在'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        sessionId: session.id,
+        avatarId: session.avatarId,
+        messages: session.messages,
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error('获取会话错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取会话失败，请重试'
+    });
+  }
+});
+
+app.get('/api/chat/sessions', (req, res) => {
+  try {
+    const { avatarId } = req.query;
+    let sessions;
+
+    if (avatarId) {
+      sessions = chatService.getSessionsByAvatar(avatarId);
+    } else {
+      sessions = data.chatSessions;
+    }
+
+    const sessionList = sessions.map(s => ({
+      id: s.id,
+      avatarId: s.avatarId,
+      messageCount: s.messages.length,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        total: sessionList.length,
+        sessions: sessionList
+      }
+    });
+  } catch (error) {
+    console.error('获取会话列表错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取会话列表失败，请重试'
+    });
+  }
+});
+
+app.post('/api/chat/sessions/:id/messages', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { content } = req.body;
+
+    if (!content || content.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: '消息内容不能为空'
+      });
+    }
+
+    const session = chatService.getSession(id);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: '会话不存在'
+      });
+    }
+
+    const avatar = data.avatars.find(a => a.id === session.avatarId);
+    if (!avatar) {
+      return res.status(404).json({
+        success: false,
+        error: '关联的数字人不存在'
+      });
+    }
+
+    const userMessage = chatService.addMessage(id, 'user', content);
+
+    const aiResponse = await chatService.generateAIResponse(avatar, session.messages);
+    const assistantMessage = chatService.addMessage(id, 'assistant', aiResponse);
+
+    res.json({
+      success: true,
+      data: {
+        userMessage,
+        assistantMessage,
+        avatar: {
+          id: avatar.id,
+          name: avatar.name,
+          voiceEnabled: avatar.voiceEnabled,
+          voiceModelId: avatar.voiceModelId
+        }
+      }
+    });
+  } catch (error) {
+    console.error('发送消息错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '发送消息失败，请重试'
+    });
+  }
+});
+
+app.delete('/api/chat/sessions/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const success = chatService.deleteSession(id);
+
+    if (!success) {
+      return res.status(404).json({
+        success: false,
+        error: '会话不存在'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: '会话已删除'
+    });
+  } catch (error) {
+    console.error('删除会话错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '删除会话失败，请重试'
     });
   }
 });

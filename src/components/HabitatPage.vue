@@ -2627,6 +2627,10 @@ const handleNavClick = (navId: string) => {
     router.push('/zupu')
   } else if (navId === 'gallery') {
     router.push('/gallery')
+  } else if (navId === 'digital') {
+    router.push('/habitat')
+  } else if (navId === 'chat') {
+    router.push('/chat')
   }
 }
 
