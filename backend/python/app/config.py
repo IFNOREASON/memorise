@@ -6,6 +6,8 @@ from functools import lru_cache
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+DEFAULT_SQLITE_URL = f"sqlite+aiosqlite:///{os.path.join(BASE_DIR, 'data.db')}"
+
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Memorise Digital Avatar API"
@@ -17,7 +19,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
     
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/memorise"
+    DATABASE_URL: str = DEFAULT_SQLITE_URL
     
     ALIYUN_API_KEY: Optional[str] = None
     ALIYUN_BASE_URL: str = "https://dashscope.aliyuncs.com/api/v1"
@@ -41,6 +43,10 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE: int = 50 * 1024 * 1024
     
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+    
+    JWT_SECRET_KEY: str = "memorise-secret-key-change-in-production-2024"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
     
     class Config:
         env_file = ".env"

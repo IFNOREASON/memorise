@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Any, Dict, Generic, TypeVar
 from datetime import datetime
 from enum import Enum
+import re
 
 T = TypeVar('T')
 
@@ -9,6 +10,55 @@ from app.models import (
     AvatarStatus, GenerationMethod, TaskStatus, PhotoAngle,
     MemoryType, VoiceMaterialStatus, VoiceModelStatus, SynthesisStatus
 )
+
+
+class UserRegisterRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50, description="用户名")
+    password: str = Field(..., min_length=6, max_length=100, description="密码")
+    confirm_password: str = Field(..., min_length=6, max_length=100, description="确认密码")
+    nickname: Optional[str] = Field(None, max_length=100, description="昵称")
+
+    @field_validator('username')
+    @classmethod
+    def validate_username(cls, v: str) -> str:
+        if not re.match(r'^[a-zA-Z0-9_]+$', v):
+            raise ValueError('用户名只能包含字母、数字和下划线')
+        return v
+
+    @field_validator('confirm_password')
+    @classmethod
+    def passwords_match(cls, v: str, info) -> str:
+        if 'password' in info.data and v != info.data['password']:
+            raise ValueError('两次输入的密码不一致')
+        return v
+
+
+class UserLoginRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50, description="用户名")
+    password: str = Field(..., min_length=6, max_length=100, description="密码")
+
+
+class UserResponse(BaseModel):
+    id: str
+    username: str
+    nickname: Optional[str] = None
+    avatar_url: Optional[str] = Field(default=None, alias="avatarUrl")
+    is_active: bool = Field(alias="isActive")
+    created_at: datetime = Field(alias="createdAt")
+    last_login_at: Optional[datetime] = Field(default=None, alias="lastLoginAt")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
+class LoginResponse(BaseModel):
+    access_token: str = Field(alias="accessToken")
+    token_type: str = Field(default="bearer", alias="tokenType")
+    user: UserResponse
+
+    class Config:
+        populate_by_name = True
 
 
 class ApiResponse(BaseModel, Generic[T]):

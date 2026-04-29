@@ -7,8 +7,22 @@ import HabitatPage from '../components/HabitatPage.vue'
 import MemoryListPage from '../components/MemoryListPage.vue'
 import MemoryEditorPage from '../components/MemoryEditorPage.vue'
 import ChatCompanionPage from '../components/ChatCompanionPage.vue'
+import LoginPage from '../components/LoginPage.vue'
+import RegisterPage from '../components/RegisterPage.vue'
 
 const routes = [
+  {
+    path: '/login',
+    name: 'Login',
+    component: LoginPage,
+    meta: { guest: true }
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: RegisterPage,
+    meta: { guest: true }
+  },
   {
     path: '/',
     name: 'Home',

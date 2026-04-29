@@ -364,6 +364,29 @@ interface SendChatMessageResponse {
   };
 }
 
+interface User {
+  id: string;
+  username: string;
+  nickname?: string;
+  avatarUrl?: string;
+  isActive: boolean;
+  createdAt: string;
+  lastLoginAt?: string;
+}
+
+interface RegisterRequest {
+  username: string;
+  password: string;
+  confirmPassword: string;
+  nickname?: string;
+}
+
+interface LoginResponse {
+  accessToken: string;
+  tokenType: string;
+  user: User;
+}
+
 class ApiService {
   private async request<T>(
     endpoint: string,
@@ -910,11 +933,100 @@ class ApiService {
       method: 'DELETE'
     });
   }
+
+  async register(request: RegisterRequest): Promise<ApiResponse<User>> {
+    return this.request<User>('/api/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: request.username,
+        password: request.password,
+        confirm_password: request.confirmPassword,
+        nickname: request.nickname
+      })
+    });
+  }
+
+  async login(username: string, password: string): Promise<ApiResponse<LoginResponse>> {
+    return this.request<LoginResponse>('/api/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password })
+    });
+  }
 }
+
+const TOKEN_KEY = 'memorise_token';
+const USER_KEY = 'memorise_user';
+
+interface AuthStore {
+  token: string | null;
+  user: User | null;
+  isAuthenticated: boolean;
+  setToken: (token: string) => void;
+  setUser: (user: User) => void;
+  clearAuth: () => void;
+  loadFromStorage: () => void;
+}
+
+const createAuthStore = (): AuthStore => {
+  const store: AuthStore = {
+    token: null,
+    user: null,
+    isAuthenticated: false,
+
+    setToken(token: string) {
+      this.token = token;
+      this.isAuthenticated = !!token;
+      if (token) {
+        localStorage.setItem(TOKEN_KEY, token);
+      } else {
+        localStorage.removeItem(TOKEN_KEY);
+      }
+    },
+
+    setUser(user: User) {
+      this.user = user;
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
+    },
+
+    clearAuth() {
+      this.token = null;
+      this.user = null;
+      this.isAuthenticated = false;
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+    },
+
+    loadFromStorage() {
+      const token = localStorage.getItem(TOKEN_KEY);
+      const userStr = localStorage.getItem(USER_KEY);
+
+      if (token) {
+        this.token = token;
+        this.isAuthenticated = true;
+      }
+
+      if (userStr) {
+        try {
+          this.user = JSON.parse(userStr);
+        } catch {
+          this.user = null;
+        }
+      }
+    }
+  };
+
+  store.loadFromStorage();
+  return store;
+};
+
+export const authStore = createAuthStore();
 
 export const apiService = new ApiService();
 
 export type {
+  User,
+  RegisterRequest,
+  LoginResponse,
   PhotoAnalysisResult,
   PhotoAnalysisResponse,
   GenerateAvatarRequest,

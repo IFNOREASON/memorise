@@ -1,13 +1,28 @@
 from sqlalchemy import (
     Column, String, Integer, Boolean, Text, DateTime, 
-    ForeignKey, DECIMAL, Enum as SQLEnum, Index
+    ForeignKey, DECIMAL, Enum as SQLEnum, Index, JSON
 )
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship as orm_relationship
 from datetime import datetime
 import enum
 
 from app.database import Base, TimestampMixin
+
+
+class User(Base, TimestampMixin):
+    __tablename__ = "users"
+
+    id = Column(String(64), primary_key=True)
+    username = Column(String(50), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    nickname = Column(String(100), nullable=True)
+    avatar_url = Column(String(500), nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        Index('idx_users_username', 'username'),
+    )
 
 
 class AvatarStatus(str, enum.Enum):
@@ -83,7 +98,7 @@ class Avatar(Base, TimestampMixin):
         nullable=False, 
         default="photo"
     )
-    text_description = Column(JSONB)
+    text_description = Column(JSON)
 
     status = Column(
         String(20), 
@@ -95,7 +110,7 @@ class Avatar(Base, TimestampMixin):
     avatar_url = Column(String(500))
     model_url = Column(String(500))
 
-    fine_tune_adjustments = Column(JSONB)
+    fine_tune_adjustments = Column(JSON)
     fine_tuned_at = Column(DateTime(timezone=True))
 
     voice_model_id = Column(String(64))
@@ -131,7 +146,7 @@ class Photo(Base, TimestampMixin):
     detected_angle = Column(String(20))
     confidence = Column(DECIMAL(5, 4))
     quality_score = Column(Integer)
-    features = Column(JSONB)
+    features = Column(JSON)
 
     sort_order = Column(Integer, nullable=False, default=0)
 
@@ -163,8 +178,8 @@ class GenerationTask(Base, TimestampMixin):
     failed_at = Column(DateTime(timezone=True))
     next_retry_at = Column(DateTime(timezone=True))
 
-    request_payload = Column(JSONB)
-    response_payload = Column(JSONB)
+    request_payload = Column(JSON)
+    response_payload = Column(JSON)
 
     external_task_id = Column(String(100))
     external_service = Column(String(100))
@@ -195,8 +210,8 @@ class Memory(Base, TimestampMixin):
     )
     content = Column(Text, nullable=False)
     description = Column(Text)
-    tags = Column(JSONB)
-    meta_data = Column('meta_data', JSONB)
+    tags = Column(JSON)
+    meta_data = Column('meta_data', JSON)
 
     deleted_at = Column(DateTime(timezone=True))
 
@@ -232,7 +247,7 @@ class VoiceMaterial(Base, TimestampMixin):
     )
     transcription = Column(Text)
     quality_score = Column(Integer)
-    preprocess_info = Column(JSONB)
+    preprocess_info = Column(JSON)
 
     avatar = orm_relationship("Avatar", back_populates="voice_materials")
 
@@ -256,9 +271,9 @@ class VoiceModel(Base, TimestampMixin):
     )
     progress = Column(Integer, nullable=False, default=0)
 
-    material_ids = Column(JSONB)
-    training_config = Column(JSONB)
-    quality_metrics = Column(JSONB)
+    material_ids = Column(JSON)
+    training_config = Column(JSON)
+    quality_metrics = Column(JSON)
 
     model_path = Column(String(500))
     model_url = Column(String(500))
@@ -281,7 +296,7 @@ class VoiceSynthesisTask(Base, TimestampMixin):
     avatar_id = Column(String(64), ForeignKey('avatars.id', ondelete='CASCADE'), nullable=False)
 
     text = Column(Text, nullable=False)
-    options = Column(JSONB)
+    options = Column(JSON)
 
     status = Column(
         String(20), 
@@ -307,7 +322,7 @@ class ChatSession(Base, TimestampMixin):
     id = Column(String(64), primary_key=True)
     avatar_id = Column(String(64), ForeignKey('avatars.id', ondelete='CASCADE'), nullable=False)
 
-    messages = Column(JSONB, nullable=False, default=list)
+    messages = Column(JSON, nullable=False, default=list)
 
     deleted_at = Column(DateTime(timezone=True))
 

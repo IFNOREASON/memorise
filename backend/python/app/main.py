@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import logging
@@ -15,7 +15,8 @@ from app.routers import (
     avatars_router,
     memories_router,
     voice_router,
-    chat_router
+    chat_router,
+    auth_router
 )
 from app.services import generation_service
 from app.database import AsyncSessionLocal
@@ -78,6 +79,18 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "success": False,
+            "error": exc.detail if isinstance(exc.detail, str) else "请求失败",
+            "message": None
+        }
+    )
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"未处理的异常: {exc}", exc_info=True)
@@ -122,6 +135,7 @@ async def api_root():
 
 api_prefix = "/api"
 
+app.include_router(auth_router, prefix=api_prefix)
 app.include_router(health_router, prefix=api_prefix)
 app.include_router(config_router, prefix=api_prefix)
 app.include_router(photos_router, prefix=api_prefix)
