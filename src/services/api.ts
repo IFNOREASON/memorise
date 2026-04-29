@@ -387,19 +387,36 @@ interface LoginResponse {
   user: User;
 }
 
+interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+interface VerifyPasswordRequest {
+  password: string;
+}
+
 class ApiService {
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    requireAuth: boolean = false
   ): Promise<ApiResponse<T>> {
     const url = `${API_BASE_URL}${endpoint}`;
     
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json; charset=utf-8',
+      ...options.headers
+    };
+
+    if (requireAuth && authStore.token) {
+      headers['Authorization'] = `Bearer ${authStore.token}`;
+    }
+
     try {
       const response = await fetch(url, {
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          ...options.headers
-        },
+        headers,
         ...options
       });
 
@@ -430,6 +447,13 @@ class ApiService {
         error: error instanceof Error ? error.message : '网络错误或后端服务未启动'
       };
     }
+  }
+
+  private async authRequest<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, options, true);
   }
 
   async analyzePhotos(photos: string[]): Promise<ApiResponse<PhotoAnalysisResponse>> {
@@ -952,6 +976,24 @@ class ApiService {
       body: JSON.stringify({ username, password })
     });
   }
+
+  async changePassword(request: ChangePasswordRequest): Promise<ApiResponse<{ message: string }>> {
+    return this.authRequest<{ message: string }>('/api/change-password', {
+      method: 'POST',
+      body: JSON.stringify({
+        currentPassword: request.currentPassword,
+        newPassword: request.newPassword,
+        confirmPassword: request.confirmPassword
+      })
+    });
+  }
+
+  async verifyPassword(password: string): Promise<ApiResponse<{ message: string }>> {
+    return this.authRequest<{ message: string }>('/api/verify-password', {
+      method: 'POST',
+      body: JSON.stringify({ password })
+    });
+  }
 }
 
 const TOKEN_KEY = 'memorise_token';
@@ -1027,6 +1069,8 @@ export type {
   User,
   RegisterRequest,
   LoginResponse,
+  ChangePasswordRequest,
+  VerifyPasswordRequest,
   PhotoAnalysisResult,
   PhotoAnalysisResponse,
   GenerateAvatarRequest,

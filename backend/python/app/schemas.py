@@ -38,6 +38,29 @@ class UserLoginRequest(BaseModel):
     password: str = Field(..., min_length=6, max_length=100, description="密码")
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(..., min_length=6, max_length=100, alias="currentPassword", description="当前密码")
+    new_password: str = Field(..., min_length=6, max_length=100, alias="newPassword", description="新密码")
+    confirm_password: str = Field(..., min_length=6, max_length=100, alias="confirmPassword", description="确认新密码")
+
+    @field_validator('confirm_password')
+    @classmethod
+    def passwords_match(cls, v: str, info) -> str:
+        if 'new_password' in info.data and v != info.data['new_password']:
+            raise ValueError('两次输入的新密码不一致')
+        return v
+
+    class Config:
+        populate_by_name = True
+
+
+class VerifyPasswordRequest(BaseModel):
+    password: str = Field(..., min_length=6, max_length=100, description="密码")
+
+    class Config:
+        populate_by_name = True
+
+
 class UserResponse(BaseModel):
     id: str
     username: str

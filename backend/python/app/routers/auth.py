@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from datetime import datetime, timedelta
@@ -19,7 +20,9 @@ from app.schemas import (
     UserRegisterRequest,
     UserLoginRequest,
     UserResponse,
-    LoginResponse
+    LoginResponse,
+    ChangePasswordRequest,
+    VerifyPasswordRequest
 )
 
 auth_router = APIRouter(tags=["认证"])
@@ -109,6 +112,34 @@ class AuthError(Exception):
         self.error_type = error_type
 
 
+security = HTTPBearer()
+
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: AsyncSession = Depends(get_async_session)
+) -> User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="无法验证凭据",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        username: str = payload.get("sub")
+        user_id: str = payload.get("user_id")
+        if username is None or user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    user = await get_user_by_username(db, username)
+    if user is None:
+        raise credentials_exception
+    return user
+
+
 async def authenticate_user(db: AsyncSession, username: str, password: str) -> User:
     user = await get_user_by_username(db, username)
     if not user:
@@ -182,4 +213,45 @@ async def login(
             user=UserResponse.model_validate(user)
         ),
         message="登录成功"
+    )
+
+
+@auth_router.post("/change-password", response_model=ApiResponse[dict])
+async def change_password(
+    request: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_session)
+):
+    if not verify_password(request.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="原密码错误"
+        )
+
+    current_user.password_hash = get_password_hash(request.new_password)
+    await db.commit()
+
+    return ApiResponse(
+        success=True,
+        data={},
+        message="密码修改成功"
+    )
+
+
+@auth_router.post("/verify-password", response_model=ApiResponse[dict])
+async def verify_user_password(
+    request: VerifyPasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_session)
+):
+    if not verify_password(request.password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="密码错误"
+        )
+
+    return ApiResponse(
+        success=True,
+        data={},
+        message="密码验证成功"
     )
