@@ -333,3 +333,87 @@ class ChatSession(Base, TimestampMixin):
         Index('idx_chat_sessions_updated_at', 'updated_at'),
         Index('idx_chat_sessions_deleted_at', 'deleted_at'),
     )
+
+
+class Gender(str, enum.Enum):
+    MALE = "male"
+    FEMALE = "female"
+
+
+class MemberStatus(str, enum.Enum):
+    ALIVE = "alive"
+    DECEASED = "deceased"
+
+
+class MediaType(str, enum.Enum):
+    IMAGE = "image"
+    VIDEO = "video"
+
+
+class Family(Base, TimestampMixin):
+    __tablename__ = "families"
+
+    id = Column(String(64), primary_key=True)
+    hall_name = Column(String(100), nullable=True)
+    surname = Column(String(50), nullable=False)
+    ancestor = Column(String(100), nullable=True)
+    description = Column(Text, nullable=True)
+    zi_bei = Column(JSON, nullable=True)
+
+    members = orm_relationship("FamilyMember", back_populates="family", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index('idx_families_surname', 'surname'),
+    )
+
+
+class FamilyMember(Base, TimestampMixin):
+    __tablename__ = "family_members"
+
+    id = Column(String(64), primary_key=True)
+    family_id = Column(String(64), ForeignKey('families.id', ondelete='CASCADE'), nullable=False)
+
+    name = Column(String(100), nullable=False)
+    gender = Column(String(10), nullable=False, default="male")
+    generation = Column(Integer, nullable=False, default=1)
+    birth_year = Column(String(10), nullable=True)
+    death_year = Column(String(10), nullable=True)
+    spouse = Column(String(100), nullable=True)
+    father_id = Column(String(64), ForeignKey('family_members.id', ondelete='SET NULL'), nullable=True)
+    residence = Column(String(200), nullable=True)
+    note = Column(Text, nullable=True)
+    status = Column(String(20), nullable=False, default="alive")
+
+    deleted_at = Column(DateTime(timezone=True))
+
+    family = orm_relationship("Family", back_populates="members")
+    medias = orm_relationship("MemberMedia", back_populates="member", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index('idx_family_members_family_id', 'family_id'),
+        Index('idx_family_members_name', 'name'),
+        Index('idx_family_members_generation', 'generation'),
+        Index('idx_family_members_status', 'status'),
+        Index('idx_family_members_father_id', 'father_id'),
+        Index('idx_family_members_deleted_at', 'deleted_at'),
+    )
+
+
+class MemberMedia(Base, TimestampMixin):
+    __tablename__ = "member_medias"
+
+    id = Column(String(64), primary_key=True)
+    member_id = Column(String(64), ForeignKey('family_members.id', ondelete='CASCADE'), nullable=False)
+
+    url = Column(String(500), nullable=False)
+    type = Column(String(20), nullable=False, default="image")
+    date_time = Column(String(50), nullable=True)
+    location = Column(String(200), nullable=True)
+    duration = Column(String(20), nullable=True)
+
+    member = orm_relationship("FamilyMember", back_populates="medias")
+
+    __table_args__ = (
+        Index('idx_member_medias_member_id', 'member_id'),
+        Index('idx_member_medias_type', 'type'),
+    )

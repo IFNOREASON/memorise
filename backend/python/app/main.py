@@ -16,7 +16,8 @@ from app.routers import (
     memories_router,
     voice_router,
     chat_router,
-    auth_router
+    auth_router,
+    family_router
 )
 from app.services import generation_service
 from app.database import AsyncSessionLocal
@@ -143,6 +144,7 @@ app.include_router(avatars_router, prefix=api_prefix)
 app.include_router(memories_router, prefix=api_prefix)
 app.include_router(voice_router, prefix=api_prefix)
 app.include_router(chat_router, prefix=api_prefix)
+app.include_router(family_router, prefix=api_prefix)
 
 
 if __name__ == "__main__":

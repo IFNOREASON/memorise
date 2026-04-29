@@ -427,8 +427,35 @@ const collapseAll = () => {
   })
 }
 
+const focusNode = (nodeId: string) => {
+  const node = treeNodes.value.find(n => n.id === nodeId)
+  if (!node) return
+  
+  if (node.parent && node.parent.id !== 'virtual-root') {
+    let parent = node.parent
+    while (parent && parent.id !== 'virtual-root') {
+      if (collapsedNodes.value.has(parent.id)) {
+        collapsedNodes.value.delete(parent.id)
+      }
+      parent = parent.parent
+    }
+  }
+  
+  if (svgRef.value) {
+    const rect = svgRef.value.getBoundingClientRect()
+    const containerCenterX = rect.width / 2
+    const containerCenterY = rect.height / 2
+    
+    const currentScale = (props.scale || 1) * internalScale.value
+    
+    translateX.value = containerCenterX / currentScale - node.x
+    translateY.value = containerCenterY / currentScale - node.y
+  }
+}
+
 defineExpose({
   expandAll,
-  collapseAll
+  collapseAll,
+  focusNode
 })
 </script>

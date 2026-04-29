@@ -8,7 +8,8 @@ T = TypeVar('T')
 
 from app.models import (
     AvatarStatus, GenerationMethod, TaskStatus, PhotoAngle,
-    MemoryType, VoiceMaterialStatus, VoiceModelStatus, SynthesisStatus
+    MemoryType, VoiceMaterialStatus, VoiceModelStatus, SynthesisStatus,
+    Gender, MemberStatus, MediaType
 )
 
 
@@ -531,3 +532,132 @@ class HealthResponse(BaseModel):
 class UpdateConfigRequest(BaseModel):
     openai: Optional[Dict[str, Any]] = None
     aliyun: Optional[Dict[str, Any]] = None
+
+
+class MemberMediaBase(BaseModel):
+    id: str
+    url: str
+    type: MediaType
+    date_time: Optional[str] = Field(default=None, alias="dateTime")
+    location: Optional[str] = None
+    duration: Optional[str] = None
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
+class MemberMediaCreateRequest(BaseModel):
+    url: str
+    type: MediaType = MediaType.IMAGE
+    date_time: Optional[str] = Field(default=None, alias="dateTime")
+    location: Optional[str] = None
+    duration: Optional[str] = None
+
+    class Config:
+        populate_by_name = True
+
+
+class FamilyMemberBase(BaseModel):
+    id: str
+    family_id: str = Field(alias="familyId")
+    name: str
+    gender: Gender
+    generation: int
+    birth_year: Optional[str] = Field(default=None, alias="birthYear")
+    death_year: Optional[str] = Field(default=None, alias="deathYear")
+    spouse: Optional[str] = None
+    father_id: Optional[str] = Field(default=None, alias="fatherId")
+    residence: Optional[str] = None
+    note: Optional[str] = None
+    status: MemberStatus
+    medias: Optional[List[MemberMediaBase]] = None
+    created_at: datetime = Field(alias="createdAt")
+    updated_at: datetime = Field(alias="updatedAt")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
+class FamilyMemberCreateRequest(BaseModel):
+    name: str
+    gender: Gender = Gender.MALE
+    generation: int = 1
+    birth_year: Optional[str] = Field(default=None, alias="birthYear")
+    death_year: Optional[str] = Field(default=None, alias="deathYear")
+    spouse: Optional[str] = None
+    father_id: Optional[str] = Field(default=None, alias="fatherId")
+    residence: Optional[str] = None
+    note: Optional[str] = None
+    status: MemberStatus = MemberStatus.ALIVE
+
+    class Config:
+        populate_by_name = True
+
+
+class FamilyMemberUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    gender: Optional[Gender] = None
+    generation: Optional[int] = None
+    birth_year: Optional[str] = Field(default=None, alias="birthYear")
+    death_year: Optional[str] = Field(default=None, alias="deathYear")
+    spouse: Optional[str] = None
+    father_id: Optional[str] = Field(default=None, alias="fatherId")
+    residence: Optional[str] = None
+    note: Optional[str] = None
+    status: Optional[MemberStatus] = None
+
+    class Config:
+        populate_by_name = True
+
+
+class FamilyMemberListResponse(BaseModel):
+    total: int
+    members: List[FamilyMemberBase]
+
+
+class FamilyBase(BaseModel):
+    id: str
+    hall_name: Optional[str] = Field(default=None, alias="hallName")
+    surname: str
+    ancestor: Optional[str] = None
+    description: Optional[str] = None
+    zi_bei: Optional[List[str]] = Field(default=None, alias="ziBei")
+    created_at: datetime = Field(alias="createdAt")
+    updated_at: datetime = Field(alias="updatedAt")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
+class FamilyCreateRequest(BaseModel):
+    hall_name: Optional[str] = Field(default=None, alias="hallName")
+    surname: str
+    ancestor: Optional[str] = None
+    description: Optional[str] = None
+    zi_bei: Optional[List[str]] = Field(default=None, alias="ziBei")
+
+    class Config:
+        populate_by_name = True
+
+
+class FamilyUpdateRequest(BaseModel):
+    hall_name: Optional[str] = Field(default=None, alias="hallName")
+    surname: Optional[str] = None
+    ancestor: Optional[str] = None
+    description: Optional[str] = None
+    zi_bei: Optional[List[str]] = Field(default=None, alias="ziBei")
+
+    class Config:
+        populate_by_name = True
+
+
+class FamilyDetailResponse(BaseModel):
+    family: FamilyBase
+    member_count: int = Field(alias="memberCount")
+    members: List[FamilyMemberBase]
+
+    class Config:
+        populate_by_name = True

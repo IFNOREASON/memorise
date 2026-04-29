@@ -1,21 +1,98 @@
 <template>
-  <div class="min-h-screen bg-[#FAF7F2]">
+  <div class="min-h-screen paper-texture">
     <header class="sticky top-0 z-50 glass-warm border-b border-[#E8D5C4]">
       <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         <div class="flex items-center space-x-4">
-          <button @click="goBack" class="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow">
-            <Icon icon="material-symbols:arrow-back" class="text-[#8B6F4E] text-xl" />
-          </button>
+          <div class="w-12 h-12 bg-[#C84A3E] rounded-sm flex items-center justify-center shadow-md relative overflow-hidden">
+            <div class="absolute inset-0 opacity-30" :style="noisePatternStyle"></div>
+            <span class="text-white font-serif text-xl font-bold tracking-widest relative z-10">存</span>
+          </div>
           <div>
-            <h1 class="text-xl font-bold text-[#5C4A3A] font-serif">家承 · 族谱</h1>
-            <p class="text-xs text-gray-500">家族世系管理</p>
+            <h1 class="text-2xl font-bold text-[#5C4A3A] font-serif tracking-wider">memorise</h1>
+            <p class="text-xs text-gray-500 tracking-[0.15em] uppercase font-medium">Family Memorial</p>
           </div>
         </div>
-        <div class="flex items-center space-x-3">
-          <button @click="showMemberModal = true" class="px-4 py-2 bg-gradient-to-r from-[#8B6F4E] to-[#A67B5B] text-white rounded-xl text-sm font-medium shadow-warm hover:shadow-lg transition-all flex items-center space-x-2">
-            <Icon icon="solar:add-circle-bold" class="text-lg" />
-            <span>新增成员</span>
+
+        <nav class="hidden lg:flex items-center space-x-8">
+          <button v-for="item in navItems" :key="item.id"
+            class="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all hover:bg-[#E8D5C4]/50"
+            :class="[
+              activeNav === item.id ? 'bg-[#E8D5C4] text-[#8B6F4E]' : 'text-gray-600'
+            ]"
+            @click="handleNavClick(item.id)">
+            <Icon :icon="item.icon" class="text-lg" />
+            <span class="font-medium text-sm">{{ item.label }}</span>
           </button>
+        </nav>
+
+        <div class="flex items-center space-x-4">
+          <button class="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow">
+            <Icon icon="solar:bell-bold" class="text-gray-600" />
+          </button>
+          <div class="relative flex items-center space-x-3 pl-4 border-l border-[#E8D5C4]">
+            <button 
+              @click="toggleUserMenu"
+              class="flex items-center space-x-3 focus:outline-none"
+            >
+              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#E8D5C4] to-[#D4A574] p-0.5">
+                <div class="w-full h-full rounded-full bg-gray-200 overflow-hidden">
+                  <img 
+                    :src="authStore.user?.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face'" 
+                    class="w-full h-full object-cover" 
+                    alt="用户头像"
+                  >
+                </div>
+              </div>
+              <div class="hidden md:block text-left">
+                <p class="text-sm font-semibold text-gray-800">{{ authStore.user?.nickname || authStore.user?.username || '用户' }}</p>
+                <p class="text-xs text-gray-500">{{ authStore.isAuthenticated ? '已登录' : '未登录' }}</p>
+              </div>
+              <Icon 
+                icon="solar:alt-arrow-down-linear" 
+                class="text-gray-400 text-sm transition-transform"
+                :class="{ 'rotate-180': showUserMenu }"
+              />
+            </button>
+
+            <div 
+              v-if="showUserMenu"
+              class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-[#E8D5C4] py-2 z-50"
+            >
+              <template v-if="authStore.isAuthenticated">
+                <button
+                  @click="handleChangePassword"
+                  class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors"
+                >
+                  <Icon icon="solar:lock-password-bold" class="text-[#8B6F4E]" />
+                  <span>修改密码</span>
+                </button>
+                <div class="border-t border-[#E8D5C4] my-1"></div>
+                <button
+                  @click="handleLogout"
+                  class="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 flex items-center space-x-3 transition-colors"
+                >
+                  <Icon icon="solar:logout-3-bold" />
+                  <span>退出登录</span>
+                </button>
+              </template>
+              <template v-else>
+                <button
+                  @click="handleLogin"
+                  class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors"
+                >
+                  <Icon icon="solar:login-3-bold" class="text-[#8B6F4E]" />
+                  <span>登录</span>
+                </button>
+                <button
+                  @click="handleRegister"
+                  class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors"
+                >
+                  <Icon icon="solar:user-add-bold" class="text-[#8B6F4E]" />
+                  <span>注册</span>
+                </button>
+              </template>
+            </div>
+          </div>
         </div>
       </div>
     </header>
@@ -55,7 +132,13 @@
           <p class="text-sm text-gray-700 leading-relaxed">{{ familyInfo.description }}</p>
         </div>
         <div class="mt-4 pt-4 border-t border-stone-100">
-          <p class="text-xs text-gray-500 mb-2">字辈排行</p>
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-xs text-gray-500">字辈排行</p>
+            <button @click="showFamilySettings = true" class="text-xs text-[#8B6F4E] hover:text-[#D4A574] transition-colors flex items-center space-x-1">
+              <Icon icon="solar:pen-bold" class="text-sm" />
+              <span>编辑</span>
+            </button>
+          </div>
           <div class="flex flex-wrap gap-2">
             <span v-for="(zi, index) in familyInfo.ziBei" :key="index" 
               class="px-3 py-1 bg-[#E8D5C4] text-[#8B6F4E] text-sm rounded-full font-medium">
@@ -77,11 +160,10 @@
               <input v-model="searchKeyword" type="text" placeholder="输入姓名搜索..." 
                 class="pl-10 pr-4 py-2 bg-[#FAF7F2] border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#E8D5C4] w-full md:w-64" />
             </div>
-            <select v-model="filterStatus" class="px-4 py-2 bg-[#FAF7F2] border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#E8D5C4]">
-              <option value="all">全部状态</option>
-              <option value="alive">在世</option>
-              <option value="deceased">已故</option>
-            </select>
+            <button @click="handleSearch" class="px-4 py-2 bg-gradient-to-r from-[#8B6F4E] to-[#A67B5B] text-white rounded-xl text-sm font-medium shadow-warm hover:shadow-lg transition-all flex items-center space-x-2">
+              <Icon icon="solar:search-bold" class="text-sm" />
+              <span>搜索</span>
+            </button>
           </div>
         </div>
       </section>
@@ -93,6 +175,10 @@
             <span>世系图谱</span>
           </h2>
           <div class="flex items-center space-x-2">
+            <button @click="showMemberModal = true" class="px-3 py-1 bg-gradient-to-r from-[#8B6F4E] to-[#A67B5B] text-white rounded-lg text-sm font-medium shadow-warm hover:shadow-lg transition-all flex items-center space-x-1">
+              <Icon icon="solar:add-circle-bold" class="text-sm" />
+              <span>新增成员</span>
+            </button>
             <button @click="zoomIn" class="w-8 h-8 rounded-lg bg-[#E8D5C4] flex items-center justify-center hover:bg-[#D4A574] transition-colors">
               <Icon icon="material-symbols:add" class="text-[#8B6F4E]" />
             </button>
@@ -534,14 +620,92 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, defineComponent, h } from 'vue'
+import { ref, computed, reactive, defineComponent, h, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import D3Tree from './D3Tree.vue'
+import { apiService, authStore, Family, FamilyMember } from '../services/api'
 
 const router = useRouter()
 
-const familyInfo = reactive({
+const isLoading = ref(false)
+
+const showUserMenu = ref(false)
+
+interface NavItem {
+  id: string
+  label: string
+  icon: string
+}
+
+const activeNav = ref('family')
+
+const navItems: NavItem[] = [
+  { id: 'home', label: '首页', icon: 'solar:home-2-bold' },
+  { id: 'family', label: '家承', icon: 'solar:tree-bold-duotone' },
+  { id: 'gallery', label: '影集', icon: 'solar:gallery-wide-bold-duotone' },
+  { id: 'digital', label: '生境', icon: 'solar:magic-stick-3-bold-duotone' },
+  { id: 'chat', label: '语伴', icon: 'solar:chat-round-dots-bold-duotone' },
+]
+
+const toggleUserMenu = () => {
+  showUserMenu.value = !showUserMenu.value
+}
+
+const closeUserMenu = (event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  if (!target.closest('.relative')) {
+    showUserMenu.value = false
+  }
+}
+
+const handleNavClick = (navId: string) => {
+  activeNav.value = navId
+  if (navId === 'home') {
+    router.push('/')
+  } else if (navId === 'family') {
+    router.push('/zupu')
+  } else if (navId === 'gallery') {
+    router.push('/gallery')
+  } else if (navId === 'digital') {
+    router.push('/habitat')
+  } else if (navId === 'chat') {
+    router.push('/chat')
+  }
+}
+
+const handleLogout = () => {
+  showUserMenu.value = false
+  authStore.clearAuth()
+  router.push('/login')
+}
+
+const handleLogin = () => {
+  showUserMenu.value = false
+  router.push('/login')
+}
+
+const handleRegister = () => {
+  showUserMenu.value = false
+  router.push('/register')
+}
+
+const handleChangePassword = () => {
+  showUserMenu.value = false
+  alert('修改密码功能请在首页使用')
+}
+
+const noisePatternStyle = computed(() => ({
+  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox=%220 0 100 100%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22 opacity=%220.3%22/%3E%3C/svg%3E")`
+}))
+
+const familyInfo = reactive<{
+  hallName: string
+  surname: string
+  ancestor: string
+  description: string
+  ziBei: string[]
+}>({
   hallName: '陇西堂',
   surname: '李',
   ancestor: '李太白',
@@ -577,105 +741,9 @@ interface TreeNodeData extends FamilyMember {
   children: TreeNodeData[]
 }
 
-const familyMembers = ref<FamilyMember[]>([
-  { 
-    id: '1', name: '李元明', gender: 'male', generation: 1, birthYear: '1880', deathYear: '1945', spouse: '王氏', residence: '陇西', status: 'deceased',
-    medias: [
-      { id: 'm1-1', url: 'https://picsum.photos/400/400?random=101', type: 'image', dateTime: '1910-03-15 10:30:00', location: '甘肃省陇西县' },
-      { id: 'm1-2', url: 'https://picsum.photos/400/400?random=102', type: 'image', dateTime: '1925-07-20 14:00:00', location: '甘肃省陇西县李家大院' },
-      { id: 'm1-3', url: 'https://picsum.photos/400/400?random=103', type: 'image', dateTime: '1935-05-10 09:00:00', location: '甘肃省兰州市' }
-    ]
-  },
-  { 
-    id: '2', name: '李亨德', gender: 'male', generation: 2, birthYear: '1905', deathYear: '1980', spouse: '张氏', fatherId: '1', residence: '陇西', status: 'deceased',
-    medias: [
-      { id: 'm2-1', url: 'https://picsum.photos/400/400?random=201', type: 'image', dateTime: '1928-01-01 11:00:00', location: '甘肃省陇西县' },
-      { id: 'm2-2', url: 'https://picsum.photos/400/400?random=202', type: 'image', dateTime: '1945-09-02 16:30:00', location: '陕西省西安市' },
-      { id: 'm2-3', url: 'https://picsum.photos/400/400?random=203', type: 'video', dateTime: '1950-06-15 10:00:00', location: '甘肃省陇西县', duration: '00:32' },
-      { id: 'm2-4', url: 'https://picsum.photos/400/400?random=204', type: 'image', dateTime: '1965-12-25 12:00:00', location: '甘肃省兰州市' }
-    ]
-  },
-  { 
-    id: '3', name: '李亨芳', gender: 'female', generation: 2, birthYear: '1910', deathYear: '1990', spouse: '赵某', fatherId: '1', residence: '长安', status: 'deceased',
-    medias: [
-      { id: 'm3-1', url: 'https://picsum.photos/400/400?random=301', type: 'image', dateTime: '1930-04-10 09:30:00', location: '陕西省西安市' }
-    ]
-  },
-  { 
-    id: '4', name: '李利国', gender: 'male', generation: 3, birthYear: '1930', deathYear: '2010', spouse: '刘氏', fatherId: '2', residence: '北京', status: 'deceased',
-    medias: [
-      { id: 'm4-1', url: 'https://picsum.photos/400/400?random=401', type: 'image', dateTime: '1955-08-20 14:00:00', location: '北京市海淀区' },
-      { id: 'm4-2', url: 'https://picsum.photos/400/400?random=402', type: 'image', dateTime: '1970-05-01 10:30:00', location: '北京市天安门广场' },
-      { id: 'm4-3', url: 'https://picsum.photos/400/400?random=403', type: 'image', dateTime: '1985-10-15 09:00:00', location: '北京市朝阳区' },
-      { id: 'm4-4', url: 'https://picsum.photos/400/400?random=404', type: 'video', dateTime: '1995-03-08 15:00:00', location: '北京市海淀区', duration: '01:15' },
-      { id: 'm4-5', url: 'https://picsum.photos/400/400?random=405', type: 'image', dateTime: '2005-07-20 11:30:00', location: '北京市西城区' }
-    ]
-  },
-  { 
-    id: '5', name: '李利华', gender: 'female', generation: 3, birthYear: '1935', spouse: '王某', fatherId: '2', residence: '上海', status: 'alive',
-    medias: [
-      { id: 'm5-1', url: 'https://picsum.photos/400/400?random=501', type: 'image', dateTime: '1960-02-14 10:00:00', location: '上海市外滩' },
-      { id: 'm5-2', url: 'https://picsum.photos/400/400?random=502', type: 'image', dateTime: '1980-09-10 14:30:00', location: '上海市浦东新区' },
-      { id: 'm5-3', url: 'https://picsum.photos/400/400?random=503', type: 'image', dateTime: '2000-12-31 20:00:00', location: '上海市黄浦区' }
-    ]
-  },
-  { 
-    id: '6', name: '李贞强', gender: 'male', generation: 4, birthYear: '1955', spouse: '陈氏', fatherId: '4', residence: '北京', status: 'alive',
-    medias: [
-      { id: 'm6-1', url: 'https://picsum.photos/400/400?random=601', type: 'image', dateTime: '1978-07-15 09:00:00', location: '北京市海淀区' },
-      { id: 'm6-2', url: 'https://picsum.photos/400/400?random=602', type: 'image', dateTime: '1985-05-01 12:00:00', location: '北京市颐和园' },
-      { id: 'm6-3', url: 'https://picsum.photos/400/400?random=603', type: 'video', dateTime: '1990-10-01 10:30:00', location: '北京市天安门广场', duration: '02:45' },
-      { id: 'm6-4', url: 'https://picsum.photos/400/400?random=604', type: 'image', dateTime: '2008-08-08 20:00:00', location: '北京市朝阳区' },
-      { id: 'm6-5', url: 'https://picsum.photos/400/400?random=605', type: 'image', dateTime: '2015-03-15 14:00:00', location: '北京市西城区' },
-      { id: 'm6-6', url: 'https://picsum.photos/400/400?random=606', type: 'image', dateTime: '2020-10-20 11:30:00', location: '北京市海淀区' }
-    ]
-  },
-  { 
-    id: '7', name: '李贞敏', gender: 'female', generation: 4, birthYear: '1960', spouse: '张某', fatherId: '4', residence: '天津', status: 'alive',
-    medias: [
-      { id: 'm7-1', url: 'https://picsum.photos/400/400?random=701', type: 'image', dateTime: '1982-06-18 10:00:00', location: '天津市和平区' },
-      { id: 'm7-2', url: 'https://picsum.photos/400/400?random=702', type: 'image', dateTime: '1995-11-25 15:30:00', location: '天津市南开区' }
-    ]
-  },
-  { 
-    id: '8', name: '李仁伟', gender: 'male', generation: 5, birthYear: '1980', spouse: '林氏', fatherId: '6', residence: '北京', status: 'alive',
-    medias: [
-      { id: 'm8-1', url: 'https://picsum.photos/400/400?random=801', type: 'image', dateTime: '1998-09-01 08:00:00', location: '北京市海淀区' },
-      { id: 'm8-2', url: 'https://picsum.photos/400/400?random=802', type: 'image', dateTime: '2005-07-10 14:00:00', location: '北京市朝阳区' },
-      { id: 'm8-3', url: 'https://picsum.photos/400/400?random=803', type: 'video', dateTime: '2010-05-20 16:30:00', location: '北京市海淀区', duration: '00:45' },
-      { id: 'm8-4', url: 'https://picsum.photos/400/400?random=804', type: 'image', dateTime: '2018-12-25 12:00:00', location: '北京市西城区' },
-      { id: 'm8-5', url: 'https://picsum.photos/400/400?random=805', type: 'image', dateTime: '2023-06-18 10:30:00', location: '北京市朝阳区' }
-    ]
-  },
-  { 
-    id: '9', name: '李仁婷', gender: 'female', generation: 5, birthYear: '1985', spouse: '刘某', fatherId: '6', residence: '深圳', status: 'alive',
-    medias: [
-      { id: 'm9-1', url: 'https://picsum.photos/400/400?random=901', type: 'image', dateTime: '2008-08-15 09:00:00', location: '广东省深圳市南山区' },
-      { id: 'm9-2', url: 'https://picsum.photos/400/400?random=902', type: 'image', dateTime: '2015-03-22 14:30:00', location: '广东省深圳市福田区' },
-      { id: 'm9-3', url: 'https://picsum.photos/400/400?random=903', type: 'image', dateTime: '2020-11-11 11:11:00', location: '广东省深圳市宝安区' }
-    ]
-  },
-  { 
-    id: '10', name: '李义泽', gender: 'male', generation: 6, birthYear: '2010', fatherId: '8', residence: '北京', status: 'alive',
-    medias: [
-      { id: 'm10-1', url: 'https://picsum.photos/400/400?random=1001', type: 'image', dateTime: '2010-06-15 08:30:00', location: '北京市海淀区' },
-      { id: 'm10-2', url: 'https://picsum.photos/400/400?random=1002', type: 'image', dateTime: '2015-09-01 07:45:00', location: '北京市朝阳区' },
-      { id: 'm10-3', url: 'https://picsum.photos/400/400?random=1003', type: 'image', dateTime: '2020-12-25 10:00:00', location: '北京市西城区' },
-      { id: 'm10-4', url: 'https://picsum.photos/400/400?random=1004', type: 'video', dateTime: '2023-08-20 15:00:00', location: '北京市海淀区', duration: '00:30' }
-    ]
-  },
-  { 
-    id: '11', name: '李义涵', gender: 'female', generation: 6, birthYear: '2012', fatherId: '8', residence: '北京', status: 'alive',
-    medias: [
-      { id: 'm11-1', url: 'https://picsum.photos/400/400?random=1101', type: 'image', dateTime: '2012-03-10 10:00:00', location: '北京市海淀区' },
-      { id: 'm11-2', url: 'https://picsum.photos/400/400?random=1102', type: 'image', dateTime: '2018-07-15 14:30:00', location: '北京市朝阳区' },
-      { id: 'm11-3', url: 'https://picsum.photos/400/400?random=1103', type: 'image', dateTime: '2022-05-20 09:00:00', location: '北京市西城区' }
-    ]
-  },
-])
+const familyMembers = ref<FamilyMember[]>([])
 
 const searchKeyword = ref('')
-const filterStatus = ref('all')
 const selectedMember = ref<FamilyMember | null>(null)
 const memberDetailTab = ref<'info' | 'media'>('info')
 const showMemberModal = ref(false)
@@ -721,11 +789,22 @@ const filteredMembers = computed(() => {
   if (searchKeyword.value) {
     result = result.filter(m => m.name.includes(searchKeyword.value))
   }
-  if (filterStatus.value !== 'all') {
-    result = result.filter(m => m.status === filterStatus.value)
-  }
   return result
 })
+
+const handleSearch = () => {
+  if (searchKeyword.value.trim()) {
+    const matchedMember = familyMembers.value.find(m => m.name.includes(searchKeyword.value))
+    if (matchedMember) {
+      selectedMember.value = matchedMember
+      setTimeout(() => {
+        d3TreeRef.value?.focusNode(matchedMember.id)
+      }, 100)
+    } else {
+      alert('未找到匹配的成员')
+    }
+  }
+}
 
 const maleMembers = computed(() => {
   return familyMembers.value.filter(m => m.gender === 'male')
@@ -778,9 +857,41 @@ const buildTree = (members: FamilyMember[]): TreeNodeData[] => {
 
 const treeRoots = computed(() => buildTree(familyMembers.value))
 
-const goBack = () => {
-  router.push('/')
+const loadData = async () => {
+  isLoading.value = true
+  try {
+    const response = await apiService.getFamily()
+    if (response.success && response.data) {
+      const { family, members } = response.data
+      familyInfo.hallName = family.hallName || ''
+      familyInfo.surname = family.surname
+      familyInfo.ancestor = family.ancestor || ''
+      familyInfo.description = family.description || ''
+      familyInfo.ziBei = family.ziBei || []
+      familyMembers.value = members
+      familySettingsForm.hallName = family.hallName || ''
+      familySettingsForm.surname = family.surname
+      familySettingsForm.ancestor = family.ancestor || ''
+      familySettingsForm.description = family.description || ''
+      familySettingsForm.ziBeiStr = (family.ziBei || []).join(',')
+    } else {
+      console.error('加载家族数据失败:', response.error)
+    }
+  } catch (error) {
+    console.error('加载家族数据失败:', error)
+  } finally {
+    isLoading.value = false
+  }
 }
+
+onMounted(() => {
+  loadData()
+  document.addEventListener('click', closeUserMenu)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeUserMenu)
+})
 
 const zoomIn = () => {
   scale.value = Math.min(scale.value + 0.1, 2)
@@ -851,59 +962,104 @@ const resetMemberForm = () => {
   memberForm.status = 'alive'
 }
 
-const saveMember = () => {
+const saveMember = async () => {
   if (!memberForm.name.trim()) {
     alert('请输入姓名')
     return
   }
-  if (editingMember.value) {
-    const index = familyMembers.value.findIndex(m => m.id === editingMember.value!.id)
-    if (index > -1) {
-      familyMembers.value[index] = {
-        ...memberForm,
+  try {
+    if (editingMember.value) {
+      const response = await apiService.updateMember(editingMember.value.id, {
+        name: memberForm.name,
+        gender: memberForm.gender,
+        generation: memberForm.generation,
         birthYear: memberForm.birthYear || undefined,
         deathYear: memberForm.deathYear || undefined,
         spouse: memberForm.spouse || undefined,
         fatherId: memberForm.fatherId || undefined,
         residence: memberForm.residence || undefined,
-        note: memberForm.note || undefined
+        note: memberForm.note || undefined,
+        status: memberForm.status
+      })
+      if (response.success && response.data) {
+        const index = familyMembers.value.findIndex(m => m.id === editingMember.value!.id)
+        if (index > -1) {
+          familyMembers.value[index] = response.data
+        }
+      } else {
+        alert(`更新失败: ${response.error || '未知错误'}`)
+        return
+      }
+    } else {
+      const response = await apiService.createMember({
+        name: memberForm.name,
+        gender: memberForm.gender,
+        generation: memberForm.generation,
+        birthYear: memberForm.birthYear || undefined,
+        deathYear: memberForm.deathYear || undefined,
+        spouse: memberForm.spouse || undefined,
+        fatherId: memberForm.fatherId || undefined,
+        residence: memberForm.residence || undefined,
+        note: memberForm.note || undefined,
+        status: memberForm.status
+      })
+      if (response.success && response.data) {
+        familyMembers.value.push(response.data)
+      } else {
+        alert(`创建失败: ${response.error || '未知错误'}`)
+        return
       }
     }
-  } else {
-    const newMember: FamilyMember = {
-      id: Date.now().toString(),
-      name: memberForm.name,
-      gender: memberForm.gender,
-      generation: memberForm.generation,
-      birthYear: memberForm.birthYear || undefined,
-      deathYear: memberForm.deathYear || undefined,
-      spouse: memberForm.spouse || undefined,
-      fatherId: memberForm.fatherId || undefined,
-      residence: memberForm.residence || undefined,
-      note: memberForm.note || undefined,
-      status: memberForm.status
-    }
-    familyMembers.value.push(newMember)
+    closeMemberModal()
+  } catch (error) {
+    console.error('保存成员失败:', error)
+    alert(`保存失败: ${error instanceof Error ? error.message : '未知错误'}`)
   }
-  closeMemberModal()
 }
 
-const deleteMember = (member: FamilyMember) => {
+const deleteMember = async (member: FamilyMember) => {
   if (confirm(`确定要删除成员「${member.name}」吗？`)) {
-    const index = familyMembers.value.findIndex(m => m.id === member.id)
-    if (index > -1) {
-      familyMembers.value.splice(index, 1)
+    try {
+      const response = await apiService.deleteMember(member.id)
+      if (response.success) {
+        const index = familyMembers.value.findIndex(m => m.id === member.id)
+        if (index > -1) {
+          familyMembers.value.splice(index, 1)
+        }
+      } else {
+        alert(`删除失败: ${response.error || '未知错误'}`)
+      }
+    } catch (error) {
+      console.error('删除成员失败:', error)
+      alert(`删除失败: ${error instanceof Error ? error.message : '未知错误'}`)
     }
   }
 }
 
-const saveFamilySettings = () => {
-  familyInfo.hallName = familySettingsForm.hallName
-  familyInfo.surname = familySettingsForm.surname
-  familyInfo.ancestor = familySettingsForm.ancestor
-  familyInfo.description = familySettingsForm.description
-  familyInfo.ziBei = familySettingsForm.ziBeiStr.split(',').map(z => z.trim()).filter(z => z)
-  showFamilySettings.value = false
+const saveFamilySettings = async () => {
+  try {
+    const ziBei = familySettingsForm.ziBeiStr.split(',').map(z => z.trim()).filter(z => z)
+    const response = await apiService.updateFamily({
+      hallName: familySettingsForm.hallName,
+      surname: familySettingsForm.surname,
+      ancestor: familySettingsForm.ancestor,
+      description: familySettingsForm.description,
+      ziBei: ziBei
+    })
+    if (response.success && response.data) {
+      familyInfo.hallName = response.data.hallName || ''
+      familyInfo.surname = response.data.surname
+      familyInfo.ancestor = response.data.ancestor || ''
+      familyInfo.description = response.data.description || ''
+      familyInfo.ziBei = response.data.ziBei || []
+      showFamilySettings.value = false
+    } else {
+      alert(`保存失败: ${response.error || '未知错误'}`)
+    }
+  } catch (error) {
+    console.error('保存家族设置失败:', error)
+    alert(`保存失败: ${error instanceof Error ? error.message : '未知错误'}`)
+  }
 }
 
 const showContextMenuForNode = (member: FamilyMember, event: MouseEvent) => {

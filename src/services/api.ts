@@ -345,6 +345,89 @@ interface ChatSessionListItem {
   updatedAt: string;
 }
 
+type Gender = 'male' | 'female';
+type MemberStatus = 'alive' | 'deceased';
+type MediaType = 'image' | 'video';
+
+interface MemberMedia {
+  id: string;
+  url: string;
+  type: MediaType;
+  dateTime?: string;
+  location?: string;
+  duration?: string;
+}
+
+interface FamilyMember {
+  id: string;
+  familyId: string;
+  name: string;
+  gender: Gender;
+  generation: number;
+  birthYear?: string;
+  deathYear?: string;
+  spouse?: string;
+  fatherId?: string;
+  residence?: string;
+  note?: string;
+  status: MemberStatus;
+  medias?: MemberMedia[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Family {
+  id: string;
+  hallName?: string;
+  surname: string;
+  ancestor?: string;
+  description?: string;
+  ziBei?: string[];
+  userId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface FamilyDetailResponse {
+  family: Family;
+  memberCount: number;
+  members: FamilyMember[];
+}
+
+interface CreateFamilyMemberRequest {
+  name: string;
+  gender?: Gender;
+  generation?: number;
+  birthYear?: string;
+  deathYear?: string;
+  spouse?: string;
+  fatherId?: string;
+  residence?: string;
+  note?: string;
+  status?: MemberStatus;
+}
+
+interface UpdateFamilyMemberRequest {
+  name?: string;
+  gender?: Gender;
+  generation?: number;
+  birthYear?: string;
+  deathYear?: string;
+  spouse?: string;
+  fatherId?: string;
+  residence?: string;
+  note?: string;
+  status?: MemberStatus;
+}
+
+interface UpdateFamilyRequest {
+  hallName?: string;
+  surname?: string;
+  ancestor?: string;
+  description?: string;
+  ziBei?: string[];
+}
+
 interface CreateChatSessionRequest {
   avatarId: string;
 }
@@ -992,6 +1075,61 @@ class ApiService {
     return this.authRequest<{ message: string }>('/api/verify-password', {
       method: 'POST',
       body: JSON.stringify({ password })
+    });
+  }
+
+  async getFamily(): Promise<ApiResponse<FamilyDetailResponse>> {
+    return this.request<FamilyDetailResponse>('/api/family');
+  }
+
+  async updateFamily(request: UpdateFamilyRequest): Promise<ApiResponse<Family>> {
+    return this.request<Family>('/api/family', {
+      method: 'PUT',
+      body: JSON.stringify(request)
+    });
+  }
+
+  async getMembers(options?: {
+    status?: string;
+    search?: string;
+  }): Promise<ApiResponse<{ total: number; members: FamilyMember[] }>> {
+    let endpoint = '/api/family/members';
+    const params = new URLSearchParams();
+    
+    if (options?.status) params.append('status', options.status);
+    if (options?.search) params.append('search', options.search);
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`;
+    }
+    
+    return this.request<{ total: number; members: FamilyMember[] }>(endpoint);
+  }
+
+  async getMember(memberId: string): Promise<ApiResponse<FamilyMember>> {
+    return this.request<FamilyMember>(`/api/family/members/${memberId}`);
+  }
+
+  async createMember(request: CreateFamilyMemberRequest): Promise<ApiResponse<FamilyMember>> {
+    return this.request<FamilyMember>('/api/family/members', {
+      method: 'POST',
+      body: JSON.stringify(request)
+    });
+  }
+
+  async updateMember(
+    memberId: string,
+    request: UpdateFamilyMemberRequest
+  ): Promise<ApiResponse<FamilyMember>> {
+    return this.request<FamilyMember>(`/api/family/members/${memberId}`, {
+      method: 'PUT',
+      body: JSON.stringify(request)
+    });
+  }
+
+  async deleteMember(memberId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<{ message: string }>(`/api/family/members/${memberId}`, {
+      method: 'DELETE'
     });
   }
 }
