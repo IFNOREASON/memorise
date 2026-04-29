@@ -6,8 +6,6 @@ from functools import lru_cache
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-DEFAULT_SQLITE_URL = f"sqlite+aiosqlite:///{os.path.join(BASE_DIR, 'data.db')}"
-
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Memorise Digital Avatar API"
@@ -19,7 +17,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
     
-    DATABASE_URL: str = DEFAULT_SQLITE_URL
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:123456@localhost:5432/memorise"
     
     ALIYUN_API_KEY: Optional[str] = None
     ALIYUN_BASE_URL: str = "https://dashscope.aliyuncs.com/api/v1"

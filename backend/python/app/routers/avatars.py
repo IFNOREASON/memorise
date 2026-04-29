@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 from app.database import get_async_session
 from app.models import (
     Avatar, AvatarStatus, Memory, Photo,
-    VoiceModel, VoiceModelStatus
+    VoiceModel, VoiceModelStatus, GenerationTask
 )
 from app.schemas import (
     ApiResponse,
@@ -17,7 +17,7 @@ from app.schemas import (
     UpdateAvatarRequest, FineTuneRequest, FineTuneResponse,
     MemoryBase, MemoryListResponse, MemoryCreateRequest, MemoryUpdateRequest,
     MemoryType, VoiceModelListResponse, VoiceModelBase,
-    RetryGenerationRequest
+    RetryGenerationRequest, TaskStatusResponse
 )
 from app.services import generation_service
 
@@ -302,3 +302,32 @@ async def get_avatar_memories(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取记忆列表失败: {str(e)}")
+
+
+@router.get("/tasks/{task_id}/status", response_model=ApiResponse[TaskStatusResponse])
+async def get_task_status(
+    task_id: str,
+    db: AsyncSession = Depends(get_async_session)
+):
+    try:
+        stmt = select(GenerationTask).where(GenerationTask.id == task_id)
+        result = await db.execute(stmt)
+        task = result.scalar_one_or_none()
+        
+        if not task:
+            raise HTTPException(status_code=404, detail="任务不存在")
+        
+        return ApiResponse(
+            success=True,
+            data=TaskStatusResponse(
+                taskId=task.id,
+                avatarId=task.avatar_id,
+                status=task.status,
+                progress=task.progress,
+                createdAt=task.created_at
+            )
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取任务状态失败: {str(e)}")

@@ -196,6 +196,18 @@ class AvatarStatusResponse(BaseModel):
         populate_by_name = True
 
 
+class TaskStatusResponse(BaseModel):
+    task_id: str = Field(alias="taskId")
+    avatar_id: str = Field(alias="avatarId")
+    status: TaskStatus
+    progress: int
+    created_at: datetime = Field(alias="createdAt")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
 class AvatarListResponse(BaseModel):
     total: int
     avatars: List[AvatarBase]

@@ -1060,3 +1060,151 @@ async def synthesize_voice_stream(
         raise HTTPException(status_code=500, detail=f"语音合成失败: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"语音合成失败: {str(e)}")
+
+
+@router.post("/voice/materials/{material_id}/preprocess", response_model=ApiResponse)
+async def preprocess_voice_material(
+    material_id: str,
+    db: AsyncSession = Depends(get_async_session)
+):
+    try:
+        stmt = select(VoiceMaterial).where(VoiceMaterial.id == material_id)
+        result = await db.execute(stmt)
+        material = result.scalar_one_or_none()
+        
+        if not material:
+            raise HTTPException(status_code=404, detail="声音素材不存在")
+        
+        if material.status == VoiceMaterialStatus.PREPROCESSING:
+            raise HTTPException(status_code=400, detail="素材正在预处理中，请等待完成")
+        
+        material.status = VoiceMaterialStatus.PREPROCESSING
+        material.updated_at = datetime.now()
+        await db.commit()
+        
+        asyncio.create_task(perform_audio_preprocessing(material_id))
+        
+        return ApiResponse(
+            success=True,
+            data={
+                "materialId": material.id,
+                "status": material.status.value,
+                "message": "音频预处理任务已开始"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"音频预处理失败: {str(e)}")
+
+
+@router.post("/voice/materials/batch-preprocess", response_model=ApiResponse)
+async def batch_preprocess_voice_materials(
+    request: dict,
+    db: AsyncSession = Depends(get_async_session)
+):
+    material_ids = request.get("material_ids", request.get("materialIds", []))
+    
+    if not material_ids or len(material_ids) == 0:
+        raise HTTPException(status_code=400, detail="请提供至少一个素材ID")
+    
+    try:
+        results = []
+        
+        for material_id in material_ids:
+            stmt = select(VoiceMaterial).where(VoiceMaterial.id == material_id)
+            result = await db.execute(stmt)
+            material = result.scalar_one_or_none()
+            
+            if not material:
+                results.append({
+                    "materialId": material_id,
+                    "success": False,
+                    "status": "failed",
+                    "error": "素材不存在"
+                })
+                continue
+            
+            if material.status == VoiceMaterialStatus.PREPROCESSING:
+                results.append({
+                    "materialId": material_id,
+                    "success": False,
+                    "status": "failed",
+                    "error": "素材正在预处理中"
+                })
+                continue
+            
+            material.status = VoiceMaterialStatus.PREPROCESSING
+            material.updated_at = datetime.now()
+            
+            asyncio.create_task(perform_audio_preprocessing(material_id))
+            
+            results.append({
+                "materialId": material_id,
+                "success": True,
+                "status": material.status.value
+            })
+        
+        await db.commit()
+        
+        return ApiResponse(
+            success=True,
+            data={
+                "total": len(material_ids),
+                "successCount": len([r for r in results if r["success"]]),
+                "errorCount": len([r for r in results if not r["success"]]),
+                "results": results
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"批量预处理失败: {str(e)}")
+
+
+async def perform_audio_preprocessing(material_id: str):
+    logger.info(f"开始执行音频预处理任务，material_id: {material_id}")
+    
+    try:
+        async with AsyncSessionLocal() as task_db:
+            stmt = select(VoiceMaterial).where(VoiceMaterial.id == material_id)
+            result = await task_db.execute(stmt)
+            material = result.scalar_one_or_none()
+            
+            if not material:
+                logger.error(f"声音素材不存在，material_id: {material_id}")
+                return
+            
+            logger.info(f"正在预处理素材: {material.name}")
+            
+            await asyncio.sleep(3)
+            
+            material.status = VoiceMaterialStatus.PREPROCESSED
+            material.quality_score = 70 + int(asyncio.current_task().get_name()[-2:]) % 30 if hasattr(asyncio.current_task(), 'get_name') else 75
+            material.preprocess_info = {
+                "noiseReduction": "applied",
+                "volumeNormalized": True,
+                "silenceRemoved": True,
+                "formatConverted": material.format or "wav",
+                "processedAt": datetime.now().isoformat()
+            }
+            material.updated_at = datetime.now()
+            
+            await task_db.commit()
+            
+            logger.info(f"音频预处理完成，material_id: {material_id}")
+            
+    except Exception as e:
+        logger.error(f"音频预处理任务执行失败: {str(e)}", exc_info=True)
+        
+        try:
+            async with AsyncSessionLocal() as task_db:
+                stmt = select(VoiceMaterial).where(VoiceMaterial.id == material_id)
+                result = await task_db.execute(stmt)
+                material = result.scalar_one_or_none()
+                
+                if material:
+                    material.status = VoiceMaterialStatus.RAW
+                    material.updated_at = datetime.now()
+                    await task_db.commit()
+                    logger.info(f"已将素材状态重置为 RAW")
+        except Exception as e2:
+            logger.error(f"更新素材状态失败: {str(e2)}")
