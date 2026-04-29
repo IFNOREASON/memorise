@@ -375,7 +375,7 @@
               </button>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div class="bg-white rounded-2xl p-4 shadow-soft border border-stone-100">
                 <div class="flex items-center space-x-3">
                   <div class="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center">
@@ -384,17 +384,6 @@
                   <div>
                     <p class="text-xs text-gray-500">声音素材</p>
                     <p class="text-lg font-bold text-[#5C4A3A]">{{ voiceMaterialCount }}</p>
-                  </div>
-                </div>
-              </div>
-              <div class="bg-white rounded-2xl p-4 shadow-soft border border-stone-100">
-                <div class="flex items-center space-x-3">
-                  <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                    <Icon icon="solar:refresh-bold" class="text-blue-500 text-xl" />
-                  </div>
-                  <div>
-                    <p class="text-xs text-gray-500">预处理完成</p>
-                    <p class="text-lg font-bold text-[#5C4A3A]">{{ preprocessedMaterialCount }}</p>
                   </div>
                 </div>
               </div>
@@ -457,7 +446,7 @@
                       </div>
                       <div>
                         <h3 class="font-bold text-[#5C4A3A]">声音素材列表</h3>
-                        <p class="text-xs text-gray-500">需要预处理后才能用于训练</p>
+                        <p class="text-xs text-gray-500">上传声音素材用于训练</p>
                       </div>
                     </div>
                     <div class="flex items-center space-x-2">
@@ -468,15 +457,6 @@
                       >
                         <Icon icon="solar:plus-bold" class="text-sm" />
                         <span>添加素材</span>
-                      </button>
-                      <button 
-                        type="button"
-                        @click="batchPreprocessMaterials"
-                        :disabled="selectedMaterialsForPreprocess.length === 0"
-                        class="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
-                      >
-                        <Icon icon="solar:refresh-bold" class="text-sm" />
-                        <span>批量预处理 ({{ selectedMaterialsForPreprocess.length }})</span>
                       </button>
                     </div>
                   </div>
@@ -503,25 +483,8 @@
                   <div v-else class="space-y-3">
                     <div v-for="material in voiceMaterials" :key="material.id"
                          class="p-3 rounded-xl border transition-all"
-                         :class="[
-                           getMaterialStatusClass(material.status),
-                           selectedMaterialsForPreprocess.includes(material.id) ? 'ring-2 ring-blue-400' : ''
-                         ]">
+                         :class="getMaterialStatusClass(material.status)">
                       <div class="flex items-start space-x-3">
-                        <div v-if="material.status === 'raw'" class="pt-1">
-                          <input 
-                            type="checkbox" 
-                            :checked="selectedMaterialsForPreprocess.includes(material.id)"
-                            @change="toggleMaterialSelection(material.id)"
-                            class="w-4 h-4 rounded border-gray-300 text-[#8B6F4E] focus:ring-[#8B6F4E]"
-                          >
-                        </div>
-                        <div v-else class="pt-1">
-                          <div class="w-4 h-4 flex items-center justify-center">
-                            <Icon v-if="material.status === 'preprocessed'" icon="solar:check-circle-bold" class="text-green-500" />
-                            <Icon v-else-if="material.status === 'preprocessing'" icon="solar:loader-bold" class="text-blue-500 animate-spin" />
-                          </div>
-                        </div>
                         
                         <div class="flex-1 min-w-0">
                           <div class="flex items-center justify-between">
@@ -552,15 +515,6 @@
                         <div class="flex items-center space-x-1">
                           <button 
                             type="button"
-                            v-if="material.status === 'raw'"
-                            @click="preprocessSingleMaterial(material.id)"
-                            class="p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                            title="预处理"
-                          >
-                            <Icon icon="solar:refresh-bold" class="text-blue-500" />
-                          </button>
-                          <button 
-                            type="button"
                             @click="deleteVoiceMaterial(material.id)"
                             class="p-2 rounded-lg hover:bg-red-50 transition-colors"
                             title="删除"
@@ -583,13 +537,13 @@
                       </div>
                       <div>
                         <h3 class="font-bold text-[#5C4A3A]">训练声音模型</h3>
-                        <p class="text-xs text-gray-500">使用预处理后的素材训练专属声音</p>
+                        <p class="text-xs text-gray-500">使用素材训练专属声音</p>
                       </div>
                     </div>
                     <button 
                       type="button"
                       @click="startVoiceTraining"
-                      :disabled="preprocessedMaterialsForAvatar.length === 0 || isTrainingVoice"
+                      :disabled="voiceMaterials.length === 0 || isTrainingVoice"
                       class="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-medium hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
                     >
                       <Icon v-if="isTrainingVoice" icon="solar:loader-bold" class="text-sm animate-spin" />
@@ -693,14 +647,14 @@
                     </div>
                   </div>
 
-                  <div v-if="preprocessedMaterialsForAvatar.length === 0" class="text-center py-6">
+                  <div v-if="voiceMaterials.length === 0" class="text-center py-6">
                     <Icon icon="solar:document-missing-bold" class="text-4xl text-gray-300 mx-auto mb-2" />
-                    <p class="text-sm text-gray-500">需要先预处理声音素材</p>
+                    <p class="text-sm text-gray-500">请先上传声音素材</p>
                   </div>
                   
                   <div v-else class="p-3 bg-[#FAF7F2] rounded-xl">
                     <p class="text-sm text-gray-600">
-                      <span class="font-medium">{{ preprocessedMaterialsForAvatar.length }}</span> 个素材已准备就绪，可以开始训练
+                      <span class="font-medium">{{ voiceMaterials.length }}</span> 个素材已准备就绪，可以开始训练
                     </p>
                   </div>
                 </div>
@@ -2885,40 +2839,62 @@ const submitCreateAvatar = async () => {
     } : undefined
   }
 
+  // 生成本地 ID，即使接口失败也能创建记录
+  const localAvatarId = `avatar_local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  const localTaskId = `task_local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+  // 先创建本地数字人记录
+  const newDigitalAvatar: DigitalAvatar = {
+    id: localAvatarId,
+    name: newAvatarForm.value.name,
+    relationship: newAvatarForm.value.relationship,
+    gender: newAvatarForm.value.gender,
+    avatar: newAvatarForm.value.uploadedPhotos[0] || undefined,
+    status: 'pending',
+    progress: 0,
+    birthYear: newAvatarForm.value.birthYear,
+    deathYear: newAvatarForm.value.deathYear || undefined,
+    chatCount: 0,
+    generationMethod: newAvatarForm.value.generationMethod,
+    description: newAvatarForm.value.description,
+    lastError: undefined
+  }
+
+  digitalAvatars.value.push(newDigitalAvatar)
+  closeCreateAvatarModal()
+
   try {
     const response = await apiService.generateAvatar(request)
     
     if (response.success && response.data) {
       const { taskId, avatarId } = response.data
       
-      const newDigitalAvatar: DigitalAvatar = {
-        id: avatarId,
-        name: newAvatarForm.value.name,
-        relationship: newAvatarForm.value.relationship,
-        gender: newAvatarForm.value.gender,
-        avatar: newAvatarForm.value.uploadedPhotos[0] || undefined,
-        status: 'generating',
-        progress: 0,
-        birthYear: newAvatarForm.value.birthYear,
-        deathYear: newAvatarForm.value.deathYear || undefined,
-        chatCount: 0,
-        generationMethod: newAvatarForm.value.generationMethod,
-        description: newAvatarForm.value.description
+      // 更新为后端返回的真实 ID
+      const avatarIndex = digitalAvatars.value.findIndex(a => a.id === localAvatarId)
+      if (avatarIndex > -1) {
+        digitalAvatars.value[avatarIndex].id = avatarId
       }
-
-      digitalAvatars.value.push(newDigitalAvatar)
-      closeCreateAvatarModal()
-
+      
       pendingAvatarId.value = avatarId
       pendingTaskId.value = taskId
       startGenerationTracking(avatarId, taskId)
     } else {
-      console.error('创建数字人失败:', response.error)
-      alert('创建数字人失败: ' + (response.error || '未知错误'))
+      // 接口返回失败，但仍然保留本地记录，标记为失败状态
+      console.warn('创建数字人接口返回失败，但已创建本地记录:', response.error)
+      const avatar = digitalAvatars.value.find(a => a.id === localAvatarId)
+      if (avatar) {
+        avatar.status = 'failed'
+        avatar.lastError = response.error || '创建任务失败'
+      }
     }
   } catch (error) {
-    console.error('创建数字人失败:', error)
-    alert('创建数字人失败: ' + (error instanceof Error ? error.message : '未知错误'))
+    // 接口调用失败（如网络错误），但仍然保留本地记录
+    console.warn('调用生成接口失败，但已创建本地记录，稍后可重试:', error)
+    const avatar = digitalAvatars.value.find(a => a.id === localAvatarId)
+    if (avatar) {
+      avatar.status = 'failed'
+      avatar.lastError = error instanceof Error ? error.message : '网络错误，请稍后重试'
+    }
   }
 }
 
@@ -3086,7 +3062,8 @@ const retryAvatar = async () => {
         successAvatar.lastError = undefined
       }
       pendingAvatarId.value = response.data.avatarId
-      startGenerationTracking(response.data.avatarId)
+      pendingTaskId.value = response.data.taskId
+      startGenerationTracking(response.data.avatarId, response.data.taskId)
       closeRetryModal()
     } else {
       console.error('重试失败:', response.error)
@@ -3423,16 +3400,9 @@ interface VoiceMaterial {
   format: string
   duration: number
   size: number
-  status: 'raw' | 'preprocessing' | 'preprocessed'
+  status: string
   qualityScore: number
   transcription: string
-  preprocessInfo?: {
-    noiseReduction: string
-    volumeNormalized: boolean
-    silenceRemoved: boolean
-    formatConverted: string
-    processedAt: string
-  }
   createdAt: string
   updatedAt: string
 }
@@ -3482,7 +3452,6 @@ const selectedVoiceAvatarId = ref('')
 const voiceMaterials = ref<VoiceMaterial[]>([])
 const voiceModelsForAvatar = ref<VoiceModel[]>([])
 const loadingVoiceMaterials = ref(false)
-const selectedMaterialsForPreprocess = ref<string[]>([])
 const isTrainingVoice = ref(false)
 const currentTrainingModel = ref<VoiceModel | null>(null)
 const isSynthesizing = ref(false)
@@ -3520,14 +3489,8 @@ const selectedVoiceAvatar = computed(() => {
 })
 
 const voiceMaterialCount = computed(() => voiceMaterials.value.length)
-const preprocessedMaterialCount = computed(() => 
-  voiceMaterials.value.filter(m => m.status === 'preprocessed').length
-)
 const voiceModelCount = computed(() => voiceModelsForAvatar.value.length)
 
-const preprocessedMaterialsForAvatar = computed(() => 
-  voiceMaterials.value.filter(m => m.status === 'preprocessed')
-)
 
 const currentTrainingStage = computed(() => {
   if (!currentTrainingModel.value) return null
@@ -3606,56 +3569,6 @@ const loadVoiceDataForAvatar = async () => {
   }
 }
 
-const toggleMaterialSelection = (materialId: string) => {
-  const index = selectedMaterialsForPreprocess.value.indexOf(materialId)
-  if (index > -1) {
-    selectedMaterialsForPreprocess.value.splice(index, 1)
-  } else {
-    selectedMaterialsForPreprocess.value.push(materialId)
-  }
-}
-
-const preprocessSingleMaterial = async (materialId: string) => {
-  try {
-    const response = await apiService.preprocessVoiceMaterial(materialId)
-    if (response.success) {
-      const material = voiceMaterials.value.find(m => m.id === materialId)
-      if (material) {
-        material.status = 'preprocessing'
-      }
-      setTimeout(() => loadVoiceDataForAvatar(), 4000)
-    } else {
-      alert('预处理失败: ' + (response.error || '未知错误'))
-    }
-  } catch (error) {
-    console.error('预处理失败:', error)
-    alert('预处理失败: ' + (error instanceof Error ? error.message : '未知错误'))
-  }
-}
-
-const batchPreprocessMaterials = async () => {
-  if (selectedMaterialsForPreprocess.value.length === 0) return
-  
-  try {
-    const response = await apiService.batchPreprocessVoiceMaterials(selectedMaterialsForPreprocess.value)
-    if (response.success) {
-      selectedMaterialsForPreprocess.value.forEach(id => {
-        const material = voiceMaterials.value.find(m => m.id === id)
-        if (material) {
-          material.status = 'preprocessing'
-        }
-      })
-      selectedMaterialsForPreprocess.value = []
-      setTimeout(() => loadVoiceDataForAvatar(), 4000)
-    } else {
-      alert('批量预处理失败: ' + (response.error || '未知错误'))
-    }
-  } catch (error) {
-    console.error('批量预处理失败:', error)
-    alert('批量预处理失败: ' + (error instanceof Error ? error.message : '未知错误'))
-  }
-}
-
 const deleteVoiceMaterial = async (materialId: string) => {
   if (!confirm('确定要删除这个声音素材吗？')) return
   
@@ -3676,8 +3589,8 @@ const deleteVoiceMaterial = async (materialId: string) => {
 }
 
 const startVoiceTraining = async () => {
-  if (preprocessedMaterialsForAvatar.value.length === 0) {
-    alert('需要至少一个预处理完成的素材才能开始训练')
+  if (voiceMaterials.value.length === 0) {
+    alert('需要至少一个素材才能开始训练')
     return
   }
 
@@ -3690,7 +3603,7 @@ const startVoiceTraining = async () => {
     const response = await apiService.createVoiceModel({
       avatarId: selectedVoiceAvatarId.value,
       name: `${selectedVoiceAvatar.value.name}的专属声音`,
-      materialIds: preprocessedMaterialsForAvatar.value.map(m => m.id)
+      materialIds: voiceMaterials.value.map(m => m.id)
     })
 
     if (response.success && response.data) {
@@ -3700,7 +3613,7 @@ const startVoiceTraining = async () => {
         name: `${selectedVoiceAvatar.value.name}的专属声音`,
         status: 'training',
         progress: 0,
-        materialIds: preprocessedMaterialsForAvatar.value.map(m => m.id),
+        materialIds: voiceMaterials.value.map(m => m.id),
         trainingConfig: {
           epochs: 100,
           batchSize: 16,
@@ -3862,27 +3775,21 @@ const pollSynthesisStatus = async (taskId: string) => {
 
 const getMaterialStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
-    raw: '待预处理',
-    preprocessing: '预处理中',
-    preprocessed: '已预处理'
+    raw: '待处理'
   }
   return labels[status] || status
 }
 
 const getMaterialStatusClass = (status: string) => {
   const classes: Record<string, string> = {
-    raw: 'border-gray-200 bg-gray-50',
-    preprocessing: 'border-blue-200 bg-blue-50',
-    preprocessed: 'border-green-200 bg-green-50'
+    raw: 'border-gray-200 bg-gray-50'
   }
   return classes[status] || 'border-gray-200'
 }
 
 const getMaterialStatusBadgeClass = (status: string) => {
   const classes: Record<string, string> = {
-    raw: 'bg-gray-100 text-gray-600',
-    preprocessing: 'bg-blue-100 text-blue-600',
-    preprocessed: 'bg-green-100 text-green-600'
+    raw: 'bg-gray-100 text-gray-600'
   }
   return classes[status] || 'bg-gray-100'
 }
@@ -4071,6 +3978,8 @@ const closeVoiceMaterialModal = () => {
   isUploadingMaterial.value = false
 }
 
+const MIN_RECORDING_DURATION = 20
+
 const submitVoiceMaterial = async () => {
   if (!newMaterialName.value.trim()) {
     alert('请输入素材名称')
@@ -4082,40 +3991,41 @@ const submitVoiceMaterial = async () => {
     return
   }
 
-  let materialType: 'recording' | 'upload'
-  let format = 'wav'
-  let duration = 0
-  let size = 0
+  let audioFile: Blob | File | null = null
+  let materialType: 'recording' | 'upload' = 'upload'
 
   if (voiceMaterialTab.value === 'recording') {
-    if (!recordedAudioUrl.value) {
+    if (!recordedAudioUrl.value || recordedChunks.value.length === 0) {
       alert('请先录制音频')
       return
     }
+    
+    if (recordingDuration.value < MIN_RECORDING_DURATION) {
+      alert(`录音时长不足！需要至少 ${MIN_RECORDING_DURATION} 秒，当前时长: ${recordingDuration.value} 秒`)
+      return
+    }
+    
     materialType = 'recording'
-    duration = recordingDuration.value
-    size = 0
+    audioFile = new Blob(recordedChunks.value, { type: 'audio/wav' })
   } else {
     if (!importedAudioFile.value) {
       alert('请选择音频文件')
       return
     }
+    
     materialType = 'upload'
-    format = importedAudioFile.value.type.split('/')[1] || 'wav'
-    size = importedAudioFile.value.size
+    audioFile = importedAudioFile.value
   }
 
   isUploadingMaterial.value = true
 
   try {
-    const response = await apiService.createVoiceMaterial({
-      avatarId: selectedVoiceAvatarId.value,
-      name: newMaterialName.value,
-      type: materialType,
-      format: format,
-      duration: duration,
-      size: size
-    })
+    const response = await apiService.uploadVoiceMaterial(
+      selectedVoiceAvatarId.value,
+      newMaterialName.value,
+      audioFile,
+      materialType
+    )
 
     if (response.success) {
       alert('素材保存成功！')

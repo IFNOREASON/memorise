@@ -3,9 +3,14 @@ import asyncio
 import json
 import base64
 import re
+import io
+import wave
+import struct
 from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+import websockets
+from websockets.exceptions import ConnectionClosed
 
 from app.config import settings
 from app.schemas import PhotoAnalysisResult, PhotoAnalysisResponse
@@ -502,6 +507,316 @@ class AliyunService:
             "有什么需要帮忙的吗？虽然我不在你身边，但我的心一直牵挂着你。"
         ]
         return random.choice(responses)
+    
+    def _get_audio_mime_type(self, format: str) -> str:
+        format_map = {
+            "wav": "audio/wav",
+            "mp3": "audio/mpeg",
+            "m4a": "audio/mp4",
+            "ogg": "audio/ogg",
+        }
+        return format_map.get(format.lower(), "audio/wav")
+    
+    def _get_audio_duration(self, audio_bytes: bytes, format: str) -> float:
+        try:
+            if format.lower() == "wav":
+                with io.BytesIO(audio_bytes) as f:
+                    with wave.open(f, 'rb') as wav_file:
+                        frames = wav_file.getnframes()
+                        rate = wav_file.getframerate()
+                        return frames / float(rate)
+            return 0.0
+        except Exception:
+            return 0.0
+    
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((httpx.ConnectError, httpx.ReadTimeout)),
+        reraise=True
+    )
+    async def create_voice_enrollment(
+        self,
+        audio_data: bytes,
+        audio_format: str = "wav",
+        preferred_name: str = "custom_voice",
+        target_model: str = None,
+        text: str = None,
+        language: str = "zh"
+    ) -> Dict[str, Any]:
+        if not self.api_key:
+            return self._simulate_voice_enrollment(preferred_name)
+        
+        client = await self.http_client
+        
+        audio_mime = self._get_audio_mime_type(audio_format)
+        base64_audio = base64.b64encode(audio_data).decode()
+        data_uri = f"data:{audio_mime};base64,{base64_audio}"
+        
+        if target_model is None:
+            target_model = settings.VOICE_TARGET_MODEL
+        
+        payload = {
+            "model": settings.VOICE_ENROLLMENT_MODEL,
+            "input": {
+                "action": "create",
+                "target_model": target_model,
+                "preferred_name": preferred_name,
+                "audio": {
+                    "data": data_uri
+                }
+            }
+        }
+        
+        if text:
+            payload["input"]["text"] = text
+        if language:
+            payload["input"]["language"] = language
+        
+        url = f"{self.base_url}/services/audio/tts/customization"
+        
+        try:
+            response = await client.post(
+                url,
+                headers=self._get_headers(),
+                json=payload
+            )
+            
+            if response.status_code != 200:
+                error_text = response.text
+                raise AliyunServiceError(f"声音复刻失败: {response.status_code} - {error_text}")
+            
+            result = response.json()
+            output = result.get("output", {})
+            
+            return {
+                "success": True,
+                "voice": output.get("voice"),
+                "target_model": output.get("target_model"),
+                "request_id": result.get("request_id")
+            }
+            
+        except httpx.HTTPStatusError as e:
+            raise AliyunServiceError(f"HTTP错误: {e.response.status_code}")
+        except Exception as e:
+            raise AliyunServiceError(f"调用声音复刻API失败: {str(e)}")
+    
+    @retry(
+        stop=stop_after_attempt(2),
+        wait=wait_exponential(multiplier=1, min=2, max=5),
+        retry=retry_if_exception_type((httpx.ConnectError, httpx.ReadTimeout)),
+        reraise=True
+    )
+    async def list_voice_enrollments(
+        self,
+        page_index: int = 0,
+        page_size: int = 10
+    ) -> List[Dict[str, Any]]:
+        if not self.api_key:
+            return []
+        
+        client = await self.http_client
+        
+        payload = {
+            "model": settings.VOICE_ENROLLMENT_MODEL,
+            "input": {
+                "action": "list",
+                "page_index": page_index,
+                "page_size": page_size
+            }
+        }
+        
+        url = f"{self.base_url}/services/audio/tts/customization"
+        
+        try:
+            response = await client.post(
+                url,
+                headers=self._get_headers(),
+                json=payload
+            )
+            
+            if response.status_code != 200:
+                return []
+            
+            result = response.json()
+            voice_list = result.get("output", {}).get("voice_list", [])
+            
+            return [
+                {
+                    "voice": item.get("voice"),
+                    "gmt_create": item.get("gmt_create"),
+                    "target_model": item.get("target_model")
+                }
+                for item in voice_list
+            ]
+            
+        except Exception:
+            return []
+    
+    @retry(
+        stop=stop_after_attempt(2),
+        wait=wait_exponential(multiplier=1, min=2, max=5),
+        retry=retry_if_exception_type((httpx.ConnectError, httpx.ReadTimeout)),
+        reraise=True
+    )
+    async def delete_voice_enrollment(self, voice: str) -> bool:
+        if not self.api_key:
+            return True
+        
+        client = await self.http_client
+        
+        payload = {
+            "model": settings.VOICE_ENROLLMENT_MODEL,
+            "input": {
+                "action": "delete",
+                "voice": voice
+            }
+        }
+        
+        url = f"{self.base_url}/services/audio/tts/customization"
+        
+        try:
+            response = await client.post(
+                url,
+                headers=self._get_headers(),
+                json=payload
+            )
+            
+            return response.status_code == 200
+            
+        except Exception:
+            return False
+    
+    async def synthesize_voice_websocket(
+        self,
+        text: str,
+        voice: str = None,
+        response_format: str = "mp3",
+        sample_rate: int = 24000,
+        instructions: str = None
+    ) -> bytes:
+        if not self.api_key:
+            return self._simulate_audio()
+        
+        if voice is None:
+            voice = settings.VOICE_DEFAULT_VOICE
+        
+        ws_url = settings.ALIYUN_WS_URL
+        headers = {
+            "Authorization": f"Bearer {self.api_key}"
+        }
+        
+        audio_chunks = []
+        response_done = asyncio.Event()
+        
+        async def handle_messages(ws):
+            while True:
+                try:
+                    message = await asyncio.wait_for(ws.recv(), timeout=30.0)
+                    event = json.loads(message)
+                    event_type = event.get("type")
+                    
+                    if event_type == "error":
+                        error = event.get('error', {})
+                        raise AliyunServiceError(f"语音合成错误: {error}")
+                    
+                    elif event_type == "response.audio.delta":
+                        audio_b64 = event.get("delta", "")
+                        if audio_b64:
+                            audio_bytes = base64.b64decode(audio_b64)
+                            audio_chunks.append(audio_bytes)
+                    
+                    elif event_type == "response.done":
+                        response_done.set()
+                        break
+                    
+                    elif event_type == "session.finished":
+                        response_done.set()
+                        break
+                        
+                except asyncio.TimeoutError:
+                    raise AliyunServiceError("语音合成超时")
+                except ConnectionClosed:
+                    break
+        
+        try:
+            async with websockets.connect(ws_url, additional_headers=headers) as ws:
+                session_config = {
+                    "type": "session.update",
+                    "session": {
+                        "voice": voice,
+                        "response_format": response_format,
+                        "sample_rate": sample_rate,
+                        "mode": "server_commit"
+                    }
+                }
+                
+                if instructions:
+                    session_config["session"]["instructions"] = instructions
+                    session_config["session"]["optimize_instructions"] = True
+                
+                await ws.send(json.dumps(session_config))
+                
+                text_event = {
+                    "type": "input_text_buffer.append",
+                    "text": text
+                }
+                await ws.send(json.dumps(text_event))
+                
+                finish_event = {
+                    "type": "session.finish"
+                }
+                await ws.send(json.dumps(finish_event))
+                
+                try:
+                    await asyncio.wait_for(handle_messages(ws), timeout=60.0)
+                except asyncio.TimeoutError:
+                    raise AliyunServiceError("语音合成任务超时")
+                
+                if not audio_chunks:
+                    raise AliyunServiceError("未收到音频数据")
+                
+                return b"".join(audio_chunks)
+                
+        except Exception as e:
+            raise AliyunServiceError(f"语音合成失败: {str(e)}")
+    
+    def _simulate_voice_enrollment(self, name: str) -> Dict[str, Any]:
+        import random
+        import time
+        timestamp = int(time.time())
+        random_suffix = ''.join(random.choices('abcdef0123456789', k=8))
+        
+        return {
+            "success": True,
+            "voice": f"simulated_{name}_{timestamp}_{random_suffix}",
+            "target_model": settings.VOICE_TARGET_MODEL,
+            "request_id": f"simulated_request_{timestamp}"
+        }
+    
+    def _simulate_audio(self) -> bytes:
+        import struct
+        import math
+        
+        sample_rate = 24000
+        duration = 2
+        frequency = 440
+        
+        num_samples = sample_rate * duration
+        audio_data = bytearray()
+        
+        for i in range(num_samples):
+            value = int(32767 * 0.1 * math.sin(2 * math.pi * frequency * i / sample_rate))
+            audio_data.extend(struct.pack('<h', value))
+        
+        wav_data = io.BytesIO()
+        with wave.open(wav_data, 'wb') as wav_file:
+            wav_file.setnchannels(1)
+            wav_file.setsampwidth(2)
+            wav_file.setframerate(sample_rate)
+            wav_file.writeframes(audio_data)
+        
+        return wav_data.getvalue()
 
 
 aliyun_service = AliyunService()

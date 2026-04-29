@@ -643,6 +643,75 @@ class ApiService {
     });
   }
 
+  async uploadVoiceMaterial(
+    avatarId: string,
+    name: string,
+    audioFile: Blob | File,
+    type: 'recording' | 'upload' = 'upload'
+  ): Promise<ApiResponse<{
+    id: string;
+    avatarId: string;
+    name: string;
+    format: string;
+    duration: number;
+    size: number;
+    status: string;
+    createdAt: string;
+    message: string;
+  }>> {
+    const url = `${API_BASE_URL}/api/voice/materials/upload`;
+    
+    const formData = new FormData();
+    formData.append('avatar_id', avatarId);
+    formData.append('name', name);
+    formData.append('type', type);
+    formData.append('audio_file', audioFile);
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData
+      });
+      
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        let errorMessage = `请求失败: ${response.status}`;
+        if (responseText) {
+          try {
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.error || errorMessage;
+          } catch {
+            errorMessage = responseText.substring(0, 200);
+          }
+        }
+        return {
+          success: false,
+          error: errorMessage
+        };
+      }
+      
+      const data = JSON.parse(responseText);
+      return data as ApiResponse<{
+        id: string;
+        avatarId: string;
+        name: string;
+        format: string;
+        duration: number;
+        size: number;
+        status: string;
+        createdAt: string;
+        message: string;
+      }>;
+    } catch (error) {
+      console.error('API 请求错误:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '网络错误或后端服务未启动'
+      };
+    }
+  }
+
   async updateVoiceMaterial(
     materialId: string,
     updates: {
@@ -669,43 +738,6 @@ class ApiService {
   async deleteVoiceMaterial(materialId: string): Promise<ApiResponse<{ message: string }>> {
     return this.request<{ message: string }>(`/api/voice/materials/${materialId}`, {
       method: 'DELETE'
-    });
-  }
-
-  async preprocessVoiceMaterial(materialId: string): Promise<ApiResponse<{
-    materialId: string;
-    status: VoiceMaterialStatus;
-    message: string;
-  }>> {
-    return this.request<{
-      materialId: string;
-      status: VoiceMaterialStatus;
-      message: string;
-    }>(`/api/voice/materials/${materialId}/preprocess`, {
-      method: 'POST'
-    });
-  }
-
-  async batchPreprocessVoiceMaterials(materialIds: string[]): Promise<ApiResponse<{
-    total: number;
-    results: Array<{
-      materialId: string;
-      success: boolean;
-      status: string;
-    }>;
-    message: string;
-  }>> {
-    return this.request<{
-      total: number;
-      results: Array<{
-        materialId: string;
-        success: boolean;
-        status: string;
-      }>;
-      message: string;
-    }>('/api/voice/materials/batch-preprocess', {
-      method: 'POST',
-      body: JSON.stringify({ materialIds })
     });
   }
 
