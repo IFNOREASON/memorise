@@ -9,6 +9,47 @@ import enum
 from app.database import Base, TimestampMixin
 
 
+class FamilyRole(str, enum.Enum):
+    HEAD = "head"
+    ADMIN = "admin"
+    EDITOR = "editor"
+    VIEWER = "viewer"
+
+
+class InvitationStatus(str, enum.Enum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    EXPIRED = "expired"
+
+
+class ApprovalStatus(str, enum.Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class OperationType(str, enum.Enum):
+    CREATE = "create"
+    UPDATE = "update"
+    DELETE = "delete"
+    INVITE = "invite"
+    APPROVE = "approve"
+    REJECT = "reject"
+    ROLE_CHANGE = "role_change"
+    LOGIN = "login"
+    LOGOUT = "logout"
+
+
+class TargetType(str, enum.Enum):
+    FAMILY = "family"
+    FAMILY_MEMBER = "family_member"
+    USER = "user"
+    INVITATION = "invitation"
+    APPROVAL = "approval"
+    ROLE = "role"
+
+
 class User(Base, TimestampMixin):
     __tablename__ = "users"
 
@@ -416,4 +457,94 @@ class MemberMedia(Base, TimestampMixin):
     __table_args__ = (
         Index('idx_member_medias_member_id', 'member_id'),
         Index('idx_member_medias_type', 'type'),
+    )
+
+
+class FamilyUser(Base, TimestampMixin):
+    __tablename__ = "family_users"
+
+    id = Column(String(64), primary_key=True)
+    family_id = Column(String(64), ForeignKey('families.id', ondelete='CASCADE'), nullable=False, index=True)
+    user_id = Column(String(64), ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+    role = Column(String(20), nullable=False, default="viewer")
+
+    __table_args__ = (
+        Index('idx_family_users_family_id', 'family_id'),
+        Index('idx_family_users_user_id', 'user_id'),
+        Index('idx_family_users_role', 'role'),
+    )
+
+
+class FamilyInvitation(Base, TimestampMixin):
+    __tablename__ = "family_invitations"
+
+    id = Column(String(64), primary_key=True)
+    family_id = Column(String(64), ForeignKey('families.id', ondelete='CASCADE'), nullable=False, index=True)
+    inviter_id = Column(String(64), ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+    invitee_email = Column(String(255), nullable=False)
+    invitee_user_id = Column(String(64), ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    status = Column(String(20), nullable=False, default="pending")
+    role = Column(String(20), nullable=False, default="viewer")
+    message = Column(Text, nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    accepted_at = Column(DateTime(timezone=True), nullable=True)
+    rejected_at = Column(DateTime(timezone=True), nullable=True)
+    rejection_reason = Column(Text, nullable=True)
+
+    __table_args__ = (
+        Index('idx_family_invitations_family_id', 'family_id'),
+        Index('idx_family_invitations_inviter_id', 'inviter_id'),
+        Index('idx_family_invitations_invitee_email', 'invitee_email'),
+        Index('idx_family_invitations_status', 'status'),
+        Index('idx_family_invitations_expires_at', 'expires_at'),
+    )
+
+
+class EditApproval(Base, TimestampMixin):
+    __tablename__ = "edit_approvals"
+
+    id = Column(String(64), primary_key=True)
+    family_id = Column(String(64), ForeignKey('families.id', ondelete='CASCADE'), nullable=False, index=True)
+    requester_id = Column(String(64), ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+    approver_id = Column(String(64), ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    target_type = Column(String(50), nullable=False)
+    target_id = Column(String(64), nullable=False)
+    operation = Column(String(20), nullable=False)
+    original_data = Column(JSON, nullable=True)
+    modified_data = Column(JSON, nullable=False)
+    status = Column(String(20), nullable=False, default="pending")
+    comment = Column(Text, nullable=True)
+    approved_at = Column(DateTime(timezone=True), nullable=True)
+    rejected_at = Column(DateTime(timezone=True), nullable=True)
+    rejection_reason = Column(Text, nullable=True)
+
+    __table_args__ = (
+        Index('idx_edit_approvals_family_id', 'family_id'),
+        Index('idx_edit_approvals_requester_id', 'requester_id'),
+        Index('idx_edit_approvals_approver_id', 'approver_id'),
+        Index('idx_edit_approvals_status', 'status'),
+        Index('idx_edit_approvals_target', 'target_type', 'target_id'),
+    )
+
+
+class OperationLog(Base, TimestampMixin):
+    __tablename__ = "operation_logs"
+
+    id = Column(String(64), primary_key=True)
+    family_id = Column(String(64), ForeignKey('families.id', ondelete='SET NULL'), nullable=True, index=True)
+    user_id = Column(String(64), ForeignKey('users.id', ondelete='SET NULL'), nullable=True, index=True)
+    operation = Column(String(50), nullable=False)
+    target_type = Column(String(50), nullable=True)
+    target_id = Column(String(64), nullable=True)
+    description = Column(Text, nullable=True)
+    ip_address = Column(String(50), nullable=True)
+    user_agent = Column(String(500), nullable=True)
+    before_data = Column(JSON, nullable=True)
+    after_data = Column(JSON, nullable=True)
+
+    __table_args__ = (
+        Index('idx_operation_logs_family_id', 'family_id'),
+        Index('idx_operation_logs_user_id', 'user_id'),
+        Index('idx_operation_logs_operation', 'operation'),
+        Index('idx_operation_logs_created_at', 'created_at'),
     )

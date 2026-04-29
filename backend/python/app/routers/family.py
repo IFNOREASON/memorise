@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import Optional, List
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,7 +8,8 @@ import uuid
 
 from app.database import get_async_session
 from app.models import (
-    Family, FamilyMember, MemberMedia, MemberStatus, Gender, MediaType
+    Family, FamilyMember, MemberMedia, MemberStatus, Gender, MediaType,
+    User, FamilyUser
 )
 from app.schemas import (
     ApiResponse,
@@ -16,6 +17,11 @@ from app.schemas import (
     FamilyMemberBase, FamilyMemberCreateRequest, FamilyMemberUpdateRequest, FamilyMemberListResponse,
     MemberMediaBase, MemberMediaCreateRequest
 )
+from app.permissions import (
+    viewer_required, editor_required, admin_required,
+    has_permission, PermissionLevel
+)
+from app.services.log_service import log_service
 
 router = APIRouter(tags=["家族族谱管理"])
 
@@ -24,29 +30,29 @@ def generate_id() -> str:
     return str(uuid.uuid4())
 
 
+async def get_family_member_by_id(db: AsyncSession, member_id: str, family_id: str) -> Optional[FamilyMember]:
+    stmt = (
+        select(FamilyMember)
+        .where(
+            FamilyMember.id == member_id,
+            FamilyMember.family_id == family_id,
+            FamilyMember.deleted_at.is_(None)
+        )
+        .options(selectinload(FamilyMember.medias))
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+
 @router.get("/family", response_model=ApiResponse[FamilyDetailResponse])
 async def get_family(
+    request_obj: Request,
+    user_and_family: tuple = Depends(viewer_required),
     db: AsyncSession = Depends(get_async_session)
 ):
+    current_user, family, family_user = user_and_family
+
     try:
-        stmt = select(Family).order_by(Family.created_at.desc())
-        result = await db.execute(stmt)
-        family = result.scalar_one_or_none()
-
-        if not family:
-            default_family = Family(
-                id=generate_id(),
-                hall_name="陇西堂",
-                surname="李",
-                ancestor="李太白",
-                description="本族源自陇西李氏，世代耕读传家，忠厚立世。",
-                zi_bei=["元", "亨", "利", "贞", "仁", "义", "礼", "智", "信"]
-            )
-            db.add(default_family)
-            await db.commit()
-            await db.refresh(default_family)
-            family = default_family
-
         members_stmt = (
             select(FamilyMember)
             .where(FamilyMember.family_id == family.id, FamilyMember.deleted_at.is_(None))
@@ -112,6 +118,7 @@ async def get_family(
 @router.post("/family", response_model=ApiResponse[FamilyBase])
 async def create_family(
     request: FamilyCreateRequest,
+    current_user: User = Depends(editor_required),
     db: AsyncSession = Depends(get_async_session)
 ):
     try:
@@ -147,37 +154,44 @@ async def create_family(
 @router.put("/family", response_model=ApiResponse[FamilyBase])
 async def update_family(
     request: FamilyUpdateRequest,
+    request_obj: Request,
+    user_and_family: tuple = Depends(admin_required),
     db: AsyncSession = Depends(get_async_session)
 ):
-    try:
-        stmt = select(Family).order_by(Family.created_at.desc())
-        result = await db.execute(stmt)
-        family = result.scalar_one_or_none()
+    current_user, family, family_user = user_and_family
 
-        if not family:
-            family = Family(
-                id=generate_id(),
-                hall_name=request.hall_name or "陇西堂",
-                surname=request.surname or "李",
-                ancestor=request.ancestor or "李太白",
-                description=request.description or "本族源自陇西李氏，世代耕读传家，忠厚立世。",
-                zi_bei=request.zi_bei or ["元", "亨", "利", "贞", "仁", "义", "礼", "智", "信"]
-            )
-            db.add(family)
-        else:
-            if request.hall_name is not None:
-                family.hall_name = request.hall_name
-            if request.surname is not None:
-                family.surname = request.surname
-            if request.ancestor is not None:
-                family.ancestor = request.ancestor
-            if request.description is not None:
-                family.description = request.description
-            if request.zi_bei is not None:
-                family.zi_bei = request.zi_bei
+    try:
+        original_family = Family(
+            id=family.id,
+            hall_name=family.hall_name,
+            surname=family.surname,
+            ancestor=family.ancestor,
+            description=family.description,
+            zi_bei=family.zi_bei.copy() if family.zi_bei else None
+        )
+
+        if request.hall_name is not None:
+            family.hall_name = request.hall_name
+        if request.surname is not None:
+            family.surname = request.surname
+        if request.ancestor is not None:
+            family.ancestor = request.ancestor
+        if request.description is not None:
+            family.description = request.description
+        if request.zi_bei is not None:
+            family.zi_bei = request.zi_bei
 
         await db.commit()
         await db.refresh(family)
+
+        await log_service.log_family_update(
+            db=db,
+            user=current_user,
+            original_family=original_family,
+            updated_family=family,
+            ip_address=request_obj.client.host if request_obj.client else None,
+            user_agent=request_obj.headers.get("user-agent")
+        )
 
         return ApiResponse(
             success=True,
@@ -192,6 +206,8 @@ async def update_family(
                 updatedAt=family.updated_at
             )
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"更新家族失败: {str(e)}")
 
@@ -200,19 +216,12 @@ async def update_family(
 async def get_members(
     status: Optional[str] = None,
     search: Optional[str] = None,
+    user_and_family: tuple = Depends(viewer_required),
     db: AsyncSession = Depends(get_async_session)
 ):
+    current_user, family, family_user = user_and_family
+
     try:
-        family_stmt = select(Family).order_by(Family.created_at.desc())
-        family_result = await db.execute(family_stmt)
-        family = family_result.scalar_one_or_none()
-
-        if not family:
-            return ApiResponse(
-                success=True,
-                data=FamilyMemberListResponse(total=0, members=[])
-            )
-
         query = (
             select(FamilyMember)
             .where(FamilyMember.family_id == family.id, FamilyMember.deleted_at.is_(None))
@@ -266,6 +275,8 @@ async def get_members(
                 members=member_list
             )
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取成员列表失败: {str(e)}")
 
@@ -273,16 +284,13 @@ async def get_members(
 @router.get("/family/members/{member_id}", response_model=ApiResponse[FamilyMemberBase])
 async def get_member(
     member_id: str,
+    user_and_family: tuple = Depends(viewer_required),
     db: AsyncSession = Depends(get_async_session)
 ):
+    current_user, family, family_user = user_and_family
+
     try:
-        stmt = (
-            select(FamilyMember)
-            .where(FamilyMember.id == member_id, FamilyMember.deleted_at.is_(None))
-            .options(selectinload(FamilyMember.medias))
-        )
-        result = await db.execute(stmt)
-        member = result.scalar_one_or_none()
+        member = await get_family_member_by_id(db, member_id, family.id)
 
         if not member:
             raise HTTPException(status_code=404, detail="成员不存在")
@@ -327,29 +335,15 @@ async def get_member(
 @router.post("/family/members", response_model=ApiResponse[FamilyMemberBase])
 async def create_member(
     request: FamilyMemberCreateRequest,
+    request_obj: Request,
+    user_and_family: tuple = Depends(editor_required),
     db: AsyncSession = Depends(get_async_session)
 ):
+    current_user, family, family_user = user_and_family
+
     try:
         if not request.name.strip():
             raise HTTPException(status_code=400, detail="姓名不能为空")
-
-        family_stmt = select(Family).order_by(Family.created_at.desc())
-        family_result = await db.execute(family_stmt)
-        family = family_result.scalar_one_or_none()
-
-        if not family:
-            default_family = Family(
-                id=generate_id(),
-                hall_name="陇西堂",
-                surname="李",
-                ancestor="李太白",
-                description="本族源自陇西李氏，世代耕读传家，忠厚立世。",
-                zi_bei=["元", "亨", "利", "贞", "仁", "义", "礼", "智", "信"]
-            )
-            db.add(default_family)
-            await db.commit()
-            await db.refresh(default_family)
-            family = default_family
 
         member = FamilyMember(
             id=generate_id(),
@@ -368,6 +362,14 @@ async def create_member(
         db.add(member)
         await db.commit()
         await db.refresh(member)
+
+        await log_service.log_member_create(
+            db=db,
+            user=current_user,
+            member=member,
+            ip_address=request_obj.client.host if request_obj.client else None,
+            user_agent=request_obj.headers.get("user-agent")
+        )
 
         return ApiResponse(
             success=True,
@@ -399,15 +401,32 @@ async def create_member(
 async def update_member(
     member_id: str,
     request: FamilyMemberUpdateRequest,
+    request_obj: Request,
+    user_and_family: tuple = Depends(editor_required),
     db: AsyncSession = Depends(get_async_session)
 ):
+    current_user, family, family_user = user_and_family
+
     try:
-        stmt = select(FamilyMember).where(FamilyMember.id == member_id, FamilyMember.deleted_at.is_(None))
-        result = await db.execute(stmt)
-        member = result.scalar_one_or_none()
+        member = await get_family_member_by_id(db, member_id, family.id)
 
         if not member:
             raise HTTPException(status_code=404, detail="成员不存在")
+
+        original_member = FamilyMember(
+            id=member.id,
+            family_id=member.family_id,
+            name=member.name,
+            gender=member.gender,
+            generation=member.generation,
+            birth_year=member.birth_year,
+            death_year=member.death_year,
+            spouse=member.spouse,
+            father_id=member.father_id,
+            residence=member.residence,
+            note=member.note,
+            status=member.status
+        )
 
         if request.name is not None:
             member.name = request.name
@@ -432,6 +451,15 @@ async def update_member(
 
         await db.commit()
         await db.refresh(member)
+
+        await log_service.log_member_update(
+            db=db,
+            user=current_user,
+            original_member=original_member,
+            updated_member=member,
+            ip_address=request_obj.client.host if request_obj.client else None,
+            user_agent=request_obj.headers.get("user-agent")
+        )
 
         return ApiResponse(
             success=True,
@@ -462,18 +490,28 @@ async def update_member(
 @router.delete("/family/members/{member_id}", response_model=ApiResponse)
 async def delete_member(
     member_id: str,
+    request_obj: Request,
+    user_and_family: tuple = Depends(admin_required),
     db: AsyncSession = Depends(get_async_session)
 ):
+    current_user, family, family_user = user_and_family
+
     try:
-        stmt = select(FamilyMember).where(FamilyMember.id == member_id, FamilyMember.deleted_at.is_(None))
-        result = await db.execute(stmt)
-        member = result.scalar_one_or_none()
+        member = await get_family_member_by_id(db, member_id, family.id)
 
         if not member:
             raise HTTPException(status_code=404, detail="成员不存在")
 
         member.deleted_at = datetime.now()
         await db.commit()
+
+        await log_service.log_member_delete(
+            db=db,
+            user=current_user,
+            member=member,
+            ip_address=request_obj.client.host if request_obj.client else None,
+            user_agent=request_obj.headers.get("user-agent")
+        )
 
         return ApiResponse(
             success=True,
@@ -488,12 +526,13 @@ async def delete_member(
 @router.get("/family/members/{member_id}/medias", response_model=ApiResponse[List[MemberMediaBase]])
 async def get_member_medias(
     member_id: str,
+    user_and_family: tuple = Depends(viewer_required),
     db: AsyncSession = Depends(get_async_session)
 ):
+    current_user, family, family_user = user_and_family
+
     try:
-        member_stmt = select(FamilyMember).where(FamilyMember.id == member_id, FamilyMember.deleted_at.is_(None))
-        member_result = await db.execute(member_stmt)
-        member = member_result.scalar_one_or_none()
+        member = await get_family_member_by_id(db, member_id, family.id)
 
         if not member:
             raise HTTPException(status_code=404, detail="成员不存在")
@@ -524,12 +563,13 @@ async def get_member_medias(
 async def create_member_media(
     member_id: str,
     request: MemberMediaCreateRequest,
+    user_and_family: tuple = Depends(editor_required),
     db: AsyncSession = Depends(get_async_session)
 ):
+    current_user, family, family_user = user_and_family
+
     try:
-        member_stmt = select(FamilyMember).where(FamilyMember.id == member_id, FamilyMember.deleted_at.is_(None))
-        member_result = await db.execute(member_stmt)
-        member = member_result.scalar_one_or_none()
+        member = await get_family_member_by_id(db, member_id, family.id)
 
         if not member:
             raise HTTPException(status_code=404, detail="成员不存在")
@@ -568,9 +608,16 @@ async def create_member_media(
 async def delete_member_media(
     member_id: str,
     media_id: str,
+    user_and_family: tuple = Depends(editor_required),
     db: AsyncSession = Depends(get_async_session)
 ):
+    current_user, family, family_user = user_and_family
+
     try:
+        member = await get_family_member_by_id(db, member_id, family.id)
+        if not member:
+            raise HTTPException(status_code=404, detail="成员不存在")
+
         stmt = select(MemberMedia).where(MemberMedia.id == media_id, MemberMedia.member_id == member_id)
         result = await db.execute(stmt)
         media = result.scalar_one_or_none()

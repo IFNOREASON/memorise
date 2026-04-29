@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Any, Dict, Generic, TypeVar
 from datetime import datetime
-from enum import Enum
+import enum
 import re
 
 T = TypeVar('T')
@@ -658,6 +658,210 @@ class FamilyDetailResponse(BaseModel):
     family: FamilyBase
     member_count: int = Field(alias="memberCount")
     members: List[FamilyMemberBase]
+
+    class Config:
+        populate_by_name = True
+
+
+class FamilyRole(str, enum.Enum):
+    HEAD = "head"
+    ADMIN = "admin"
+    EDITOR = "editor"
+    VIEWER = "viewer"
+
+
+class InvitationStatus(str, enum.Enum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    EXPIRED = "expired"
+
+
+class ApprovalStatus(str, enum.Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class OperationType(str, enum.Enum):
+    CREATE = "create"
+    UPDATE = "update"
+    DELETE = "delete"
+    INVITE = "invite"
+    APPROVE = "approve"
+    REJECT = "reject"
+    ROLE_CHANGE = "role_change"
+    LOGIN = "login"
+    LOGOUT = "logout"
+
+
+class TargetType(str, enum.Enum):
+    FAMILY = "family"
+    FAMILY_MEMBER = "family_member"
+    USER = "user"
+    INVITATION = "invitation"
+    APPROVAL = "approval"
+    ROLE = "role"
+
+
+class FamilyUserBase(BaseModel):
+    id: str
+    family_id: str = Field(alias="familyId")
+    user_id: str = Field(alias="userId")
+    role: FamilyRole
+    user: Optional[UserResponse] = None
+    created_at: datetime = Field(alias="createdAt")
+    updated_at: datetime = Field(alias="updatedAt")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
+class FamilyUserListResponse(BaseModel):
+    total: int
+    familyUsers: List[FamilyUserBase] = Field(alias="familyUsers")
+
+
+class ChangeRoleRequest(BaseModel):
+    user_id: str = Field(alias="userId")
+    new_role: FamilyRole = Field(alias="newRole")
+
+    class Config:
+        populate_by_name = True
+
+
+class InvitationBase(BaseModel):
+    id: str
+    family_id: str = Field(alias="familyId")
+    inviter_id: str = Field(alias="inviterId")
+    invitee_email: str = Field(alias="inviteeEmail")
+    invitee_user_id: Optional[str] = Field(default=None, alias="inviteeUserId")
+    status: InvitationStatus
+    role: FamilyRole
+    message: Optional[str] = None
+    expires_at: datetime = Field(alias="expiresAt")
+    accepted_at: Optional[datetime] = Field(default=None, alias="acceptedAt")
+    rejected_at: Optional[datetime] = Field(default=None, alias="rejectedAt")
+    inviter: Optional[UserResponse] = None
+    family: Optional[FamilyBase] = None
+    created_at: datetime = Field(alias="createdAt")
+    updated_at: datetime = Field(alias="updatedAt")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
+class InvitationCreateRequest(BaseModel):
+    invitee_email: str = Field(alias="inviteeEmail")
+    role: FamilyRole = FamilyRole.VIEWER
+    message: Optional[str] = None
+
+    class Config:
+        populate_by_name = True
+
+
+class InvitationListResponse(BaseModel):
+    total: int
+    invitations: List[InvitationBase]
+
+
+class AcceptInvitationRequest(BaseModel):
+    invitation_id: str = Field(alias="invitationId")
+
+    class Config:
+        populate_by_name = True
+
+
+class RejectInvitationRequest(BaseModel):
+    invitation_id: str = Field(alias="invitationId")
+    reason: Optional[str] = None
+
+    class Config:
+        populate_by_name = True
+
+
+class ApprovalBase(BaseModel):
+    id: str
+    family_id: str = Field(alias="familyId")
+    requester_id: str = Field(alias="requesterId")
+    approver_id: Optional[str] = Field(default=None, alias="approverId")
+    target_type: TargetType = Field(alias="targetType")
+    target_id: str = Field(alias="targetId")
+    operation: OperationType
+    original_data: Optional[Dict[str, Any]] = Field(default=None, alias="originalData")
+    modified_data: Dict[str, Any] = Field(alias="modifiedData")
+    status: ApprovalStatus
+    comment: Optional[str] = None
+    approved_at: Optional[datetime] = Field(default=None, alias="approvedAt")
+    rejected_at: Optional[datetime] = Field(default=None, alias="rejectedAt")
+    rejection_reason: Optional[str] = Field(default=None, alias="rejectionReason")
+    requester: Optional[UserResponse] = None
+    approver: Optional[UserResponse] = None
+    created_at: datetime = Field(alias="createdAt")
+    updated_at: datetime = Field(alias="updatedAt")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
+class ApprovalCreateRequest(BaseModel):
+    target_type: TargetType = Field(alias="targetType")
+    target_id: str = Field(alias="targetId")
+    operation: OperationType
+    modified_data: Dict[str, Any] = Field(alias="modifiedData")
+    comment: Optional[str] = None
+
+    class Config:
+        populate_by_name = True
+
+
+class ApprovalProcessRequest(BaseModel):
+    approval_id: str = Field(alias="approvalId")
+    action: str
+    reason: Optional[str] = None
+
+    class Config:
+        populate_by_name = True
+
+
+class ApprovalListResponse(BaseModel):
+    total: int
+    approvals: List[ApprovalBase]
+
+
+class OperationLogBase(BaseModel):
+    id: str
+    family_id: Optional[str] = Field(default=None, alias="familyId")
+    user_id: Optional[str] = Field(default=None, alias="userId")
+    operation: OperationType
+    target_type: Optional[TargetType] = Field(default=None, alias="targetType")
+    target_id: Optional[str] = Field(default=None, alias="targetId")
+    description: Optional[str] = None
+    ip_address: Optional[str] = Field(default=None, alias="ipAddress")
+    user_agent: Optional[str] = Field(default=None, alias="userAgent")
+    before_data: Optional[Dict[str, Any]] = Field(default=None, alias="beforeData")
+    after_data: Optional[Dict[str, Any]] = Field(default=None, alias="afterData")
+    user: Optional[UserResponse] = None
+    created_at: datetime = Field(alias="createdAt")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
+class OperationLogListResponse(BaseModel):
+    total: int
+    logs: List[OperationLogBase]
+
+
+class UserFamilyInfo(BaseModel):
+    family: FamilyBase
+    role: FamilyRole
+    familyUser: FamilyUserBase = Field(alias="familyUser")
+    memberCount: int = Field(alias="memberCount")
 
     class Config:
         populate_by_name = True

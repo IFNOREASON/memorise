@@ -428,6 +428,138 @@ interface UpdateFamilyRequest {
   ziBei?: string[];
 }
 
+type FamilyRole = 'head' | 'admin' | 'editor' | 'viewer';
+type InvitationStatus = 'pending' | 'accepted' | 'rejected' | 'expired';
+type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+type OperationType = 'create' | 'update' | 'delete' | 'invite' | 'approve' | 'reject' | 'role_change' | 'login' | 'logout';
+type TargetType = 'family' | 'family_member' | 'user' | 'invitation' | 'approval' | 'role';
+
+interface FamilyUser {
+  id: string;
+  familyId: string;
+  userId: string;
+  role: FamilyRole;
+  user?: User;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface FamilyUserListResponse {
+  total: number;
+  familyUsers: FamilyUser[];
+}
+
+interface ChangeRoleRequest {
+  userId: string;
+  newRole: FamilyRole;
+}
+
+interface Invitation {
+  id: string;
+  familyId: string;
+  inviterId: string;
+  inviteeEmail: string;
+  inviteeUserId?: string;
+  status: InvitationStatus;
+  role: FamilyRole;
+  message?: string;
+  expiresAt: string;
+  acceptedAt?: string;
+  rejectedAt?: string;
+  inviter?: User;
+  family?: Family;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CreateInvitationRequest {
+  inviteeEmail: string;
+  role: FamilyRole;
+  message?: string;
+}
+
+interface InvitationListResponse {
+  total: number;
+  invitations: Invitation[];
+}
+
+interface AcceptInvitationRequest {
+  invitationId: string;
+}
+
+interface RejectInvitationRequest {
+  invitationId: string;
+  reason?: string;
+}
+
+interface Approval {
+  id: string;
+  familyId: string;
+  requesterId: string;
+  approverId?: string;
+  targetType: TargetType;
+  targetId: string;
+  operation: OperationType;
+  originalData?: Record<string, unknown>;
+  modifiedData: Record<string, unknown>;
+  status: ApprovalStatus;
+  comment?: string;
+  approvedAt?: string;
+  rejectedAt?: string;
+  rejectionReason?: string;
+  requester?: User;
+  approver?: User;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CreateApprovalRequest {
+  targetType: TargetType;
+  targetId: string;
+  operation: OperationType;
+  modifiedData: Record<string, unknown>;
+  comment?: string;
+}
+
+interface ApprovalProcessRequest {
+  approvalId: string;
+  action: 'approve' | 'reject';
+  reason?: string;
+}
+
+interface ApprovalListResponse {
+  total: number;
+  approvals: Approval[];
+}
+
+interface OperationLog {
+  id: string;
+  familyId?: string;
+  userId?: string;
+  operation: OperationType;
+  targetType?: TargetType;
+  targetId?: string;
+  description?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  beforeData?: Record<string, unknown>;
+  afterData?: Record<string, unknown>;
+  user?: User;
+  createdAt: string;
+}
+
+interface OperationLogListResponse {
+  total: number;
+  logs: OperationLog[];
+}
+
+interface UserFamilyInfo {
+  family: Family;
+  role: FamilyRole;
+  familyUser: FamilyUser;
+  memberCount: number;
+}
+
 interface CreateChatSessionRequest {
   avatarId: string;
 }
@@ -1131,6 +1263,156 @@ class ApiService {
     return this.request<{ message: string }>(`/api/family/members/${memberId}`, {
       method: 'DELETE'
     });
+  }
+
+  async getMyFamilyInfo(): Promise<ApiResponse<UserFamilyInfo>> {
+    return this.authRequest<UserFamilyInfo>('/api/my/family');
+  }
+
+  async getFamilyUsers(options?: {
+    role?: string;
+    search?: string;
+  }): Promise<ApiResponse<FamilyUserListResponse>> {
+    let endpoint = '/api/family/users';
+    const params = new URLSearchParams();
+    
+    if (options?.role) params.append('role', options.role);
+    if (options?.search) params.append('search', options.search);
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`;
+    }
+    
+    return this.authRequest<FamilyUserListResponse>(endpoint);
+  }
+
+  async changeUserRole(request: ChangeRoleRequest): Promise<ApiResponse<FamilyUser>> {
+    return this.authRequest<FamilyUser>('/api/family/users/role', {
+      method: 'PUT',
+      body: JSON.stringify(request)
+    });
+  }
+
+  async createInvitation(request: CreateInvitationRequest): Promise<ApiResponse<Invitation>> {
+    return this.authRequest<Invitation>('/api/family/invitations', {
+      method: 'POST',
+      body: JSON.stringify(request)
+    });
+  }
+
+  async getInvitations(status?: string): Promise<ApiResponse<InvitationListResponse>> {
+    let endpoint = '/api/family/invitations';
+    if (status) {
+      endpoint += `?status=${encodeURIComponent(status)}`;
+    }
+    return this.authRequest<InvitationListResponse>(endpoint);
+  }
+
+  async getMyInvitations(status?: string): Promise<ApiResponse<InvitationListResponse>> {
+    let endpoint = '/api/my/invitations';
+    if (status) {
+      endpoint += `?status=${encodeURIComponent(status)}`;
+    }
+    return this.authRequest<InvitationListResponse>(endpoint);
+  }
+
+  async acceptInvitation(invitationId: string): Promise<ApiResponse<FamilyUser>> {
+    return this.authRequest<FamilyUser>('/api/my/invitations/accept', {
+      method: 'POST',
+      body: JSON.stringify({ invitationId })
+    });
+  }
+
+  async rejectInvitation(invitationId: string, reason?: string): Promise<ApiResponse> {
+    return this.authRequest<ApiResponse>('/api/my/invitations/reject', {
+      method: 'POST',
+      body: JSON.stringify({ invitationId, reason })
+    });
+  }
+
+  async createApproval(request: CreateApprovalRequest): Promise<ApiResponse<Approval>> {
+    return this.authRequest<Approval>('/api/approvals', {
+      method: 'POST',
+      body: JSON.stringify(request)
+    });
+  }
+
+  async getApprovals(status?: string): Promise<ApiResponse<ApprovalListResponse>> {
+    let endpoint = '/api/approvals';
+    if (status) {
+      endpoint += `?status=${encodeURIComponent(status)}`;
+    }
+    return this.authRequest<ApprovalListResponse>(endpoint);
+  }
+
+  async getPendingApprovals(): Promise<ApiResponse<ApprovalListResponse>> {
+    return this.authRequest<ApprovalListResponse>('/api/approvals/pending');
+  }
+
+  async getMyApprovals(status?: string): Promise<ApiResponse<ApprovalListResponse>> {
+    let endpoint = '/api/approvals/my';
+    if (status) {
+      endpoint += `?status=${encodeURIComponent(status)}`;
+    }
+    return this.authRequest<ApprovalListResponse>(endpoint);
+  }
+
+  async approveApproval(approvalId: string): Promise<ApiResponse<Approval>> {
+    return this.authRequest<Approval>('/api/approvals/approve', {
+      method: 'POST',
+      body: JSON.stringify({ approvalId, action: 'approve' })
+    });
+  }
+
+  async rejectApproval(approvalId: string, reason?: string): Promise<ApiResponse<Approval>> {
+    return this.authRequest<Approval>('/api/approvals/reject', {
+      method: 'POST',
+      body: JSON.stringify({ approvalId, action: 'reject', reason })
+    });
+  }
+
+  async getOperationLogs(options?: {
+    operation?: string;
+    targetType?: string;
+    userId?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<ApiResponse<OperationLogListResponse>> {
+    let endpoint = '/api/logs';
+    const params = new URLSearchParams();
+    
+    if (options?.operation) params.append('operation', options.operation);
+    if (options?.targetType) params.append('target_type', options.targetType);
+    if (options?.userId) params.append('user_id', options.userId);
+    if (options?.limit) params.append('limit', options.limit.toString());
+    if (options?.offset) params.append('offset', options.offset.toString());
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`;
+    }
+    
+    return this.authRequest<OperationLogListResponse>(endpoint);
+  }
+
+  async getMyOperationLogs(options?: {
+    operation?: string;
+    targetType?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<ApiResponse<OperationLogListResponse>> {
+    let endpoint = '/api/logs/my';
+    const params = new URLSearchParams();
+    
+    if (options?.operation) params.append('operation', options.operation);
+    if (options?.targetType) params.append('target_type', options.targetType);
+    if (options?.limit) params.append('limit', options.limit.toString());
+    if (options?.offset) params.append('offset', options.offset.toString());
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`;
+    }
+    
+    return this.authRequest<OperationLogListResponse>(endpoint);
   }
 }
 

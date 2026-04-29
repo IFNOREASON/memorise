@@ -9,6 +9,9 @@ import MemoryEditorPage from '../components/MemoryEditorPage.vue'
 import ChatCompanionPage from '../components/ChatCompanionPage.vue'
 import LoginPage from '../components/LoginPage.vue'
 import RegisterPage from '../components/RegisterPage.vue'
+import MemberManagement from '../components/MemberManagement.vue'
+import ApprovalList from '../components/ApprovalList.vue'
+import OperationLogs from '../components/OperationLogs.vue'
 
 const routes = [
   {
@@ -67,6 +70,24 @@ const routes = [
     path: '/chat',
     name: 'ChatCompanion',
     component: ChatCompanionPage
+  },
+  {
+    path: '/family/members',
+    name: 'MemberManagement',
+    component: MemberManagement,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/family/approvals',
+    name: 'ApprovalList',
+    component: ApprovalList,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/family/logs',
+    name: 'OperationLogs',
+    component: OperationLogs,
+    meta: { requiresAuth: true }
   }
 ]
 

@@ -13,7 +13,7 @@
           </div>
         </div>
 
-        <nav class="hidden lg:flex items-center space-x-8">
+        <nav class="hidden lg:flex items-center space-x-4">
           <button v-for="item in navItems" :key="item.id"
             class="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all hover:bg-[#E8D5C4]/50"
             :class="[
@@ -23,6 +23,50 @@
             <Icon :icon="item.icon" class="text-lg" />
             <span class="font-medium text-sm">{{ item.label }}</span>
           </button>
+          
+          <div v-if="(canManageMembers || canViewApprovals || canViewLogs)" class="relative">
+            <button 
+              @click="toggleManageMenu"
+              class="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all hover:bg-[#E8D5C4]/50"
+              :class="[
+                activeNav.startsWith('manage-') ? 'bg-[#E8D5C4] text-[#8B6F4E]' : 'text-gray-600'
+              ]">
+              <Icon icon="solar:settings-bold" class="text-lg" />
+              <span class="font-medium text-sm">管理</span>
+              <Icon icon="solar:alt-arrow-down-linear" class="text-gray-400 text-sm transition-transform" :class="{ 'rotate-180': showManageMenu }" />
+              <span v-if="pendingApprovalsCount > 0" class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#C84A3E] text-white text-xs flex items-center justify-center">
+                {{ pendingApprovalsCount }}
+              </span>
+            </button>
+            
+            <div v-if="showManageMenu" 
+              class="absolute left-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-[#E8D5C4] py-2 z-50">
+              <button
+                @click="navigateToMemberManagement"
+                v-if="canManageMembers"
+                class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors">
+                <Icon icon="solar:users-group-two-bold" class="text-[#8B6F4E]" />
+                <span>成员管理</span>
+              </button>
+              <button
+                @click="navigateToApprovals"
+                v-if="canViewApprovals"
+                class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors">
+                <Icon icon="solar:document-bold" class="text-[#8B6F4E]" />
+                <span>审核中心</span>
+                <span v-if="pendingApprovalsCount > 0" class="ml-auto w-5 h-5 rounded-full bg-[#C84A3E] text-white text-xs flex items-center justify-center">
+                  {{ pendingApprovalsCount }}
+                </span>
+              </button>
+              <button
+                @click="navigateToLogs"
+                v-if="canViewLogs"
+                class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors">
+                <Icon icon="solar:history-bold" class="text-[#8B6F4E]" />
+                <span>操作日志</span>
+              </button>
+            </div>
+          </div>
         </nav>
 
         <div class="flex items-center space-x-4">
@@ -56,9 +100,48 @@
 
             <div 
               v-if="showUserMenu"
-              class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-[#E8D5C4] py-2 z-50"
+              class="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-[#E8D5C4] py-2 z-50"
             >
               <template v-if="authStore.isAuthenticated">
+                <div class="px-4 py-3 border-b border-[#E8D5C4]">
+                  <p class="text-sm font-medium text-[#5C4A3A]">
+                    {{ authStore.user?.nickname || authStore.user?.username }}
+                  </p>
+                  <div v-if="myRole" class="flex items-center space-x-2 mt-1">
+                    <span class="text-xs text-gray-500">角色:</span>
+                    <span class="px-2 py-0.5 rounded text-xs font-medium" :class="roleClass(myRole)">
+                      {{ roleLabel(myRole) }}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  @click="navigateToMemberManagement"
+                  v-if="canManageMembers"
+                  class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors"
+                >
+                  <Icon icon="solar:users-group-two-bold" class="text-[#8B6F4E]" />
+                  <span>成员管理</span>
+                </button>
+                <button
+                  @click="navigateToApprovals"
+                  v-if="canViewApprovals"
+                  class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors"
+                >
+                  <Icon icon="solar:document-bold" class="text-[#8B6F4E]" />
+                  <span>审核中心</span>
+                  <span v-if="pendingApprovalsCount > 0" class="w-5 h-5 rounded-full bg-[#C84A3E] text-white text-xs flex items-center justify-center ml-auto">
+                    {{ pendingApprovalsCount }}
+                  </span>
+                </button>
+                <button
+                  @click="navigateToLogs"
+                  v-if="canViewLogs"
+                  class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors"
+                >
+                  <Icon icon="solar:history-bold" class="text-[#8B6F4E]" />
+                  <span>操作日志</span>
+                </button>
+                <div class="border-t border-[#E8D5C4] my-1"></div>
                 <button
                   @click="handleChangePassword"
                   class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors"
@@ -146,6 +229,51 @@
             </span>
           </div>
         </div>
+
+        <div v-if="(canManageMembers || canViewApprovals || canViewLogs)" class="mt-6 pt-6 border-t border-stone-200">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-2">
+              <Icon icon="solar:settings-bold" class="text-[#8B6F4E]" />
+              <h3 class="text-sm font-bold text-[#5C4A3A]">快捷操作</h3>
+              <template v-if="myRole">
+                <span class="px-2 py-0.5 rounded text-xs font-medium" :class="roleClass(myRole)">
+                  您的角色: {{ roleLabel(myRole) }}
+                </span>
+              </template>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <button v-if="canManageMembers" 
+              @click="navigateToMemberManagement"
+              class="p-4 bg-gradient-to-br from-[#E8D5C4]/50 to-[#D4A574]/20 rounded-xl hover:from-[#E8D5C4] hover:to-[#D4A574]/30 transition-all text-center group border border-[#E8D5C4]">
+              <Icon icon="solar:users-group-two-bold" class="text-2xl text-[#8B6F4E] mx-auto mb-2 group-hover:scale-110 transition-transform" />
+              <p class="text-sm font-medium text-[#5C4A3A]">成员管理</p>
+              <p class="text-xs text-gray-500 mt-1">邀请/角色</p>
+            </button>
+            <button v-if="canViewApprovals" 
+              @click="navigateToApprovals"
+              class="p-4 bg-gradient-to-br from-[#E8D5C4]/50 to-[#D4A574]/20 rounded-xl hover:from-[#E8D5C4] hover:to-[#D4A574]/30 transition-all text-center group border border-[#E8D5C4] relative">
+              <Icon icon="solar:document-bold" class="text-2xl text-[#8B6F4E] mx-auto mb-2 group-hover:scale-110 transition-transform" />
+              <p class="text-sm font-medium text-[#5C4A3A]">审核中心</p>
+              <p class="text-xs text-gray-500 mt-1">修改审批</p>
+              <span v-if="pendingApprovalsCount > 0" class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#C84A3E] text-white text-xs flex items-center justify-center shadow-md">
+                {{ pendingApprovalsCount }}
+              </span>
+            </button>
+            <button v-if="canViewLogs" 
+              @click="navigateToLogs"
+              class="p-4 bg-gradient-to-br from-[#E8D5C4]/50 to-[#D4A574]/20 rounded-xl hover:from-[#E8D5C4] hover:to-[#D4A574]/30 transition-all text-center group border border-[#E8D5C4]">
+              <Icon icon="solar:history-bold" class="text-2xl text-[#8B6F4E] mx-auto mb-2 group-hover:scale-110 transition-transform" />
+              <p class="text-sm font-medium text-[#5C4A3A]">操作日志</p>
+              <p class="text-xs text-gray-500 mt-1">变更记录</p>
+            </button>
+            <div v-if="myRole === 'viewer'" class="p-4 bg-gray-50 rounded-xl text-center border border-gray-200">
+              <Icon icon="solar:eye-bold" class="text-2xl text-gray-400 mx-auto mb-2" />
+              <p class="text-sm font-medium text-gray-500">只读模式</p>
+              <p class="text-xs text-gray-400 mt-1">仅可查看</p>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="bg-white rounded-2xl shadow-soft border border-stone-100 p-6 mb-6">
@@ -175,7 +303,7 @@
             <span>世系图谱</span>
           </h2>
           <div class="flex items-center space-x-2">
-            <button @click="showMemberModal = true" class="px-3 py-1 bg-gradient-to-r from-[#8B6F4E] to-[#A67B5B] text-white rounded-lg text-sm font-medium shadow-warm hover:shadow-lg transition-all flex items-center space-x-1">
+            <button v-if="canEdit" @click="showMemberModal = true" class="px-3 py-1 bg-gradient-to-r from-[#8B6F4E] to-[#A67B5B] text-white rounded-lg text-sm font-medium shadow-warm hover:shadow-lg transition-all flex items-center space-x-1">
               <Icon icon="solar:add-circle-bold" class="text-sm" />
               <span>新增成员</span>
             </button>
@@ -270,12 +398,19 @@
                   </span>
                 </td>
                 <td class="py-3 px-4 text-right">
-                  <button @click.stop="editMember(member)" class="text-[#8B6F4E] text-sm hover:text-[#D4A574] transition-colors mr-3">
-                    编辑
-                  </button>
-                  <button @click.stop="deleteMember(member)" class="text-red-500 text-sm hover:text-red-600 transition-colors">
-                    删除
-                  </button>
+                  <template v-if="canEdit">
+                    <button @click.stop="editMember(member)" class="text-[#8B6F4E] text-sm hover:text-[#D4A574] transition-colors mr-3">
+                      编辑
+                    </button>
+                  </template>
+                  <template v-if="canDelete">
+                    <button @click.stop="deleteMember(member)" class="text-red-500 text-sm hover:text-red-600 transition-colors">
+                      删除
+                    </button>
+                  </template>
+                  <template v-else-if="!canEdit">
+                    <span class="text-gray-400 text-xs">只读</span>
+                  </template>
                 </td>
               </tr>
             </tbody>
@@ -299,7 +434,7 @@
             <p class="text-sm font-medium text-[#5C4A3A]">导出数据</p>
             <p class="text-xs text-gray-500 mt-1">Excel/PDF</p>
           </button>
-          <button class="p-4 bg-[#FAF7F2] rounded-xl hover:bg-[#E8D5C4]/50 transition-colors text-center group">
+          <button v-if="canViewLogs" @click="navigateToLogs" class="p-4 bg-[#FAF7F2] rounded-xl hover:bg-[#E8D5C4]/50 transition-colors text-center group">
             <Icon icon="solar:history-bold" class="text-2xl text-[#8B6F4E] mx-auto mb-2 group-hover:scale-110 transition-transform" />
             <p class="text-sm font-medium text-[#5C4A3A]">操作日志</p>
             <p class="text-xs text-gray-500 mt-1">修改记录</p>
@@ -308,6 +443,19 @@
             <Icon icon="solar:shield-check-bold" class="text-2xl text-[#8B6F4E] mx-auto mb-2 group-hover:scale-110 transition-transform" />
             <p class="text-sm font-medium text-[#5C4A3A]">备份恢复</p>
             <p class="text-xs text-gray-500 mt-1">数据安全</p>
+          </button>
+          <button v-if="canManageMembers" @click="navigateToMemberManagement" class="p-4 bg-[#FAF7F2] rounded-xl hover:bg-[#E8D5C4]/50 transition-colors text-center group">
+            <Icon icon="solar:users-group-two-bold" class="text-2xl text-[#8B6F4E] mx-auto mb-2 group-hover:scale-110 transition-transform" />
+            <p class="text-sm font-medium text-[#5C4A3A]">成员管理</p>
+            <p class="text-xs text-gray-500 mt-1">邀请/角色</p>
+          </button>
+          <button v-if="canViewApprovals" @click="navigateToApprovals" class="p-4 bg-[#FAF7F2] rounded-xl hover:bg-[#E8D5C4]/50 transition-colors text-center group relative">
+            <Icon icon="solar:document-bold" class="text-2xl text-[#8B6F4E] mx-auto mb-2 group-hover:scale-110 transition-transform" />
+            <p class="text-sm font-medium text-[#5C4A3A]">审核中心</p>
+            <p class="text-xs text-gray-500 mt-1">待处理申请</p>
+            <span v-if="pendingApprovalsCount > 0" class="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#C84A3E] text-white text-xs flex items-center justify-center">
+              {{ pendingApprovalsCount }}
+            </span>
           </button>
         </div>
       </section>
@@ -624,38 +772,102 @@ import { ref, computed, reactive, defineComponent, h, onMounted, onUnmounted, wa
 import { useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import D3Tree from './D3Tree.vue'
-import { apiService, authStore, Family, FamilyMember } from '../services/api'
+import { apiService, authStore, Family, FamilyMember, FamilyRole } from '../services/api'
 
 const router = useRouter()
 
 const isLoading = ref(false)
 
 const showUserMenu = ref(false)
+const showManageMenu = ref(false)
 
 interface NavItem {
   id: string
   label: string
   icon: string
+  badge?: number
 }
 
 const activeNav = ref('family')
 
-const navItems: NavItem[] = [
+const pendingApprovalsCount = ref(0)
+const myPendingInvitationsCount = ref(0)
+
+const navItems = computed<NavItem[]>(() => [
   { id: 'home', label: '首页', icon: 'solar:home-2-bold' },
   { id: 'family', label: '家承', icon: 'solar:tree-bold-duotone' },
   { id: 'gallery', label: '影集', icon: 'solar:gallery-wide-bold-duotone' },
   { id: 'digital', label: '生境', icon: 'solar:magic-stick-3-bold-duotone' },
   { id: 'chat', label: '语伴', icon: 'solar:chat-round-dots-bold-duotone' },
-]
+])
+
+const myRole = ref<FamilyRole | null>(null)
+
+const canEdit = computed(() => {
+  if (!myRole.value) return false
+  const roles: FamilyRole[] = ['head', 'admin', 'editor']
+  return roles.includes(myRole.value)
+})
+
+const canDelete = computed(() => {
+  if (!myRole.value) return false
+  const roles: FamilyRole[] = ['head', 'admin', 'editor']
+  return roles.includes(myRole.value)
+})
+
+const canManageMembers = computed(() => {
+  if (!myRole.value) return false
+  const roles: FamilyRole[] = ['head', 'admin']
+  return roles.includes(myRole.value)
+})
+
+const canViewApprovals = computed(() => {
+  if (!myRole.value) return false
+  const roles: FamilyRole[] = ['head', 'admin', 'editor']
+  return roles.includes(myRole.value)
+})
+
+const canViewLogs = computed(() => {
+  if (!myRole.value) return false
+  const roles: FamilyRole[] = ['head', 'admin', 'editor']
+  return roles.includes(myRole.value)
+})
+
+const roleLabel = (role: FamilyRole) => {
+  const labels: Record<FamilyRole, string> = {
+    head: '族长',
+    admin: '管理员',
+    editor: '编辑',
+    viewer: '浏览',
+  }
+  return labels[role]
+}
+
+const roleClass = (role: FamilyRole) => {
+  const classes: Record<FamilyRole, string> = {
+    head: 'bg-red-100 text-red-700',
+    admin: 'bg-purple-100 text-purple-700',
+    editor: 'bg-blue-100 text-blue-700',
+    viewer: 'bg-gray-100 text-gray-600',
+  }
+  return classes[role]
+}
 
 const toggleUserMenu = () => {
   showUserMenu.value = !showUserMenu.value
+  showManageMenu.value = false
+}
+
+const toggleManageMenu = () => {
+  showManageMenu.value = !showManageMenu.value
+  showUserMenu.value = false
 }
 
 const closeUserMenu = (event: MouseEvent) => {
   const target = event.target as HTMLElement
   if (!target.closest('.relative')) {
     showUserMenu.value = false
+    showManageMenu.value = false
   }
 }
 
@@ -860,9 +1072,20 @@ const treeRoots = computed(() => buildTree(familyMembers.value))
 const loadData = async () => {
   isLoading.value = true
   try {
-    const response = await apiService.getFamily()
-    if (response.success && response.data) {
-      const { family, members } = response.data
+    const myFamilyResp = await apiService.getMyFamilyInfo()
+    
+    if (myFamilyResp.success && myFamilyResp.data) {
+      myRole.value = myFamilyResp.data.role
+    }
+    
+    const [familyResp, approvalsResp, invitationsResp] = await Promise.all([
+      apiService.getFamily(),
+      apiService.getPendingApprovals(),
+      apiService.getMyInvitations('pending'),
+    ])
+
+    if (familyResp.success && familyResp.data) {
+      const { family, members } = familyResp.data
       familyInfo.hallName = family.hallName || ''
       familyInfo.surname = family.surname
       familyInfo.ancestor = family.ancestor || ''
@@ -875,13 +1098,39 @@ const loadData = async () => {
       familySettingsForm.description = family.description || ''
       familySettingsForm.ziBeiStr = (family.ziBei || []).join(',')
     } else {
-      console.error('加载家族数据失败:', response.error)
+      console.error('加载家族数据失败:', familyResp.error)
+    }
+
+    if (approvalsResp.success && approvalsResp.data) {
+      pendingApprovalsCount.value = approvalsResp.data.approvals.length
+    }
+
+    if (invitationsResp.success && invitationsResp.data) {
+      myPendingInvitationsCount.value = invitationsResp.data.invitations.length
     }
   } catch (error) {
-    console.error('加载家族数据失败:', error)
+    console.error('加载数据失败:', error)
   } finally {
     isLoading.value = false
   }
+}
+
+const navigateToMemberManagement = () => {
+  showUserMenu.value = false
+  showManageMenu.value = false
+  router.push('/family/members')
+}
+
+const navigateToApprovals = () => {
+  showUserMenu.value = false
+  showManageMenu.value = false
+  router.push('/family/approvals')
+}
+
+const navigateToLogs = () => {
+  showUserMenu.value = false
+  showManageMenu.value = false
+  router.push('/family/logs')
 }
 
 onMounted(() => {
