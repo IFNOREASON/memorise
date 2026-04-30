@@ -70,6 +70,14 @@
         </nav>
 
         <div class="flex items-center space-x-4">
+          <button 
+            v-if="isHead && hasFamily" 
+            @click="showCollaborationModal = true; loadCollaborationLinks()"
+            class="px-4 py-2 bg-gradient-to-r from-[#C84A3E] to-[#E86B5F] text-white rounded-xl text-sm font-medium shadow-warm hover:shadow-lg transition-all flex items-center space-x-2"
+          >
+            <Icon icon="solar:share-bold" class="text-sm" />
+            <span>邀请共建</span>
+          </button>
           <button class="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow">
             <Icon icon="solar:bell-bold" class="text-gray-600" />
           </button>
@@ -181,6 +189,43 @@
     </header>
 
     <main class="max-w-7xl mx-auto px-6 py-6">
+      <template v-if="isLoading || hasFamily === null">
+        <div class="flex flex-col items-center justify-center py-20">
+          <Icon icon="solar:refresh-circle-bold" class="text-5xl text-[#8B6F4E] animate-spin mb-4" />
+          <p class="text-gray-500">加载中...</p>
+        </div>
+      </template>
+
+      <template v-else-if="!hasFamily">
+        <div class="flex flex-col items-center justify-center py-20">
+          <div class="w-24 h-24 bg-gradient-to-br from-[#E8D5C4] to-[#D4A574] rounded-full flex items-center justify-center mb-6 shadow-lg">
+            <Icon icon="solar:tree-bold-duotone" class="text-5xl text-[#8B6F4E]" />
+          </div>
+          <h2 class="text-2xl font-bold text-[#5C4A3A] font-serif mb-4">您还没有族谱</h2>
+          <p class="text-gray-500 mb-8 text-center max-w-md">
+            创建您的家族族谱，记录家族历史，传承家风家训。<br />
+            或通过链接加入已有的家族族谱。
+          </p>
+          <div class="flex flex-col sm:flex-row gap-4">
+            <button 
+              @click="showCreateFamilyModal = true"
+              class="px-8 py-3 bg-gradient-to-r from-[#8B6F4E] to-[#A67B5B] text-white rounded-xl font-medium shadow-warm hover:shadow-lg transition-all flex items-center justify-center space-x-2"
+            >
+              <Icon icon="solar:add-circle-bold" class="text-lg" />
+              <span>新建族谱</span>
+            </button>
+            <button 
+              @click="showJoinFamilyModal = true"
+              class="px-8 py-3 bg-white border-2 border-[#E8D5C4] text-[#8B6F4E] rounded-xl font-medium hover:bg-[#FAF7F2] transition-all flex items-center justify-center space-x-2"
+            >
+              <Icon icon="solar:link-bold" class="text-lg" />
+              <span>导入已有族谱</span>
+            </button>
+          </div>
+        </div>
+      </template>
+
+      <template v-else>
       <section class="bg-white rounded-2xl shadow-soft border border-stone-100 p-6 mb-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-bold text-[#5C4A3A] font-serif flex items-center space-x-2">
@@ -459,7 +504,241 @@
           </button>
         </div>
       </section>
+      </template>
     </main>
+
+    <div v-if="showCreateFamilyModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="p-6 border-b border-stone-100">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-bold text-[#5C4A3A] flex items-center space-x-2">
+              <Icon icon="solar:add-circle-bold" class="text-[#8B6F4E]" />
+              <span>新建族谱</span>
+            </h3>
+            <button @click="showCreateFamilyModal = false" class="text-gray-400 hover:text-gray-600">
+              <Icon icon="solar:close-circle-bold" class="text-2xl" />
+            </button>
+          </div>
+        </div>
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">姓氏 <span class="text-red-500">*</span></label>
+            <input v-model="createFamilyForm.surname" type="text" placeholder="例如：李" 
+              class="w-full px-4 py-2 bg-[#FAF7F2] border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#E8D5C4]" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">堂号</label>
+            <input v-model="createFamilyForm.hallName" type="text" placeholder="例如：陇西堂" 
+              class="w-full px-4 py-2 bg-[#FAF7F2] border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#E8D5C4]" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">始祖</label>
+            <input v-model="createFamilyForm.ancestor" type="text" placeholder="例如：李太白" 
+              class="w-full px-4 py-2 bg-[#FAF7F2] border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#E8D5C4]" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">家族简介</label>
+            <textarea v-model="createFamilyForm.description" placeholder="请输入家族简介..." rows="3"
+              class="w-full px-4 py-2 bg-[#FAF7F2] border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#E8D5C4] resize-none" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">字辈排行</label>
+            <input v-model="createFamilyForm.ziBeiStr" type="text" placeholder="用逗号分隔，例如：元,亨,利,贞" 
+              class="w-full px-4 py-2 bg-[#FAF7F2] border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#E8D5C4]" />
+            <p class="text-xs text-gray-500 mt-1">多个字辈用逗号或空格分隔</p>
+          </div>
+        </div>
+        <div class="p-6 border-t border-stone-100 flex justify-end space-x-3">
+          <button @click="showCreateFamilyModal = false" 
+            class="px-4 py-2 text-gray-600 bg-stone-100 rounded-xl text-sm font-medium hover:bg-stone-200 transition-colors">
+            取消
+          </button>
+          <button @click="handleCreateFamily" :disabled="isCreatingFamily"
+            class="px-4 py-2 bg-gradient-to-r from-[#8B6F4E] to-[#A67B5B] text-white rounded-xl text-sm font-medium shadow-warm hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+            <Icon v-if="isCreatingFamily" icon="solar:refresh-circle-bold" class="text-sm animate-spin" />
+            <span>{{ isCreatingFamily ? '创建中...' : '创建族谱' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showJoinFamilyModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4">
+        <div class="p-6 border-b border-stone-100">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-bold text-[#5C4A3A] flex items-center space-x-2">
+              <Icon icon="solar:link-bold" class="text-[#8B6F4E]" />
+              <span>导入已有族谱</span>
+            </h3>
+            <button @click="showJoinFamilyModal = false" class="text-gray-400 hover:text-gray-600">
+              <Icon icon="solar:close-circle-bold" class="text-2xl" />
+            </button>
+          </div>
+        </div>
+        <div class="p-6">
+          <p class="text-sm text-gray-500 mb-4">
+            请输入族长分享的链接代码，加入已有的家族族谱。
+          </p>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">链接代码 <span class="text-red-500">*</span></label>
+            <input v-model="joinLinkCode" type="text" placeholder="例如：ABC123XYZ789" 
+              class="w-full px-4 py-3 bg-[#FAF7F2] border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#E8D5C4] text-center font-mono text-lg tracking-wider" />
+          </div>
+        </div>
+        <div class="p-6 border-t border-stone-100 flex justify-end space-x-3">
+          <button @click="showJoinFamilyModal = false" 
+            class="px-4 py-2 text-gray-600 bg-stone-100 rounded-xl text-sm font-medium hover:bg-stone-200 transition-colors">
+            取消
+          </button>
+          <button @click="handleJoinFamily" :disabled="isJoiningFamily"
+            class="px-4 py-2 bg-gradient-to-r from-[#8B6F4E] to-[#A67B5B] text-white rounded-xl text-sm font-medium shadow-warm hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+            <Icon v-if="isJoiningFamily" icon="solar:refresh-circle-bold" class="text-sm animate-spin" />
+            <span>{{ isJoiningFamily ? '加入中...' : '加入族谱' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showCollaborationModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div class="bg-white rounded-2xl shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="p-6 border-b border-stone-100">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-bold text-[#5C4A3A] flex items-center space-x-2">
+              <Icon icon="solar:share-bold" class="text-[#8B6F4E]" />
+              <span>邀请共建</span>
+            </h3>
+            <button @click="showCollaborationModal = false" class="text-gray-400 hover:text-gray-600">
+              <Icon icon="solar:close-circle-bold" class="text-2xl" />
+            </button>
+          </div>
+        </div>
+        <div class="p-6">
+          <div class="bg-[#FAF7F2] rounded-xl p-4 mb-6">
+            <h4 class="text-sm font-bold text-[#5C4A3A] mb-3">创建新的分享链接</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">权限设置</label>
+                <select v-model="newLinkForm.role" 
+                  class="w-full px-3 py-2 bg-white border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E8D5C4]">
+                  <option value="viewer">仅浏览</option>
+                  <option value="editor">可编辑</option>
+                  <option value="admin">管理员</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">使用次数</label>
+                <input v-model.number="newLinkForm.maxUses" type="number" min="1" max="100"
+                  class="w-full px-3 py-2 bg-white border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E8D5C4]" />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">有效天数</label>
+                <select v-model.number="newLinkForm.expiresInDays"
+                  class="w-full px-3 py-2 bg-white border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E8D5C4]">
+                  <option :value="7">7天</option>
+                  <option :value="30">30天</option>
+                  <option :value="90">90天</option>
+                  <option :value="0">永久有效</option>
+                </select>
+              </div>
+            </div>
+            <button @click="handleCreateLink" :disabled="isCreatingLink"
+              class="px-4 py-2 bg-gradient-to-r from-[#C84A3E] to-[#E86B5F] text-white rounded-lg text-sm font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+              <Icon v-if="isCreatingLink" icon="solar:refresh-circle-bold" class="text-sm animate-spin" />
+              <span>{{ isCreatingLink ? '创建中...' : '生成链接' }}</span>
+            </button>
+          </div>
+
+          <div>
+            <h4 class="text-sm font-bold text-[#5C4A3A] mb-3">已有链接</h4>
+            <div v-if="loadingCollaborationLinks" class="text-center py-8 text-gray-400">
+              <Icon icon="solar:refresh-circle-bold" class="text-3xl animate-spin mx-auto mb-2" />
+              <p class="text-sm">加载中...</p>
+            </div>
+            <div v-else-if="collaborationLinks.length === 0" class="text-center py-8 text-gray-400">
+              <Icon icon="solar:link-bold" class="text-3xl mx-auto mb-2" />
+              <p class="text-sm">暂无分享链接</p>
+            </div>
+            <div v-else class="space-y-3">
+              <div v-for="link in collaborationLinks" :key="link.id" 
+                class="bg-white border border-stone-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+                <div class="flex items-start justify-between">
+                  <div class="flex-1">
+                    <div class="flex items-center space-x-2 mb-2">
+                      <span class="px-2 py-0.5 rounded text-xs font-medium" :class="linkStatusClass(link.status)">
+                        {{ linkStatusLabel(link.status) }}
+                      </span>
+                      <span class="px-2 py-0.5 rounded text-xs font-medium" :class="roleClass(link.role)">
+                        {{ roleLabel(link.role) }}
+                      </span>
+                      <span v-if="!link.isVisible" class="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">
+                        已隐藏
+                      </span>
+                    </div>
+                    <div class="font-mono text-sm text-[#5C4A3A] mb-1">
+                      {{ link.linkCode }}
+                    </div>
+                    <div class="text-xs text-gray-400 space-x-3">
+                      <span>已使用: {{ link.usedCount }}/{{ link.maxUses }}</span>
+                      <span v-if="link.expiresAt">过期时间: {{ new Date(link.expiresAt).toLocaleDateString() }}</span>
+                      <span>创建时间: {{ new Date(link.createdAt).toLocaleDateString() }}</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-2 ml-4">
+                    <button v-if="link.status === 'active'" 
+                      @click="handleCopyLink(link.linkCode)"
+                      class="p-2 text-gray-500 hover:text-[#8B6F4E] hover:bg-[#E8D5C4]/30 rounded-lg transition-colors"
+                      :title="copyingLinkId === link.linkCode ? '已复制' : '复制链接'">
+                      <Icon :icon="copyingLinkId === link.linkCode ? 'solar:check-circle-bold' : 'solar:copy-bold'" class="text-lg" />
+                    </button>
+                    <div class="relative group">
+                      <button class="p-2 text-gray-500 hover:text-[#8B6F4E] hover:bg-[#E8D5C4]/30 rounded-lg transition-colors"
+                        title="设置权限">
+                        <Icon icon="solar:key-bold" class="text-lg" />
+                      </button>
+                      <div class="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-stone-200 py-1 min-w-[120px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                        <button @click="handleUpdateLinkRole(link.id, 'viewer')"
+                          :class="link.role === 'viewer' ? 'bg-[#E8D5C4]' : ''"
+                          class="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-[#FAF7F2]">
+                          仅浏览
+                        </button>
+                        <button @click="handleUpdateLinkRole(link.id, 'editor')"
+                          :class="link.role === 'editor' ? 'bg-[#E8D5C4]' : ''"
+                          class="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-[#FAF7F2]">
+                          可编辑
+                        </button>
+                        <button @click="handleUpdateLinkRole(link.id, 'admin')"
+                          :class="link.role === 'admin' ? 'bg-[#E8D5C4]' : ''"
+                          class="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-[#FAF7F2]">
+                          管理员
+                        </button>
+                      </div>
+                    </div>
+                    <button v-if="link.status === 'active'"
+                      @click="handleToggleLinkVisibility(link.id, !link.isVisible)"
+                      class="p-2 text-gray-500 hover:text-[#8B6F4E] hover:bg-[#E8D5C4]/30 rounded-lg transition-colors"
+                      :title="link.isVisible ? '隐藏链接' : '显示链接'">
+                      <Icon :icon="link.isVisible ? 'solar:eye-bold' : 'solar:eye-closed-bold'" class="text-lg" />
+                    </button>
+                    <button v-if="link.status === 'active'"
+                      @click="handleResetLink(link.id)"
+                      class="p-2 text-gray-500 hover:text-[#C84A3E] hover:bg-red-50 rounded-lg transition-colors"
+                      title="重置链接（生成新代码）">
+                      <Icon icon="solar:refresh-bold" class="text-lg" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="p-6 border-t border-stone-100 flex justify-end">
+          <button @click="showCollaborationModal = false" 
+            class="px-4 py-2 text-gray-600 bg-stone-100 rounded-xl text-sm font-medium hover:bg-stone-200 transition-colors">
+            关闭
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div v-if="contextMenu.visible" 
       class="fixed z-[100] bg-white rounded-lg shadow-xl border border-stone-200 py-2 min-w-[160px]"
@@ -772,7 +1051,7 @@ import { ref, computed, reactive, defineComponent, h, onMounted, onUnmounted, wa
 import { useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import D3Tree from './D3Tree.vue'
-import { apiService, authStore, Family, FamilyMember, FamilyRole } from '../services/api'
+import { apiService, authStore, Family, FamilyMember, FamilyRole, CollaborationLink } from '../services/api'
 
 const router = useRouter()
 
@@ -780,6 +1059,266 @@ const isLoading = ref(false)
 
 const showUserMenu = ref(false)
 const showManageMenu = ref(false)
+
+const hasFamily = ref<boolean | null>(null)
+const showCreateFamilyModal = ref(false)
+const showJoinFamilyModal = ref(false)
+const showCollaborationModal = ref(false)
+const collaborationLinks = ref<CollaborationLink[]>([])
+const loadingCollaborationLinks = ref(false)
+
+const createFamilyForm = reactive({
+  hallName: '',
+  surname: '',
+  ancestor: '',
+  description: '',
+  ziBeiStr: ''
+})
+
+const joinLinkCode = ref('')
+
+const newLinkForm = reactive({
+  role: 'viewer' as FamilyRole,
+  maxUses: 1,
+  expiresInDays: 30
+})
+
+const isCreatingFamily = ref(false)
+const isJoiningFamily = ref(false)
+const isCreatingLink = ref(false)
+const copyingLinkId = ref<string | null>(null)
+
+let permissionPollTimer: number | null = null
+const POLL_INTERVAL = 30000
+
+const refreshPermissions = async () => {
+  try {
+    const statusResp = await apiService.getMyFamilyStatus()
+    
+    if (statusResp.success && statusResp.data) {
+      const oldHasFamily = hasFamily.value
+      const oldRole = myRole.value
+      
+      hasFamily.value = statusResp.data.hasFamily
+      
+      if (statusResp.data.role && statusResp.data.role !== oldRole) {
+        myRole.value = statusResp.data.role
+        if (oldRole !== null && oldRole !== statusResp.data.role) {
+          alert(`您的权限已变更为：${roleLabel(statusResp.data.role)}`)
+        }
+      }
+      
+      if (statusResp.data.family) {
+        familyInfo.hallName = statusResp.data.family.hallName || ''
+        familyInfo.surname = statusResp.data.family.surname
+        familyInfo.ancestor = statusResp.data.family.ancestor || ''
+        familyInfo.description = statusResp.data.family.description || ''
+        familyInfo.ziBei = statusResp.data.family.ziBei || []
+      }
+      
+      if (!oldHasFamily && statusResp.data.hasFamily) {
+        await loadData()
+      }
+    }
+  } catch (error) {
+    console.error('刷新权限失败:', error)
+  }
+}
+
+const isHead = computed(() => myRole.value === 'head')
+
+const linkStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
+    active: '有效',
+    expired: '已过期',
+    used: '已使用',
+    disabled: '已禁用'
+  }
+  return labels[status] || status
+}
+
+const linkStatusClass = (status: string) => {
+  const classes: Record<string, string> = {
+    active: 'bg-green-100 text-green-700',
+    expired: 'bg-yellow-100 text-yellow-700',
+    used: 'bg-blue-100 text-blue-700',
+    disabled: 'bg-gray-100 text-gray-500'
+  }
+  return classes[status] || 'bg-gray-100 text-gray-500'
+}
+
+const generateShareLink = (linkCode: string) => {
+  return `${window.location.origin}/collaboration/join/${linkCode}`
+}
+
+const handleCreateFamily = async () => {
+  if (!createFamilyForm.surname.trim()) {
+    alert('请输入姓氏')
+    return
+  }
+  
+  isCreatingFamily.value = true
+  try {
+    const ziBei = createFamilyForm.ziBeiStr
+      .split(/[,，\s]+/)
+      .filter(s => s.trim())
+    
+    const response = await apiService.createFamily({
+      hallName: createFamilyForm.hallName.trim() || undefined,
+      surname: createFamilyForm.surname.trim(),
+      ancestor: createFamilyForm.ancestor.trim() || undefined,
+      description: createFamilyForm.description.trim() || undefined,
+      ziBei: ziBei.length > 0 ? ziBei : undefined
+    })
+    
+    if (response.success && response.data) {
+      myRole.value = response.data.role
+      hasFamily.value = true
+      showCreateFamilyModal.value = false
+      await loadData()
+    } else {
+      alert(`创建失败: ${response.error || '未知错误'}`)
+    }
+  } catch (error) {
+    console.error('创建家族失败:', error)
+    alert('创建失败，请稍后重试')
+  } finally {
+    isCreatingFamily.value = false
+  }
+}
+
+const handleJoinFamily = async () => {
+  if (!joinLinkCode.value.trim()) {
+    alert('请输入链接代码')
+    return
+  }
+  
+  isJoiningFamily.value = true
+  try {
+    const response = await apiService.joinByLink(joinLinkCode.value.trim().toUpperCase())
+    
+    if (response.success && response.data) {
+      myRole.value = response.data.role
+      hasFamily.value = true
+      showJoinFamilyModal.value = false
+      joinLinkCode.value = ''
+      await loadData()
+    } else {
+      alert(`加入失败: ${response.error || '未知错误'}`)
+    }
+  } catch (error) {
+    console.error('加入家族失败:', error)
+    alert('加入失败，请检查链接代码是否正确')
+  } finally {
+    isJoiningFamily.value = false
+  }
+}
+
+const loadCollaborationLinks = async () => {
+  loadingCollaborationLinks.value = true
+  try {
+    const response = await apiService.getCollaborationLinks()
+    if (response.success && response.data) {
+      collaborationLinks.value = response.data.links
+    }
+  } catch (error) {
+    console.error('加载链接列表失败:', error)
+  } finally {
+    loadingCollaborationLinks.value = false
+  }
+}
+
+const handleCreateLink = async () => {
+  if (newLinkForm.maxUses < 1) {
+    alert('使用次数至少为1次')
+    return
+  }
+  
+  isCreatingLink.value = true
+  try {
+    const response = await apiService.createCollaborationLink({
+      role: newLinkForm.role,
+      maxUses: newLinkForm.maxUses,
+      expiresInDays: newLinkForm.expiresInDays > 0 ? newLinkForm.expiresInDays : undefined
+    })
+    
+    if (response.success && response.data) {
+      collaborationLinks.value.unshift(response.data)
+      newLinkForm.role = 'viewer'
+      newLinkForm.maxUses = 1
+      newLinkForm.expiresInDays = 30
+    } else {
+      alert(`创建失败: ${response.error || '未知错误'}`)
+    }
+  } catch (error) {
+    console.error('创建链接失败:', error)
+    alert('创建失败，请稍后重试')
+  } finally {
+    isCreatingLink.value = false
+  }
+}
+
+const handleUpdateLinkRole = async (linkId: string, newRole: FamilyRole) => {
+  try {
+    const response = await apiService.updateCollaborationLink(linkId, { role: newRole })
+    if (response.success && response.data) {
+      const index = collaborationLinks.value.findIndex(l => l.id === linkId)
+      if (index > -1) {
+        collaborationLinks.value[index] = response.data
+      }
+    }
+  } catch (error) {
+    console.error('更新链接失败:', error)
+    alert('更新失败')
+  }
+}
+
+const handleToggleLinkVisibility = async (linkId: string, isVisible: boolean) => {
+  try {
+    const response = await apiService.updateCollaborationLink(linkId, { isVisible })
+    if (response.success && response.data) {
+      const index = collaborationLinks.value.findIndex(l => l.id === linkId)
+      if (index > -1) {
+        collaborationLinks.value[index] = response.data
+      }
+    }
+  } catch (error) {
+    console.error('更新链接可见性失败:', error)
+    alert('更新失败')
+  }
+}
+
+const handleResetLink = async (linkId: string) => {
+  if (!confirm('重置链接将生成新的链接代码，旧链接将失效。确定要重置吗？')) {
+    return
+  }
+  
+  try {
+    const response = await apiService.resetCollaborationLink(linkId)
+    if (response.success && response.data) {
+      const index = collaborationLinks.value.findIndex(l => l.id === linkId)
+      if (index > -1) {
+        collaborationLinks.value[index] = response.data
+      }
+    }
+  } catch (error) {
+    console.error('重置链接失败:', error)
+    alert('重置失败')
+  }
+}
+
+const handleCopyLink = async (linkCode: string) => {
+  const shareLink = generateShareLink(linkCode)
+  try {
+    await navigator.clipboard.writeText(shareLink)
+    copyingLinkId.value = linkCode
+    setTimeout(() => {
+      copyingLinkId.value = null
+    }, 2000)
+  } catch (error) {
+    alert(`复制失败，请手动复制: ${shareLink}`)
+  }
+}
 
 interface NavItem {
   id: string
@@ -1072,44 +1611,78 @@ const treeRoots = computed(() => buildTree(familyMembers.value))
 const loadData = async () => {
   isLoading.value = true
   try {
-    const myFamilyResp = await apiService.getMyFamilyInfo()
+    const statusResp = await apiService.getMyFamilyStatus()
     
-    if (myFamilyResp.success && myFamilyResp.data) {
-      myRole.value = myFamilyResp.data.role
-    }
-    
-    const [familyResp, approvalsResp, invitationsResp] = await Promise.all([
-      apiService.getFamily(),
-      apiService.getPendingApprovals(),
-      apiService.getMyInvitations('pending'),
-    ])
+    if (statusResp.success && statusResp.data) {
+      hasFamily.value = statusResp.data.hasFamily
+      
+      if (!statusResp.data.hasFamily) {
+        isLoading.value = false
+        return
+      }
+      
+      if (statusResp.data.role) {
+        myRole.value = statusResp.data.role
+      }
+      
+      if (statusResp.data.family) {
+        familyInfo.hallName = statusResp.data.family.hallName || ''
+        familyInfo.surname = statusResp.data.family.surname
+        familyInfo.ancestor = statusResp.data.family.ancestor || ''
+        familyInfo.description = statusResp.data.family.description || ''
+        familyInfo.ziBei = statusResp.data.family.ziBei || []
+        familySettingsForm.hallName = statusResp.data.family.hallName || ''
+        familySettingsForm.surname = statusResp.data.family.surname
+        familySettingsForm.ancestor = statusResp.data.family.ancestor || ''
+        familySettingsForm.description = statusResp.data.family.description || ''
+        familySettingsForm.ziBeiStr = (statusResp.data.family.ziBei || []).join(',')
+      }
+      
+      const [familyResp, approvalsResp, invitationsResp] = await Promise.all([
+        apiService.getFamily(),
+        apiService.getPendingApprovals(),
+        apiService.getMyInvitations('pending'),
+      ])
 
-    if (familyResp.success && familyResp.data) {
-      const { family, members } = familyResp.data
-      familyInfo.hallName = family.hallName || ''
-      familyInfo.surname = family.surname
-      familyInfo.ancestor = family.ancestor || ''
-      familyInfo.description = family.description || ''
-      familyInfo.ziBei = family.ziBei || []
-      familyMembers.value = members
-      familySettingsForm.hallName = family.hallName || ''
-      familySettingsForm.surname = family.surname
-      familySettingsForm.ancestor = family.ancestor || ''
-      familySettingsForm.description = family.description || ''
-      familySettingsForm.ziBeiStr = (family.ziBei || []).join(',')
+      if (familyResp.success && familyResp.data) {
+        const { family, members } = familyResp.data
+        familyInfo.hallName = family.hallName || ''
+        familyInfo.surname = family.surname
+        familyInfo.ancestor = family.ancestor || ''
+        familyInfo.description = family.description || ''
+        familyInfo.ziBei = family.ziBei || []
+        familyMembers.value = members
+        familySettingsForm.hallName = family.hallName || ''
+        familySettingsForm.surname = family.surname
+        familySettingsForm.ancestor = family.ancestor || ''
+        familySettingsForm.description = family.description || ''
+        familySettingsForm.ziBeiStr = (family.ziBei || []).join(',')
+      } else {
+        console.error('加载家族数据失败:', familyResp.error)
+      }
+
+      if (approvalsResp.success && approvalsResp.data) {
+        pendingApprovalsCount.value = approvalsResp.data.approvals.length
+      }
+
+      if (invitationsResp.success && invitationsResp.data) {
+        myPendingInvitationsCount.value = invitationsResp.data.invitations.length
+      }
     } else {
-      console.error('加载家族数据失败:', familyResp.error)
-    }
-
-    if (approvalsResp.success && approvalsResp.data) {
-      pendingApprovalsCount.value = approvalsResp.data.approvals.length
-    }
-
-    if (invitationsResp.success && invitationsResp.data) {
-      myPendingInvitationsCount.value = invitationsResp.data.invitations.length
+      console.error('获取家族状态失败:', statusResp.error)
+      if (statusResp.error && statusResp.error.includes('404')) {
+        hasFamily.value = false
+      } else if (statusResp.error && statusResp.error.includes('401')) {
+        alert('请先登录')
+        router.push('/login')
+        return
+      } else {
+        hasFamily.value = false
+      }
     }
   } catch (error) {
     console.error('加载数据失败:', error)
+    hasFamily.value = false
   } finally {
     isLoading.value = false
   }
@@ -1136,10 +1709,17 @@ const navigateToLogs = () => {
 onMounted(() => {
   loadData()
   document.addEventListener('click', closeUserMenu)
+  
+  permissionPollTimer = window.setInterval(refreshPermissions, POLL_INTERVAL)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', closeUserMenu)
+  
+  if (permissionPollTimer !== null) {
+    window.clearInterval(permissionPollTimer)
+    permissionPollTimer = null
+  }
 })
 
 const zoomIn = () => {

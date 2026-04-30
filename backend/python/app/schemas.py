@@ -877,3 +877,73 @@ class UserFamilyInfo(BaseModel):
 
     class Config:
         populate_by_name = True
+
+
+class MyFamilyStatus(BaseModel):
+    hasFamily: bool = Field(alias="hasFamily")
+    family: Optional[FamilyBase] = None
+    role: Optional[FamilyRole] = None
+    familyUser: Optional[FamilyUserBase] = Field(default=None, alias="familyUser")
+    memberCount: Optional[int] = Field(default=None, alias="memberCount")
+
+    class Config:
+        populate_by_name = True
+
+
+class CollaborationLinkStatus(str, enum.Enum):
+    ACTIVE = "active"
+    EXPIRED = "expired"
+    USED = "used"
+    DISABLED = "disabled"
+
+
+class CollaborationLinkBase(BaseModel):
+    id: str
+    familyId: str = Field(alias="familyId")
+    inviterId: str = Field(alias="inviterId")
+    linkCode: str = Field(alias="linkCode")
+    role: FamilyRole
+    status: CollaborationLinkStatus
+    isVisible: bool = Field(alias="isVisible")
+    usedCount: int = Field(alias="usedCount")
+    maxUses: int = Field(alias="maxUses")
+    expiresAt: Optional[datetime] = Field(default=None, alias="expiresAt")
+    usedByUserId: Optional[str] = Field(default=None, alias="usedByUserId")
+    usedAt: Optional[datetime] = Field(default=None, alias="usedAt")
+    inviter: Optional[UserResponse] = None
+    family: Optional[FamilyBase] = None
+    createdAt: datetime = Field(alias="createdAt")
+    updatedAt: datetime = Field(alias="updatedAt")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
+class CreateCollaborationLinkRequest(BaseModel):
+    role: FamilyRole = FamilyRole.VIEWER
+    maxUses: int = Field(default=1, alias="maxUses", ge=1)
+    expiresInDays: Optional[int] = Field(default=None, alias="expiresInDays", ge=1)
+
+    class Config:
+        populate_by_name = True
+
+
+class UpdateCollaborationLinkRequest(BaseModel):
+    role: Optional[FamilyRole] = None
+    isVisible: Optional[bool] = Field(default=None, alias="isVisible")
+
+    class Config:
+        populate_by_name = True
+
+
+class JoinByLinkRequest(BaseModel):
+    linkCode: str = Field(alias="linkCode")
+
+    class Config:
+        populate_by_name = True
+
+
+class CollaborationLinkListResponse(BaseModel):
+    total: int
+    links: List[CollaborationLinkBase]

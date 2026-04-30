@@ -6,11 +6,14 @@ from sqlalchemy import select, update, delete, or_
 from sqlalchemy.orm import selectinload
 import uuid
 import re
+import secrets
+import string
 
 from app.database import get_async_session
 from app.models import (
     User, Family, FamilyUser, FamilyMember, FamilyInvitation,
-    FamilyRole, InvitationStatus, MemberStatus, Gender
+    FamilyRole, InvitationStatus, MemberStatus, Gender,
+    CollaborationLink, CollaborationLinkStatus
 )
 from app.schemas import (
     ApiResponse,
@@ -19,7 +22,10 @@ from app.schemas import (
     FamilyUserBase, FamilyUserListResponse, ChangeRoleRequest,
     InvitationBase, InvitationCreateRequest, InvitationListResponse,
     AcceptInvitationRequest, RejectInvitationRequest,
-    UserFamilyInfo
+    UserFamilyInfo, MyFamilyStatus,
+    CollaborationLinkBase, CollaborationLinkListResponse,
+    CreateCollaborationLinkRequest, UpdateCollaborationLinkRequest,
+    JoinByLinkRequest, FamilyCreateRequest
 )
 from app.routers.auth import get_current_user
 from app.permissions import (
@@ -36,25 +42,9 @@ def is_valid_email(email: str) -> bool:
     return re.match(pattern, email) is not None
 
 
-async def get_or_create_default_family(db: AsyncSession) -> Family:
-    stmt = select(Family).order_by(Family.created_at.desc())
-    result = await db.execute(stmt)
-    family = result.scalar_one_or_none()
-
-    if not family:
-        family = Family(
-            id=str(uuid.uuid4()),
-            hall_name="陇西堂",
-            surname="李",
-            ancestor="李太白",
-            description="本族源自陇西李氏，世代耕读传家，忠厚立世。",
-            zi_bei=["元", "亨", "利", "贞", "仁", "义", "礼", "智", "信"]
-        )
-        db.add(family)
-        await db.commit()
-        await db.refresh(family)
-
-    return family
+def generate_link_code(length: int = 12) -> str:
+    chars = string.ascii_uppercase + string.digits
+    return ''.join(secrets.choice(chars) for _ in range(length))
 
 
 @router.get("/family/users", response_model=ApiResponse[FamilyUserListResponse])
@@ -515,6 +505,66 @@ async def reject_invitation(
         raise HTTPException(status_code=500, detail=f"拒绝邀请失败: {str(e)}")
 
 
+@router.get("/my/family/status", response_model=ApiResponse[MyFamilyStatus])
+async def get_my_family_status(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_session)
+):
+    try:
+        family_user_stmt = (
+            select(FamilyUser)
+            .where(FamilyUser.user_id == current_user.id)
+            .options(selectinload(FamilyUser.family))
+        )
+        family_user_result = await db.execute(family_user_stmt)
+        family_user = family_user_result.scalar_one_or_none()
+
+        if not family_user or not family_user.family:
+            return ApiResponse(
+                success=True,
+                data=MyFamilyStatus(
+                    hasFamily=False,
+                    family=None,
+                    role=None,
+                    familyUser=None,
+                    memberCount=None
+                )
+            )
+
+        family = family_user.family
+        members_stmt = (
+            select(FamilyMember)
+            .where(
+                FamilyMember.family_id == family.id,
+                FamilyMember.deleted_at.is_(None)
+            )
+        )
+        members_result = await db.execute(members_stmt)
+        members_count = len(members_result.scalars().all())
+
+        return ApiResponse(
+            success=True,
+            data=MyFamilyStatus(
+                hasFamily=True,
+                family=FamilyBase.model_validate(family),
+                role=FamilyRole(family_user.role),
+                familyUser=FamilyUserBase(
+                    id=family_user.id,
+                    familyId=family_user.family_id,
+                    userId=family_user.user_id,
+                    role=FamilyRole(family_user.role),
+                    createdAt=family_user.created_at,
+                    updatedAt=family_user.updated_at
+                ),
+                memberCount=members_count
+            )
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取家族状态失败: {str(e)}")
+
+
 @router.get("/my/family", response_model=ApiResponse[UserFamilyInfo])
 async def get_my_family_info(
     current_user: User = Depends(get_current_user),
@@ -529,22 +579,13 @@ async def get_my_family_info(
         family_user_result = await db.execute(family_user_stmt)
         family_user = family_user_result.scalar_one_or_none()
 
-        if not family_user:
-            family = await get_or_create_default_family(db)
-            
-            family_user = FamilyUser(
-                id=str(uuid.uuid4()),
-                family_id=family.id,
-                user_id=current_user.id,
-                role=FamilyRole.HEAD.value
+        if not family_user or not family_user.family:
+            raise HTTPException(
+                status_code=404,
+                detail="用户未关联任何家族，请先创建或加入家族"
             )
-            db.add(family_user)
-            await db.commit()
-            await db.refresh(family_user)
-            await db.refresh(family)
-        else:
-            family = family_user.family
 
+        family = family_user.family
         members_stmt = (
             select(FamilyMember)
             .where(
@@ -575,3 +616,440 @@ async def get_my_family_info(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取家族信息失败: {str(e)}")
+
+
+@router.post("/family/create", response_model=ApiResponse[UserFamilyInfo])
+async def create_family(
+    request: FamilyCreateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_session)
+):
+    try:
+        existing_fu_stmt = select(FamilyUser).where(FamilyUser.user_id == current_user.id)
+        existing_fu_result = await db.execute(existing_fu_stmt)
+        existing_fu = existing_fu_result.scalar_one_or_none()
+
+        if existing_fu:
+            raise HTTPException(
+                status_code=400,
+                detail="您已属于一个家族，无法创建新家族"
+            )
+
+        if not request.surname or not request.surname.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="姓氏不能为空"
+            )
+
+        default_zi_bei = ["元", "亨", "利", "贞", "仁", "义", "礼", "智", "信"]
+        zi_bei = request.zi_bei if request.zi_bei else default_zi_bei
+
+        family = Family(
+            id=str(uuid.uuid4()),
+            hall_name=request.hall_name,
+            surname=request.surname.strip(),
+            ancestor=request.ancestor,
+            description=request.description,
+            zi_bei=zi_bei
+        )
+        db.add(family)
+
+        family_user = FamilyUser(
+            id=str(uuid.uuid4()),
+            family_id=family.id,
+            user_id=current_user.id,
+            role=FamilyRole.HEAD.value
+        )
+        db.add(family_user)
+
+        await db.commit()
+        await db.refresh(family)
+        await db.refresh(family_user)
+
+        return ApiResponse(
+            success=True,
+            data=UserFamilyInfo(
+                family=FamilyBase.model_validate(family),
+                role=FamilyRole(family_user.role),
+                familyUser=FamilyUserBase(
+                    id=family_user.id,
+                    familyId=family_user.family_id,
+                    userId=family_user.user_id,
+                    role=FamilyRole(family_user.role),
+                    createdAt=family_user.created_at,
+                    updatedAt=family_user.updated_at
+                ),
+                memberCount=0
+            ),
+            message="家族创建成功，您已成为族长"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"创建家族失败: {str(e)}")
+
+
+@router.post("/collaboration/links", response_model=ApiResponse[CollaborationLinkBase])
+async def create_collaboration_link(
+    request: CreateCollaborationLinkRequest,
+    request_obj: Request,
+    user_and_family: tuple = Depends(admin_required),
+    db: AsyncSession = Depends(get_async_session)
+):
+    current_user, family, family_user = user_and_family
+
+    try:
+        link_code = generate_link_code()
+        max_attempts = 10
+        for _ in range(max_attempts):
+            existing_stmt = select(CollaborationLink).where(
+                CollaborationLink.link_code == link_code
+            )
+            existing_result = await db.execute(existing_stmt)
+            existing = existing_result.scalar_one_or_none()
+            if not existing:
+                break
+            link_code = generate_link_code()
+
+        expires_at = None
+        if request.expiresInDays:
+            expires_at = datetime.utcnow() + timedelta(days=request.expiresInDays)
+
+        link = CollaborationLink(
+            id=str(uuid.uuid4()),
+            family_id=family.id,
+            inviter_id=current_user.id,
+            link_code=link_code,
+            role=request.role.value,
+            status=CollaborationLinkStatus.ACTIVE.value,
+            is_visible=True,
+            used_count=0,
+            max_uses=request.maxUses,
+            expires_at=expires_at
+        )
+        db.add(link)
+        await db.commit()
+        await db.refresh(link)
+
+        return ApiResponse(
+            success=True,
+            data=CollaborationLinkBase(
+                id=link.id,
+                familyId=link.family_id,
+                inviterId=link.inviter_id,
+                linkCode=link.link_code,
+                role=FamilyRole(link.role),
+                status=CollaborationLinkStatus(link.status),
+                isVisible=link.is_visible,
+                usedCount=link.used_count,
+                maxUses=link.max_uses,
+                expiresAt=link.expires_at,
+                usedByUserId=link.used_by_user_id,
+                usedAt=link.used_at,
+                createdAt=link.created_at,
+                updatedAt=link.updated_at
+            ),
+            message="共建链接创建成功"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"创建共建链接失败: {str(e)}")
+
+
+@router.get("/collaboration/links", response_model=ApiResponse[CollaborationLinkListResponse])
+async def list_collaboration_links(
+    status: Optional[str] = Query(None),
+    user_and_family: tuple = Depends(viewer_required),
+    db: AsyncSession = Depends(get_async_session)
+):
+    current_user, family, family_user = user_and_family
+
+    try:
+        query = (
+            select(CollaborationLink)
+            .where(CollaborationLink.family_id == family.id)
+            .options(
+                selectinload(CollaborationLink.inviter),
+                selectinload(CollaborationLink.family)
+            )
+        )
+
+        if status:
+            query = query.where(CollaborationLink.status == status)
+
+        query = query.order_by(CollaborationLink.created_at.desc())
+        result = await db.execute(query)
+        links = result.scalars().all()
+
+        link_list = []
+        for link in links:
+            inviter_resp = UserResponse.model_validate(link.inviter) if link.inviter else None
+            family_resp = FamilyBase.model_validate(link.family) if link.family else None
+            link_list.append(CollaborationLinkBase(
+                id=link.id,
+                familyId=link.family_id,
+                inviterId=link.inviter_id,
+                linkCode=link.link_code,
+                role=FamilyRole(link.role),
+                status=CollaborationLinkStatus(link.status),
+                isVisible=link.is_visible,
+                usedCount=link.used_count,
+                maxUses=link.max_uses,
+                expiresAt=link.expires_at,
+                usedByUserId=link.used_by_user_id,
+                usedAt=link.used_at,
+                inviter=inviter_resp,
+                family=family_resp,
+                createdAt=link.created_at,
+                updatedAt=link.updated_at
+            ))
+
+        return ApiResponse(
+            success=True,
+            data=CollaborationLinkListResponse(
+                total=len(link_list),
+                links=link_list
+            )
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取共建链接列表失败: {str(e)}")
+
+
+@router.put("/collaboration/links/{link_id}", response_model=ApiResponse[CollaborationLinkBase])
+async def update_collaboration_link(
+    link_id: str,
+    request: UpdateCollaborationLinkRequest,
+    user_and_family: tuple = Depends(admin_required),
+    db: AsyncSession = Depends(get_async_session)
+):
+    current_user, family, family_user = user_and_family
+
+    try:
+        link_stmt = (
+            select(CollaborationLink)
+            .where(
+                CollaborationLink.id == link_id,
+                CollaborationLink.family_id == family.id
+            )
+        )
+        link_result = await db.execute(link_stmt)
+        link = link_result.scalar_one_or_none()
+
+        if not link:
+            raise HTTPException(status_code=404, detail="链接不存在或不属于当前家族")
+
+        if request.role is not None:
+            link.role = request.role.value
+        if request.isVisible is not None:
+            link.is_visible = request.isVisible
+
+        await db.commit()
+        await db.refresh(link)
+
+        return ApiResponse(
+            success=True,
+            data=CollaborationLinkBase(
+                id=link.id,
+                familyId=link.family_id,
+                inviterId=link.inviter_id,
+                linkCode=link.link_code,
+                role=FamilyRole(link.role),
+                status=CollaborationLinkStatus(link.status),
+                isVisible=link.is_visible,
+                usedCount=link.used_count,
+                maxUses=link.max_uses,
+                expiresAt=link.expires_at,
+                usedByUserId=link.used_by_user_id,
+                usedAt=link.used_at,
+                createdAt=link.created_at,
+                updatedAt=link.updated_at
+            ),
+            message="链接已更新"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"更新链接失败: {str(e)}")
+
+
+@router.post("/collaboration/links/{link_id}/reset", response_model=ApiResponse[CollaborationLinkBase])
+async def reset_collaboration_link(
+    link_id: str,
+    user_and_family: tuple = Depends(admin_required),
+    db: AsyncSession = Depends(get_async_session)
+):
+    current_user, family, family_user = user_and_family
+
+    try:
+        link_stmt = (
+            select(CollaborationLink)
+            .where(
+                CollaborationLink.id == link_id,
+                CollaborationLink.family_id == family.id
+            )
+        )
+        link_result = await db.execute(link_stmt)
+        link = link_result.scalar_one_or_none()
+
+        if not link:
+            raise HTTPException(status_code=404, detail="链接不存在或不属于当前家族")
+
+        new_link_code = generate_link_code()
+        max_attempts = 10
+        for _ in range(max_attempts):
+            existing_stmt = select(CollaborationLink).where(
+                CollaborationLink.link_code == new_link_code
+            )
+            existing_result = await db.execute(existing_stmt)
+            existing = existing_result.scalar_one_or_none()
+            if not existing:
+                break
+            new_link_code = generate_link_code()
+
+        link.link_code = new_link_code
+        link.status = CollaborationLinkStatus.ACTIVE.value
+        link.used_count = 0
+        link.used_by_user_id = None
+        link.used_at = None
+
+        await db.commit()
+        await db.refresh(link)
+
+        return ApiResponse(
+            success=True,
+            data=CollaborationLinkBase(
+                id=link.id,
+                familyId=link.family_id,
+                inviterId=link.inviter_id,
+                linkCode=link.link_code,
+                role=FamilyRole(link.role),
+                status=CollaborationLinkStatus(link.status),
+                isVisible=link.is_visible,
+                usedCount=link.used_count,
+                maxUses=link.max_uses,
+                expiresAt=link.expires_at,
+                usedByUserId=link.used_by_user_id,
+                usedAt=link.used_at,
+                createdAt=link.created_at,
+                updatedAt=link.updated_at
+            ),
+            message="链接已重置"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"重置链接失败: {str(e)}")
+
+
+@router.post("/collaboration/join", response_model=ApiResponse[UserFamilyInfo])
+async def join_by_link(
+    request: JoinByLinkRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_session)
+):
+    try:
+        existing_fu_stmt = select(FamilyUser).where(FamilyUser.user_id == current_user.id)
+        existing_fu_result = await db.execute(existing_fu_stmt)
+        existing_fu = existing_fu_result.scalar_one_or_none()
+
+        if existing_fu:
+            raise HTTPException(
+                status_code=400,
+                detail="您已属于一个家族，无法加入其他家族"
+            )
+
+        link_code = request.linkCode.strip().upper()
+
+        link_stmt = (
+            select(CollaborationLink)
+            .where(CollaborationLink.link_code == link_code)
+            .options(selectinload(CollaborationLink.family))
+        )
+        link_result = await db.execute(link_stmt)
+        link = link_result.scalar_one_or_none()
+
+        if not link:
+            raise HTTPException(status_code=404, detail="链接不存在")
+
+        if link.status != CollaborationLinkStatus.ACTIVE.value:
+            raise HTTPException(
+                status_code=400,
+                detail=f"链接状态无效: {link.status}"
+            )
+
+        if not link.is_visible:
+            raise HTTPException(status_code=404, detail="链接不存在")
+
+        if link.used_count >= link.max_uses:
+            raise HTTPException(status_code=400, detail="链接已被使用完毕")
+
+        if link.expires_at and datetime.utcnow() > link.expires_at:
+            link.status = CollaborationLinkStatus.EXPIRED.value
+            await db.commit()
+            raise HTTPException(status_code=400, detail="链接已过期")
+
+        if link.used_by_user_id == current_user.id:
+            raise HTTPException(status_code=400, detail="您已使用过该链接")
+
+        family = link.family
+        if not family:
+            raise HTTPException(status_code=404, detail="链接关联的家族不存在")
+
+        family_user = FamilyUser(
+            id=str(uuid.uuid4()),
+            family_id=family.id,
+            user_id=current_user.id,
+            role=link.role
+        )
+        db.add(family_user)
+
+        link.used_count += 1
+        link.used_by_user_id = current_user.id
+        link.used_at = datetime.utcnow()
+
+        if link.used_count >= link.max_uses:
+            link.status = CollaborationLinkStatus.USED.value
+
+        await db.commit()
+        await db.refresh(family_user)
+        await db.refresh(link)
+
+        members_stmt = (
+            select(FamilyMember)
+            .where(
+                FamilyMember.family_id == family.id,
+                FamilyMember.deleted_at.is_(None)
+            )
+        )
+        members_result = await db.execute(members_stmt)
+        members_count = len(members_result.scalars().all())
+
+        return ApiResponse(
+            success=True,
+            data=UserFamilyInfo(
+                family=FamilyBase.model_validate(family),
+                role=FamilyRole(family_user.role),
+                familyUser=FamilyUserBase(
+                    id=family_user.id,
+                    familyId=family_user.family_id,
+                    userId=family_user.user_id,
+                    role=FamilyRole(family_user.role),
+                    createdAt=family_user.created_at,
+                    updatedAt=family_user.updated_at
+                ),
+                memberCount=members_count
+            ),
+            message="成功加入家族"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"加入家族失败: {str(e)}")

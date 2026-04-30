@@ -548,3 +548,34 @@ class OperationLog(Base, TimestampMixin):
         Index('idx_operation_logs_operation', 'operation'),
         Index('idx_operation_logs_created_at', 'created_at'),
     )
+
+
+class CollaborationLinkStatus(str, enum.Enum):
+    ACTIVE = "active"
+    EXPIRED = "expired"
+    USED = "used"
+    DISABLED = "disabled"
+
+
+class CollaborationLink(Base, TimestampMixin):
+    __tablename__ = "collaboration_links"
+
+    id = Column(String(64), primary_key=True)
+    family_id = Column(String(64), ForeignKey('families.id', ondelete='CASCADE'), nullable=False, index=True)
+    inviter_id = Column(String(64), ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+    link_code = Column(String(32), unique=True, nullable=False, index=True)
+    role = Column(String(20), nullable=False, default="viewer")
+    status = Column(String(20), nullable=False, default="active")
+    is_visible = Column(Boolean, nullable=False, default=True)
+    used_count = Column(Integer, nullable=False, default=0)
+    max_uses = Column(Integer, nullable=False, default=1)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    used_by_user_id = Column(String(64), ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    used_at = Column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        Index('idx_collaboration_links_family_id', 'family_id'),
+        Index('idx_collaboration_links_inviter_id', 'inviter_id'),
+        Index('idx_collaboration_links_link_code', 'link_code'),
+        Index('idx_collaboration_links_status', 'status'),
+    )

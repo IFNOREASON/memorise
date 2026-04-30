@@ -560,6 +560,63 @@ interface UserFamilyInfo {
   memberCount: number;
 }
 
+type CollaborationLinkStatus = 'active' | 'expired' | 'used' | 'disabled';
+
+interface CollaborationLink {
+  id: string;
+  familyId: string;
+  inviterId: string;
+  linkCode: string;
+  role: FamilyRole;
+  status: CollaborationLinkStatus;
+  isVisible: boolean;
+  usedCount: number;
+  maxUses: number;
+  expiresAt?: string;
+  usedByUserId?: string;
+  usedAt?: string;
+  inviter?: User;
+  family?: Family;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CreateCollaborationLinkRequest {
+  role: FamilyRole;
+  maxUses: number;
+  expiresInDays?: number;
+}
+
+interface UpdateCollaborationLinkRequest {
+  role?: FamilyRole;
+  isVisible?: boolean;
+}
+
+interface JoinByLinkRequest {
+  linkCode: string;
+}
+
+interface CreateFamilyRequest {
+  hallName?: string;
+  surname: string;
+  ancestor?: string;
+  description?: string;
+  ziBei?: string[];
+}
+
+interface MyFamilyStatus {
+  hasFamily: boolean;
+  family?: Family;
+  role?: FamilyRole;
+  familyUser?: FamilyUser;
+  memberCount?: number;
+}
+
+interface CollaborationLinkListResponse {
+  total: number;
+  links: CollaborationLink[];
+}
+
 interface CreateChatSessionRequest {
   avatarId: string;
 }
@@ -1413,6 +1470,70 @@ class ApiService {
     }
     
     return this.authRequest<OperationLogListResponse>(endpoint);
+  }
+
+  async getMyFamilyStatus(): Promise<ApiResponse<MyFamilyStatus>> {
+    return this.authRequest<MyFamilyStatus>('/api/my/family/status');
+  }
+
+  async createFamily(request: CreateFamilyRequest): Promise<ApiResponse<UserFamilyInfo>> {
+    return this.authRequest<UserFamilyInfo>('/api/family/create', {
+      method: 'POST',
+      body: JSON.stringify({
+        hall_name: request.hallName,
+        surname: request.surname,
+        ancestor: request.ancestor,
+        description: request.description,
+        zi_bei: request.ziBei
+      })
+    });
+  }
+
+  async createCollaborationLink(
+    request: CreateCollaborationLinkRequest
+  ): Promise<ApiResponse<CollaborationLink>> {
+    return this.authRequest<CollaborationLink>('/api/collaboration/links', {
+      method: 'POST',
+      body: JSON.stringify({
+        role: request.role,
+        maxUses: request.maxUses,
+        expiresInDays: request.expiresInDays
+      })
+    });
+  }
+
+  async getCollaborationLinks(status?: string): Promise<ApiResponse<CollaborationLinkListResponse>> {
+    let endpoint = '/api/collaboration/links';
+    if (status) {
+      endpoint += `?status=${encodeURIComponent(status)}`;
+    }
+    return this.authRequest<CollaborationLinkListResponse>(endpoint);
+  }
+
+  async updateCollaborationLink(
+    linkId: string,
+    request: UpdateCollaborationLinkRequest
+  ): Promise<ApiResponse<CollaborationLink>> {
+    return this.authRequest<CollaborationLink>(`/api/collaboration/links/${linkId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        role: request.role,
+        isVisible: request.isVisible
+      })
+    });
+  }
+
+  async resetCollaborationLink(linkId: string): Promise<ApiResponse<CollaborationLink>> {
+    return this.authRequest<CollaborationLink>(`/api/collaboration/links/${linkId}/reset`, {
+      method: 'POST'
+    });
+  }
+
+  async joinByLink(linkCode: string): Promise<ApiResponse<UserFamilyInfo>> {
+    return this.authRequest<UserFamilyInfo>('/api/collaboration/join', {
+      method: 'POST',
+      body: JSON.stringify({ linkCode })
+    });
   }
 }
 
