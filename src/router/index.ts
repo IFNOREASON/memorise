@@ -34,7 +34,8 @@ const routes = [
   {
     path: '/zupu',
     name: 'Zupu',
-    component: ZupuPage
+    component: ZupuPage,
+    meta: { requiresAuth: true }
   },
   {
     path: '/gallery',

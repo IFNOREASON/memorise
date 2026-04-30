@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional, List, Callable
@@ -53,9 +53,13 @@ async def get_user_default_family(
     db: AsyncSession,
     user_id: str
 ) -> Optional[Family]:
-    family_user_stmt = select(FamilyUser).where(FamilyUser.user_id == user_id)
+    family_user_stmt = (
+        select(FamilyUser)
+        .where(FamilyUser.user_id == user_id)
+        .order_by(FamilyUser.created_at)
+    )
     family_user_result = await db.execute(family_user_stmt)
-    family_user = family_user_result.scalar_one_or_none()
+    family_user = family_user_result.scalars().first()
     
     if family_user:
         family_stmt = select(Family).where(Family.id == family_user.family_id)
@@ -66,9 +70,13 @@ async def get_user_default_family(
 
 async def ensure_user_family(
     db: AsyncSession,
-    user: User
+    user: User,
+    family_id: Optional[str] = None
 ) -> tuple[Optional[Family], Optional[FamilyUser]]:
-    family_user = await get_user_family_role(db, user.id)
+    if family_id:
+        family_user = await get_user_family_role(db, user.id, family_id)
+    else:
+        family_user = await get_user_family_role(db, user.id)
     
     if family_user:
         family_stmt = select(Family).where(Family.id == family_user.family_id)
@@ -85,10 +93,12 @@ class PermissionChecker:
     
     async def __call__(
         self,
+        request: Request,
         current_user: User = Depends(get_current_user),
         db: AsyncSession = Depends(get_async_session)
     ) -> tuple[User, Family, FamilyUser]:
-        family, family_user = await ensure_user_family(db, current_user)
+        family_id = request.headers.get("X-Family-Id")
+        family, family_user = await ensure_user_family(db, current_user, family_id)
         
         if not family or not family_user:
             raise HTTPException(
@@ -106,10 +116,12 @@ class PermissionChecker:
 
 
 async def get_current_user_with_family(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_session)
 ) -> tuple[User, Optional[Family], Optional[FamilyUser]]:
-    family, family_user = await ensure_user_family(db, current_user)
+    family_id = request.headers.get("X-Family-Id")
+    family, family_user = await ensure_user_family(db, current_user, family_id)
     return current_user, family, family_user
 
 

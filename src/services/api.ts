@@ -604,12 +604,19 @@ interface CreateFamilyRequest {
   ziBei?: string[];
 }
 
+interface UserFamilyListItem {
+  family: Family;
+  role: FamilyRole;
+  familyUser: FamilyUser;
+  memberCount: number;
+  isHead: boolean;
+}
+
 interface MyFamilyStatus {
   hasFamily: boolean;
-  family?: Family;
-  role?: FamilyRole;
-  familyUser?: FamilyUser;
-  memberCount?: number;
+  families: UserFamilyListItem[];
+  ownedFamily?: UserFamilyListItem;
+  totalFamilies: number;
 }
 
 interface CollaborationLinkListResponse {
@@ -669,7 +676,27 @@ interface VerifyPasswordRequest {
   password: string;
 }
 
+const FAMILY_ID_KEY = 'memorise_family_id';
+
 class ApiService {
+  private currentFamilyId: string | null = null;
+
+  setCurrentFamilyId(familyId: string | null): void {
+    this.currentFamilyId = familyId;
+    if (familyId) {
+      localStorage.setItem(FAMILY_ID_KEY, familyId);
+    } else {
+      localStorage.removeItem(FAMILY_ID_KEY);
+    }
+  }
+
+  getCurrentFamilyId(): string | null {
+    if (!this.currentFamilyId) {
+      this.currentFamilyId = localStorage.getItem(FAMILY_ID_KEY);
+    }
+    return this.currentFamilyId;
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
@@ -686,6 +713,11 @@ class ApiService {
       headers['Authorization'] = `Bearer ${authStore.token}`;
     }
 
+    const familyId = this.getCurrentFamilyId();
+    if (familyId) {
+      headers['X-Family-Id'] = familyId;
+    }
+
     try {
       const response = await fetch(url, {
         headers,
@@ -695,6 +727,19 @@ class ApiService {
       const responseText = await response.text();
 
       if (!response.ok) {
+        if (response.status === 401 && requireAuth) {
+          console.warn('Token 无效或已过期，正在清除登录状态...');
+          authStore.clearAuth();
+          
+          if (typeof window !== 'undefined') {
+            const currentPath = window.location.pathname;
+            if (currentPath !== '/login' && currentPath !== '/register') {
+              alert('登录已过期，请重新登录');
+              window.location.href = '/login';
+            }
+          }
+        }
+        
         let errorMessage = `请求失败: ${response.status}`;
         if (responseText) {
           try {
@@ -1322,8 +1367,12 @@ class ApiService {
     });
   }
 
-  async getMyFamilyInfo(): Promise<ApiResponse<UserFamilyInfo>> {
-    return this.authRequest<UserFamilyInfo>('/api/my/family');
+  async getMyFamilyInfo(familyId?: string): Promise<ApiResponse<UserFamilyInfo>> {
+    let endpoint = '/api/my/family';
+    if (familyId) {
+      endpoint += `?familyId=${encodeURIComponent(familyId)}`;
+    }
+    return this.authRequest<UserFamilyInfo>(endpoint);
   }
 
   async getFamilyUsers(options?: {
@@ -1577,6 +1626,8 @@ const createAuthStore = (): AuthStore => {
       this.isAuthenticated = false;
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(FAMILY_ID_KEY);
+      apiService.setCurrentFamilyId(null);
     },
 
     loadFromStorage() {
@@ -1647,5 +1698,7 @@ export type {
   ChatSessionListItem,
   CreateChatSessionRequest,
   SendChatMessageRequest,
-  SendChatMessageResponse
+  SendChatMessageResponse,
+  UserFamilyListItem,
+  MyFamilyStatus
 };

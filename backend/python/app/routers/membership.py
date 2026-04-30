@@ -22,7 +22,7 @@ from app.schemas import (
     FamilyUserBase, FamilyUserListResponse, ChangeRoleRequest,
     InvitationBase, InvitationCreateRequest, InvitationListResponse,
     AcceptInvitationRequest, RejectInvitationRequest,
-    UserFamilyInfo, MyFamilyStatus,
+    UserFamilyInfo, MyFamilyStatus, UserFamilyListItem,
     CollaborationLinkBase, CollaborationLinkListResponse,
     CreateCollaborationLinkRequest, UpdateCollaborationLinkRequest,
     JoinByLinkRequest, FamilyCreateRequest
@@ -114,10 +114,14 @@ async def change_user_role(
     current_user, family, family_user = user_and_family
 
     try:
-        if request.new_role == FamilyRole.HEAD:
+        is_transferring_head = request.new_role == FamilyRole.HEAD
+
+        if is_transferring_head:
             if family_user.role != FamilyRole.HEAD.value:
                 raise HTTPException(status_code=403, detail="只有族长才能指定新族长")
-        
+            if request.user_id == current_user.id:
+                raise HTTPException(status_code=400, detail="不能转让给自己")
+
         target_fu_stmt = (
             select(FamilyUser)
             .where(
@@ -134,8 +138,17 @@ async def change_user_role(
 
         old_role = target_fu.role
         target_fu.role = request.new_role.value
+
+        if is_transferring_head:
+            family_user.role = FamilyRole.ADMIN.value
+            family.head_user_id = target_fu.user_id
+
         await db.commit()
         await db.refresh(target_fu)
+
+        if is_transferring_head:
+            await db.refresh(family_user)
+            await db.refresh(family)
 
         if target_fu.user:
             await log_service.log_role_change(
@@ -148,6 +161,10 @@ async def change_user_role(
             )
 
         user_resp = UserResponse.model_validate(target_fu.user) if target_fu.user else None
+        message = "角色已更新"
+        if is_transferring_head:
+            message = "族长已成功转让"
+
         return ApiResponse(
             success=True,
             data=FamilyUserBase(
@@ -159,7 +176,7 @@ async def change_user_role(
                 createdAt=target_fu.created_at,
                 updatedAt=target_fu.updated_at
             ),
-            message="角色已更新"
+            message=message
         )
     except HTTPException:
         raise
@@ -511,41 +528,46 @@ async def get_my_family_status(
     db: AsyncSession = Depends(get_async_session)
 ):
     try:
-        family_user_stmt = (
+        family_users_stmt = (
             select(FamilyUser)
             .where(FamilyUser.user_id == current_user.id)
             .options(selectinload(FamilyUser.family))
+            .order_by(FamilyUser.created_at)
         )
-        family_user_result = await db.execute(family_user_stmt)
-        family_user = family_user_result.scalar_one_or_none()
+        family_users_result = await db.execute(family_users_stmt)
+        family_users = family_users_result.scalars().all()
 
-        if not family_user or not family_user.family:
+        if not family_users:
             return ApiResponse(
                 success=True,
                 data=MyFamilyStatus(
                     hasFamily=False,
-                    family=None,
-                    role=None,
-                    familyUser=None,
-                    memberCount=None
+                    families=[],
+                    ownedFamily=None,
+                    totalFamilies=0
                 )
             )
 
-        family = family_user.family
-        members_stmt = (
-            select(FamilyMember)
-            .where(
-                FamilyMember.family_id == family.id,
-                FamilyMember.deleted_at.is_(None)
-            )
-        )
-        members_result = await db.execute(members_stmt)
-        members_count = len(members_result.scalars().all())
+        family_list = []
+        owned_family = None
 
-        return ApiResponse(
-            success=True,
-            data=MyFamilyStatus(
-                hasFamily=True,
+        for family_user in family_users:
+            if not family_user.family:
+                continue
+
+            family = family_user.family
+            members_stmt = (
+                select(FamilyMember)
+                .where(
+                    FamilyMember.family_id == family.id,
+                    FamilyMember.deleted_at.is_(None)
+                )
+            )
+            members_result = await db.execute(members_stmt)
+            members_count = len(members_result.scalars().all())
+
+            is_head = family_user.role == FamilyRole.HEAD.value
+            family_item = UserFamilyListItem(
                 family=FamilyBase.model_validate(family),
                 role=FamilyRole(family_user.role),
                 familyUser=FamilyUserBase(
@@ -556,7 +578,21 @@ async def get_my_family_status(
                     createdAt=family_user.created_at,
                     updatedAt=family_user.updated_at
                 ),
-                memberCount=members_count
+                memberCount=members_count,
+                isHead=is_head
+            )
+            family_list.append(family_item)
+
+            if is_head:
+                owned_family = family_item
+
+        return ApiResponse(
+            success=True,
+            data=MyFamilyStatus(
+                hasFamily=len(family_list) > 0,
+                families=family_list,
+                ownedFamily=owned_family,
+                totalFamilies=len(family_list)
             )
         )
     except HTTPException:
@@ -567,17 +603,30 @@ async def get_my_family_status(
 
 @router.get("/my/family", response_model=ApiResponse[UserFamilyInfo])
 async def get_my_family_info(
+    family_id: Optional[str] = Query(None, alias="familyId"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_session)
 ):
     try:
-        family_user_stmt = (
-            select(FamilyUser)
-            .where(FamilyUser.user_id == current_user.id)
-            .options(selectinload(FamilyUser.family))
-        )
+        if family_id:
+            family_user_stmt = (
+                select(FamilyUser)
+                .where(
+                    FamilyUser.user_id == current_user.id,
+                    FamilyUser.family_id == family_id
+                )
+                .options(selectinload(FamilyUser.family))
+            )
+        else:
+            family_user_stmt = (
+                select(FamilyUser)
+                .where(FamilyUser.user_id == current_user.id)
+                .options(selectinload(FamilyUser.family))
+                .order_by(FamilyUser.created_at)
+            )
+
         family_user_result = await db.execute(family_user_stmt)
-        family_user = family_user_result.scalar_one_or_none()
+        family_user = family_user_result.scalar_one_or_none() if family_id else family_user_result.scalars().first()
 
         if not family_user or not family_user.family:
             raise HTTPException(
@@ -625,14 +674,16 @@ async def create_family(
     db: AsyncSession = Depends(get_async_session)
 ):
     try:
-        existing_fu_stmt = select(FamilyUser).where(FamilyUser.user_id == current_user.id)
-        existing_fu_result = await db.execute(existing_fu_stmt)
-        existing_fu = existing_fu_result.scalar_one_or_none()
+        existing_owned_family_stmt = select(Family).where(
+            Family.head_user_id == current_user.id
+        )
+        existing_owned_family_result = await db.execute(existing_owned_family_stmt)
+        existing_owned_family = existing_owned_family_result.scalar_one_or_none()
 
-        if existing_fu:
+        if existing_owned_family:
             raise HTTPException(
                 status_code=400,
-                detail="您已属于一个家族，无法创建新家族"
+                detail="您已创建过一个家族，作为族长只能拥有一个家族。您可以加入其他家族作为共建者。"
             )
 
         if not request.surname or not request.surname.strip():
@@ -650,7 +701,8 @@ async def create_family(
             surname=request.surname.strip(),
             ancestor=request.ancestor,
             description=request.description,
-            zi_bei=zi_bei
+            zi_bei=zi_bei,
+            head_user_id=current_user.id
         )
         db.add(family)
 
@@ -955,16 +1007,6 @@ async def join_by_link(
     db: AsyncSession = Depends(get_async_session)
 ):
     try:
-        existing_fu_stmt = select(FamilyUser).where(FamilyUser.user_id == current_user.id)
-        existing_fu_result = await db.execute(existing_fu_stmt)
-        existing_fu = existing_fu_result.scalar_one_or_none()
-
-        if existing_fu:
-            raise HTTPException(
-                status_code=400,
-                detail="您已属于一个家族，无法加入其他家族"
-            )
-
         link_code = request.linkCode.strip().upper()
 
         link_stmt = (
@@ -995,12 +1037,22 @@ async def join_by_link(
             await db.commit()
             raise HTTPException(status_code=400, detail="链接已过期")
 
-        if link.used_by_user_id == current_user.id:
-            raise HTTPException(status_code=400, detail="您已使用过该链接")
-
         family = link.family
         if not family:
             raise HTTPException(status_code=404, detail="链接关联的家族不存在")
+
+        existing_fu_stmt = select(FamilyUser).where(
+            FamilyUser.user_id == current_user.id,
+            FamilyUser.family_id == family.id
+        )
+        existing_fu_result = await db.execute(existing_fu_stmt)
+        existing_fu = existing_fu_result.scalar_one_or_none()
+
+        if existing_fu:
+            raise HTTPException(
+                status_code=400,
+                detail="您已加入该家族"
+            )
 
         family_user = FamilyUser(
             id=str(uuid.uuid4()),
@@ -1011,7 +1063,6 @@ async def join_by_link(
         db.add(family_user)
 
         link.used_count += 1
-        link.used_by_user_id = current_user.id
         link.used_at = datetime.utcnow()
 
         if link.used_count >= link.max_uses:

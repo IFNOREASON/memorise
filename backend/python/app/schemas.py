@@ -879,12 +879,22 @@ class UserFamilyInfo(BaseModel):
         populate_by_name = True
 
 
+class UserFamilyListItem(BaseModel):
+    family: FamilyBase
+    role: FamilyRole
+    familyUser: FamilyUserBase = Field(alias="familyUser")
+    memberCount: int = Field(alias="memberCount")
+    isHead: bool = Field(alias="isHead")
+
+    class Config:
+        populate_by_name = True
+
+
 class MyFamilyStatus(BaseModel):
     hasFamily: bool = Field(alias="hasFamily")
-    family: Optional[FamilyBase] = None
-    role: Optional[FamilyRole] = None
-    familyUser: Optional[FamilyUserBase] = Field(default=None, alias="familyUser")
-    memberCount: Optional[int] = Field(default=None, alias="memberCount")
+    families: List[UserFamilyListItem] = Field(default_factory=list, alias="families")
+    ownedFamily: Optional[UserFamilyListItem] = Field(default=None, alias="ownedFamily")
+    totalFamilies: int = Field(default=0, alias="totalFamilies")
 
     class Config:
         populate_by_name = True

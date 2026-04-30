@@ -401,10 +401,14 @@ class Family(Base, TimestampMixin):
     description = Column(Text, nullable=True)
     zi_bei = Column(JSON, nullable=True)
 
+    head_user_id = Column(String(64), ForeignKey('users.id', ondelete='SET NULL'), nullable=True, index=True)
+
     members = orm_relationship("FamilyMember", back_populates="family", cascade="all, delete-orphan")
+    head_user = orm_relationship("User", foreign_keys=[head_user_id])
 
     __table_args__ = (
         Index('idx_families_surname', 'surname'),
+        Index('idx_families_head_user_id', 'head_user_id'),
     )
 
 
@@ -467,6 +471,9 @@ class FamilyUser(Base, TimestampMixin):
     family_id = Column(String(64), ForeignKey('families.id', ondelete='CASCADE'), nullable=False, index=True)
     user_id = Column(String(64), ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
     role = Column(String(20), nullable=False, default="viewer")
+
+    family = orm_relationship("Family", foreign_keys=[family_id])
+    user = orm_relationship("User", foreign_keys=[user_id])
 
     __table_args__ = (
         Index('idx_family_users_family_id', 'family_id'),

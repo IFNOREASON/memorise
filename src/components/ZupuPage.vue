@@ -11,6 +11,20 @@
             <h1 class="text-2xl font-bold text-[#5C4A3A] font-serif tracking-wider">memorise</h1>
             <p class="text-xs text-gray-500 tracking-[0.15em] uppercase font-medium">Family Memorial</p>
           </div>
+          
+          <button v-if="hasFamily && userFamilies.length > 0" 
+            @click="showFamilySidebar = !showFamilySidebar"
+            class="hidden lg:flex items-center space-x-2 px-3 py-2 bg-white/80 rounded-lg border border-[#E8D5C4] hover:bg-[#FAF7F2] transition-all">
+            <Icon icon="solar:tree-bold-duotone" class="text-[#8B6F4E]" />
+            <span class="text-sm font-medium text-[#5C4A3A] max-w-[120px] truncate">
+              {{ currentFamily?.family.surname || familyInfo.surname }}氏
+              <span v-if="currentFamily?.family.hallName" class="text-gray-400">· {{ currentFamily.family.hallName }}</span>
+            </span>
+            <Icon icon="solar:alt-arrow-down-linear" class="text-gray-400 text-sm transition-transform" :class="{ 'rotate-180': showFamilySidebar }" />
+            <span v-if="userFamilies.length > 1" class="px-1.5 py-0.5 bg-[#E8D5C4] text-[#8B6F4E] text-xs rounded-full font-medium">
+              {{ userFamilies.length }}
+            </span>
+          </button>
         </div>
 
         <nav class="hidden lg:flex items-center space-x-4">
@@ -188,6 +202,131 @@
       </div>
     </header>
 
+    <div v-if="showFamilySidebar && hasFamily && userFamilies.length > 0" 
+      class="fixed left-0 top-0 h-full w-72 bg-white shadow-2xl z-50 overflow-y-auto"
+      style="margin-top: 80px;">
+      <div class="p-4 border-b border-[#E8D5C4]">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-bold text-[#5C4A3A]">我的族谱</h3>
+          <button @click="showFamilySidebar = false" class="text-gray-400 hover:text-gray-600">
+            <Icon icon="solar:close-linear" class="text-lg" />
+          </button>
+        </div>
+        
+        <div class="flex gap-2">
+          <button 
+            v-if="!hasOwnedFamily"
+            @click="showCreateFamilyModal = true; showFamilySidebar = false"
+            class="flex-1 px-3 py-2 bg-gradient-to-r from-[#8B6F4E] to-[#A67B5B] text-white rounded-lg text-sm font-medium hover:shadow-lg transition-all flex items-center justify-center space-x-1"
+          >
+            <Icon icon="solar:add-circle-bold" class="text-sm" />
+            <span>创建族谱</span>
+          </button>
+          <button 
+            @click="showJoinFamilyModal = true; showFamilySidebar = false"
+            class="flex-1 px-3 py-2 bg-white border border-[#E8D5C4] text-[#8B6F4E] rounded-lg text-sm font-medium hover:bg-[#FAF7F2] transition-all flex items-center justify-center space-x-1"
+          >
+            <Icon icon="solar:link-bold" class="text-sm" />
+            <span>加入族谱</span>
+          </button>
+        </div>
+      </div>
+      
+      <div class="p-3">
+        <template v-if="ownedFamily">
+          <div class="mb-3">
+            <p class="text-xs text-gray-400 mb-2 px-2">我创建的</p>
+            <button 
+              @click="switchFamily(ownedFamily.family.id)"
+              class="w-full p-3 rounded-xl transition-all flex items-center space-x-3"
+              :class="[
+                currentFamilyId === ownedFamily.family.id 
+                  ? 'bg-gradient-to-r from-[#8B6F4E]/10 to-[#A67B5B]/10 border-2 border-[#8B6F4E]' 
+                  : 'bg-[#FAF7F2] hover:bg-[#E8D5C4]/50 border-2 border-transparent'
+              ]"
+            >
+              <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-[#C84A3E] to-[#E86B5F] flex items-center justify-center shadow-md flex-shrink-0">
+                <span class="text-white font-bold text-sm">{{ ownedFamily.family.surname }}</span>
+              </div>
+              <div class="flex-1 min-w-0 text-left">
+                <p class="text-sm font-semibold text-[#5C4A3A] truncate">
+                  {{ ownedFamily.family.surname }}氏
+                </p>
+                <p v-if="ownedFamily.family.hallName" class="text-xs text-gray-400 truncate">
+                  {{ ownedFamily.family.hallName }}
+                </p>
+                <div class="flex items-center space-x-2 mt-1">
+                  <span class="px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
+                    族长
+                  </span>
+                  <span class="text-xs text-gray-400">
+                    {{ ownedFamily.memberCount }} 人
+                  </span>
+                </div>
+              </div>
+              <Icon 
+                v-if="currentFamilyId === ownedFamily.family.id" 
+                icon="solar:check-circle-bold" 
+                class="text-[#8B6F4E] flex-shrink-0" 
+              />
+            </button>
+          </div>
+        </template>
+        
+        <div v-if="userFamilies.filter(f => !f.isHead).length > 0">
+          <p class="text-xs text-gray-400 mb-2 px-2">我参与的</p>
+          <div class="space-y-2">
+            <button 
+              v-for="familyItem in userFamilies.filter(f => !f.isHead)" 
+              :key="familyItem.family.id"
+              @click="switchFamily(familyItem.family.id)"
+              class="w-full p-3 rounded-xl transition-all flex items-center space-x-3"
+              :class="[
+                currentFamilyId === familyItem.family.id 
+                  ? 'bg-gradient-to-r from-[#8B6F4E]/10 to-[#A67B5B]/10 border-2 border-[#8B6F4E]' 
+                  : 'bg-[#FAF7F2] hover:bg-[#E8D5C4]/50 border-2 border-transparent'
+              ]"
+            >
+              <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-[#8B6F4E] to-[#A67B5B] flex items-center justify-center shadow-md flex-shrink-0">
+                <span class="text-white font-bold text-sm">{{ familyItem.family.surname }}</span>
+              </div>
+              <div class="flex-1 min-w-0 text-left">
+                <p class="text-sm font-semibold text-[#5C4A3A] truncate">
+                  {{ familyItem.family.surname }}氏
+                </p>
+                <p v-if="familyItem.family.hallName" class="text-xs text-gray-400 truncate">
+                  {{ familyItem.family.hallName }}
+                </p>
+                <div class="flex items-center space-x-2 mt-1">
+                  <span class="px-1.5 py-0.5 rounded text-xs font-medium" :class="roleClass(familyItem.role)">
+                    {{ roleLabel(familyItem.role) }}
+                  </span>
+                  <span class="text-xs text-gray-400">
+                    {{ familyItem.memberCount }} 人
+                  </span>
+                </div>
+              </div>
+              <Icon 
+                v-if="currentFamilyId === familyItem.family.id" 
+                icon="solar:check-circle-bold" 
+                class="text-[#8B6F4E] flex-shrink-0" 
+              />
+            </button>
+          </div>
+        </div>
+        
+        <div v-if="!hasOwnedFamily && userFamilies.filter(f => !f.isHead).length === 0" class="text-center py-8">
+          <Icon icon="solar:folder-opened-bold" class="text-4xl text-gray-300 mx-auto mb-2" />
+          <p class="text-sm text-gray-400">暂无其他族谱</p>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showFamilySidebar" 
+      @click="showFamilySidebar = false"
+      class="fixed inset-0 bg-black/30 z-40 lg:hidden">
+    </div>
+
     <main class="max-w-7xl mx-auto px-6 py-6">
       <template v-if="isLoading || hasFamily === null">
         <div class="flex flex-col items-center justify-center py-20">
@@ -197,30 +336,62 @@
       </template>
 
       <template v-else-if="!hasFamily">
-        <div class="flex flex-col items-center justify-center py-20">
-          <div class="w-24 h-24 bg-gradient-to-br from-[#E8D5C4] to-[#D4A574] rounded-full flex items-center justify-center mb-6 shadow-lg">
-            <Icon icon="solar:tree-bold-duotone" class="text-5xl text-[#8B6F4E]" />
+        <div class="flex flex-col items-center justify-center py-16">
+          <div class="w-32 h-32 bg-gradient-to-br from-[#E8D5C4] to-[#D4A574] rounded-full flex items-center justify-center mb-8 shadow-lg">
+            <Icon icon="solar:tree-bold-duotone" class="text-6xl text-[#8B6F4E]" />
           </div>
-          <h2 class="text-2xl font-bold text-[#5C4A3A] font-serif mb-4">您还没有族谱</h2>
-          <p class="text-gray-500 mb-8 text-center max-w-md">
+          <h2 class="text-3xl font-bold text-[#5C4A3A] font-serif mb-4">开始您的家族传承</h2>
+          <p class="text-gray-500 mb-10 text-center max-w-lg text-lg">
             创建您的家族族谱，记录家族历史，传承家风家训。<br />
-            或通过链接加入已有的家族族谱。
+            或通过族长分享的链接加入已有的家族族谱。
           </p>
-          <div class="flex flex-col sm:flex-row gap-4">
-            <button 
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl w-full">
+            <div 
               @click="showCreateFamilyModal = true"
-              class="px-8 py-3 bg-gradient-to-r from-[#8B6F4E] to-[#A67B5B] text-white rounded-xl font-medium shadow-warm hover:shadow-lg transition-all flex items-center justify-center space-x-2"
+              class="bg-white rounded-2xl shadow-soft border border-stone-100 p-8 cursor-pointer hover:shadow-lg transition-all hover:border-[#E8D5C4] group"
             >
-              <Icon icon="solar:add-circle-bold" class="text-lg" />
-              <span>新建族谱</span>
-            </button>
-            <button 
+              <div class="w-16 h-16 bg-gradient-to-br from-[#8B6F4E] to-[#A67B5B] rounded-xl flex items-center justify-center mb-6 shadow-md group-hover:scale-110 transition-transform">
+                <Icon icon="solar:add-circle-bold" class="text-3xl text-white" />
+              </div>
+              <h3 class="text-xl font-bold text-[#5C4A3A] font-serif mb-2">创建新族谱</h3>
+              <p class="text-sm text-gray-500 mb-4">
+                作为族长创建您的家族族谱，设定姓氏、堂号、始祖等信息。
+              </p>
+              <div class="flex items-center text-[#8B6F4E] font-medium text-sm">
+                <span>开始创建</span>
+                <Icon icon="solar:arrow-right-linear" class="ml-1 group-hover:translate-x-1 transition-transform" />
+              </div>
+              <div class="mt-4 pt-4 border-t border-stone-100">
+                <p class="text-xs text-gray-400">
+                  <Icon icon="solar:info-circle-linear" class="inline mr-1" />
+                  每位用户只能创建一个族谱
+                </p>
+              </div>
+            </div>
+            
+            <div 
               @click="showJoinFamilyModal = true"
-              class="px-8 py-3 bg-white border-2 border-[#E8D5C4] text-[#8B6F4E] rounded-xl font-medium hover:bg-[#FAF7F2] transition-all flex items-center justify-center space-x-2"
+              class="bg-white rounded-2xl shadow-soft border border-stone-100 p-8 cursor-pointer hover:shadow-lg transition-all hover:border-[#E8D5C4] group"
             >
-              <Icon icon="solar:link-bold" class="text-lg" />
-              <span>导入已有族谱</span>
-            </button>
+              <div class="w-16 h-16 bg-gradient-to-br from-[#D4A574] to-[#8B6F4E] rounded-xl flex items-center justify-center mb-6 shadow-md group-hover:scale-110 transition-transform">
+                <Icon icon="solar:link-bold" class="text-3xl text-white" />
+              </div>
+              <h3 class="text-xl font-bold text-[#5C4A3A] font-serif mb-2">加入已有族谱</h3>
+              <p class="text-sm text-gray-500 mb-4">
+                通过族长分享的链接代码，加入已有的家族族谱作为共建者。
+              </p>
+              <div class="flex items-center text-[#8B6F4E] font-medium text-sm">
+                <span>输入链接代码</span>
+                <Icon icon="solar:arrow-right-linear" class="ml-1 group-hover:translate-x-1 transition-transform" />
+              </div>
+              <div class="mt-4 pt-4 border-t border-stone-100">
+                <p class="text-xs text-gray-400">
+                  <Icon icon="solar:info-circle-linear" class="inline mr-1" />
+                  可同时参与多个族谱的共建
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </template>
@@ -1051,7 +1222,7 @@ import { ref, computed, reactive, defineComponent, h, onMounted, onUnmounted, wa
 import { useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import D3Tree from './D3Tree.vue'
-import { apiService, authStore, Family, FamilyMember, FamilyRole, CollaborationLink } from '../services/api'
+import { apiService, authStore, Family, FamilyMember, FamilyRole, CollaborationLink, UserFamilyListItem } from '../services/api'
 
 const router = useRouter()
 
@@ -1066,6 +1237,23 @@ const showJoinFamilyModal = ref(false)
 const showCollaborationModal = ref(false)
 const collaborationLinks = ref<CollaborationLink[]>([])
 const loadingCollaborationLinks = ref(false)
+
+const userFamilies = ref<UserFamilyListItem[]>([])
+const currentFamilyId = ref<string | null>(null)
+const showFamilySidebar = ref(false)
+
+const currentFamily = computed<UserFamilyListItem | null>(() => {
+  if (!currentFamilyId.value) return null
+  return userFamilies.value.find(f => f.family.id === currentFamilyId.value) || null
+})
+
+const hasOwnedFamily = computed(() => {
+  return userFamilies.value.some(f => f.isHead)
+})
+
+const ownedFamily = computed<UserFamilyListItem | null>(() => {
+  return userFamilies.value.find(f => f.isHead) || null
+})
 
 const createFamilyForm = reactive({
   hallName: '',
@@ -1100,24 +1288,48 @@ const refreshPermissions = async () => {
       const oldRole = myRole.value
       
       hasFamily.value = statusResp.data.hasFamily
+      userFamilies.value = statusResp.data.families || []
       
-      if (statusResp.data.role && statusResp.data.role !== oldRole) {
-        myRole.value = statusResp.data.role
-        if (oldRole !== null && oldRole !== statusResp.data.role) {
-          alert(`您的权限已变更为：${roleLabel(statusResp.data.role)}`)
+      if (statusResp.data.hasFamily && userFamilies.value.length > 0) {
+        const storedFamilyId = apiService.getCurrentFamilyId()
+        let targetFamily: UserFamilyListItem | null = null
+        
+        if (storedFamilyId) {
+          targetFamily = userFamilies.value.find(f => f.family.id === storedFamilyId) || null
         }
-      }
-      
-      if (statusResp.data.family) {
-        familyInfo.hallName = statusResp.data.family.hallName || ''
-        familyInfo.surname = statusResp.data.family.surname
-        familyInfo.ancestor = statusResp.data.family.ancestor || ''
-        familyInfo.description = statusResp.data.family.description || ''
-        familyInfo.ziBei = statusResp.data.family.ziBei || []
-      }
-      
-      if (!oldHasFamily && statusResp.data.hasFamily) {
-        await loadData()
+        
+        if (!targetFamily) {
+          if (statusResp.data.ownedFamily) {
+            targetFamily = statusResp.data.ownedFamily
+          } else {
+            targetFamily = userFamilies.value[0]
+          }
+        }
+        
+        if (targetFamily) {
+          if (!currentFamilyId.value || currentFamilyId.value !== targetFamily.family.id) {
+            currentFamilyId.value = targetFamily.family.id
+            apiService.setCurrentFamilyId(targetFamily.family.id)
+            myRole.value = targetFamily.role
+            
+            familyInfo.hallName = targetFamily.family.hallName || ''
+            familyInfo.surname = targetFamily.family.surname
+            familyInfo.ancestor = targetFamily.family.ancestor || ''
+            familyInfo.description = targetFamily.family.description || ''
+            familyInfo.ziBei = targetFamily.family.ziBei || []
+            
+            if (!oldHasFamily && statusResp.data.hasFamily) {
+              await loadData()
+            }
+          } else if (targetFamily.role !== oldRole) {
+            myRole.value = targetFamily.role
+            alert(`您的权限已变更为：${roleLabel(targetFamily.role)}`)
+          }
+        }
+      } else {
+        currentFamilyId.value = null
+        apiService.setCurrentFamilyId(null)
+        myRole.value = null
       }
     }
   } catch (error) {
@@ -1615,27 +1827,43 @@ const loadData = async () => {
     
     if (statusResp.success && statusResp.data) {
       hasFamily.value = statusResp.data.hasFamily
+      userFamilies.value = statusResp.data.families || []
       
-      if (!statusResp.data.hasFamily) {
+      if (!statusResp.data.hasFamily || userFamilies.value.length === 0) {
         isLoading.value = false
         return
       }
       
-      if (statusResp.data.role) {
-        myRole.value = statusResp.data.role
+      let targetFamily: UserFamilyListItem | null = null
+      const storedFamilyId = apiService.getCurrentFamilyId()
+      
+      if (storedFamilyId) {
+        targetFamily = userFamilies.value.find(f => f.family.id === storedFamilyId) || null
       }
       
-      if (statusResp.data.family) {
-        familyInfo.hallName = statusResp.data.family.hallName || ''
-        familyInfo.surname = statusResp.data.family.surname
-        familyInfo.ancestor = statusResp.data.family.ancestor || ''
-        familyInfo.description = statusResp.data.family.description || ''
-        familyInfo.ziBei = statusResp.data.family.ziBei || []
-        familySettingsForm.hallName = statusResp.data.family.hallName || ''
-        familySettingsForm.surname = statusResp.data.family.surname
-        familySettingsForm.ancestor = statusResp.data.family.ancestor || ''
-        familySettingsForm.description = statusResp.data.family.description || ''
-        familySettingsForm.ziBeiStr = (statusResp.data.family.ziBei || []).join(',')
+      if (!targetFamily) {
+        if (statusResp.data.ownedFamily) {
+          targetFamily = statusResp.data.ownedFamily
+        } else {
+          targetFamily = userFamilies.value[0]
+        }
+      }
+      
+      if (targetFamily) {
+        currentFamilyId.value = targetFamily.family.id
+        apiService.setCurrentFamilyId(targetFamily.family.id)
+        myRole.value = targetFamily.role
+        
+        familyInfo.hallName = targetFamily.family.hallName || ''
+        familyInfo.surname = targetFamily.family.surname
+        familyInfo.ancestor = targetFamily.family.ancestor || ''
+        familyInfo.description = targetFamily.family.description || ''
+        familyInfo.ziBei = targetFamily.family.ziBei || []
+        familySettingsForm.hallName = targetFamily.family.hallName || ''
+        familySettingsForm.surname = targetFamily.family.surname
+        familySettingsForm.ancestor = targetFamily.family.ancestor || ''
+        familySettingsForm.description = targetFamily.family.description || ''
+        familySettingsForm.ziBeiStr = (targetFamily.family.ziBei || []).join(',')
       }
       
       const [familyResp, approvalsResp, invitationsResp] = await Promise.all([
@@ -1683,6 +1911,46 @@ const loadData = async () => {
   } catch (error) {
     console.error('加载数据失败:', error)
     hasFamily.value = false
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const switchFamily = async (familyId: string) => {
+  const targetFamily = userFamilies.value.find(f => f.family.id === familyId)
+  if (!targetFamily) return
+  
+  currentFamilyId.value = familyId
+  apiService.setCurrentFamilyId(familyId)
+  myRole.value = targetFamily.role
+  
+  familyInfo.hallName = targetFamily.family.hallName || ''
+  familyInfo.surname = targetFamily.family.surname
+  familyInfo.ancestor = targetFamily.family.ancestor || ''
+  familyInfo.description = targetFamily.family.description || ''
+  familyInfo.ziBei = targetFamily.family.ziBei || []
+  familySettingsForm.hallName = targetFamily.family.hallName || ''
+  familySettingsForm.surname = targetFamily.family.surname
+  familySettingsForm.ancestor = targetFamily.family.ancestor || ''
+  familySettingsForm.description = targetFamily.family.description || ''
+  familySettingsForm.ziBeiStr = (targetFamily.family.ziBei || []).join(',')
+  
+  showFamilySidebar.value = false
+  
+  isLoading.value = true
+  try {
+    const familyResp = await apiService.getFamily()
+    if (familyResp.success && familyResp.data) {
+      const { family, members } = familyResp.data
+      familyInfo.hallName = family.hallName || ''
+      familyInfo.surname = family.surname
+      familyInfo.ancestor = family.ancestor || ''
+      familyInfo.description = family.description || ''
+      familyInfo.ziBei = family.ziBei || []
+      familyMembers.value = members
+    }
+  } catch (error) {
+    console.error('加载家族数据失败:', error)
   } finally {
     isLoading.value = false
   }
