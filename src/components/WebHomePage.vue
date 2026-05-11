@@ -26,8 +26,11 @@
         </nav>
 
         <div class="flex items-center space-x-4">
-          <button class="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow">
+          <button @click="goToMessages" class="relative w-10 h-10 rounded-full bg-white/80 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow">
             <Icon icon="solar:bell-bold" class="text-gray-600" />
+            <span v-if="unreadMessageCount > 0" class="absolute -top-1 -right-1 w-5 h-5 bg-[#C84A3E] text-white text-xs font-bold rounded-full flex items-center justify-center">
+              {{ unreadMessageCount > 99 ? '99+' : unreadMessageCount }}
+            </span>
           </button>
           <div class="relative flex items-center space-x-3 pl-4 border-l border-[#E8D5C4]">
             <button 
@@ -554,6 +557,28 @@ const showCurrentPassword = ref(false)
 const showNewPassword = ref(false)
 const showConfirmPassword = ref(false)
 
+const unreadMessageCount = ref(0)
+let messagePollingInterval: number | null = null
+
+const loadUnreadMessageCount = async () => {
+  if (!authStore.isAuthenticated) {
+    unreadMessageCount.value = 0
+    return
+  }
+  try {
+    const response = await apiService.getUnreadCount()
+    if (response.success && response.data) {
+      unreadMessageCount.value = response.data.count
+    }
+  } catch (error) {
+    console.error('获取未读消息数失败:', error)
+  }
+}
+
+const goToMessages = () => {
+  router.push('/messages')
+}
+
 const toggleUserMenu = () => {
   showUserMenu.value = !showUserMenu.value
 }
@@ -691,10 +716,18 @@ const handleRegister = () => {
 
 onMounted(() => {
   document.addEventListener('click', closeUserMenu)
+  loadUnreadMessageCount()
+  messagePollingInterval = window.setInterval(() => {
+    loadUnreadMessageCount()
+  }, 60000)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', closeUserMenu)
+  if (messagePollingInterval) {
+    window.clearInterval(messagePollingInterval)
+    messagePollingInterval = null
+  }
 })
 
 const handleModuleClick = (moduleId: string) => {

@@ -957,3 +957,218 @@ class JoinByLinkRequest(BaseModel):
 class CollaborationLinkListResponse(BaseModel):
     total: int
     links: List[CollaborationLinkBase]
+
+
+class AnniversaryType(str, enum.Enum):
+    BIRTHDAY = "birthday"
+    DEATHDAY = "deathday"
+    WEDDINGDAY = "weddingday"
+    SACRIFICIALDAY = "sacrificialday"
+
+
+class RepeatType(str, enum.Enum):
+    YEARLY = "yearly"
+    MONTHLY = "monthly"
+    ONCE = "once"
+
+
+class PushChannel(str, enum.Enum):
+    IN_APP = "in_app"
+    EMAIL = "email"
+    SMS = "sms"
+
+
+class MessageType(str, enum.Enum):
+    ANNIVERSARY_REMINDER = "anniversary_reminder"
+    SYSTEM_NOTIFICATION = "system_notification"
+
+
+class MessageStatus(str, enum.Enum):
+    UNREAD = "unread"
+    READ = "read"
+    DELETED = "deleted"
+
+
+class TaskStatus(str, enum.Enum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class AnniversaryBase(BaseModel):
+    id: str
+    family_id: str = Field(alias="familyId")
+    member_id: Optional[str] = Field(default=None, alias="memberId")
+    name: str
+    type: AnniversaryType
+    description: Optional[str] = None
+    date: str
+    year: Optional[int] = None
+    month: int
+    day: int
+    repeat_type: RepeatType = Field(alias="repeatType")
+    is_lunar: bool = Field(default=False, alias="isLunar")
+    is_active: bool = Field(default=True, alias="isActive")
+    created_at: datetime = Field(alias="createdAt")
+    updated_at: datetime = Field(alias="updatedAt")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
+class AnniversaryCreateRequest(BaseModel):
+    member_id: Optional[str] = Field(default=None, alias="memberId")
+    name: str
+    type: AnniversaryType = AnniversaryType.BIRTHDAY
+    description: Optional[str] = None
+    date: str
+    year: Optional[int] = None
+    repeat_type: RepeatType = Field(default=RepeatType.YEARLY, alias="repeatType")
+    is_lunar: bool = Field(default=False, alias="isLunar")
+
+    class Config:
+        populate_by_name = True
+
+
+class AnniversaryUpdateRequest(BaseModel):
+    member_id: Optional[str] = Field(default=None, alias="memberId")
+    name: Optional[str] = None
+    type: Optional[AnniversaryType] = None
+    description: Optional[str] = None
+    date: Optional[str] = None
+    year: Optional[int] = None
+    repeat_type: Optional[RepeatType] = Field(default=None, alias="repeatType")
+    is_lunar: Optional[bool] = Field(default=None, alias="isLunar")
+    is_active: Optional[bool] = Field(default=None, alias="isActive")
+
+    class Config:
+        populate_by_name = True
+
+
+class AnniversaryListResponse(BaseModel):
+    total: int
+    anniversaries: List[AnniversaryBase]
+
+
+class AnniversaryCalendarItem(BaseModel):
+    id: str
+    name: str
+    type: AnniversaryType
+    date: str
+    year: Optional[int] = None
+    month: int
+    day: int
+    member_id: Optional[str] = Field(default=None, alias="memberId")
+    member_name: Optional[str] = Field(default=None, alias="memberName")
+    is_lunar: bool = Field(alias="isLunar")
+    description: Optional[str] = None
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
+class AnniversaryCalendarResponse(BaseModel):
+    year: int
+    month: int
+    items: List[AnniversaryCalendarItem]
+
+
+class PushRuleBase(BaseModel):
+    id: str
+    family_id: str = Field(alias="familyId")
+    user_id: str = Field(alias="userId")
+    anniversary_type: Optional[AnniversaryType] = Field(default=None, alias="anniversaryType")
+    push_channels: List[PushChannel] = Field(alias="pushChannels")
+    advance_days: int = Field(default=0, alias="advanceDays")
+    push_time: str = Field(default="09:00", alias="pushTime")
+    is_enabled: bool = Field(default=True, alias="isEnabled")
+    created_at: datetime = Field(alias="createdAt")
+    updated_at: datetime = Field(alias="updatedAt")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
+class PushRuleCreateRequest(BaseModel):
+    anniversary_type: Optional[AnniversaryType] = Field(default=None, alias="anniversaryType")
+    push_channels: List[PushChannel] = Field(alias="pushChannels")
+    advance_days: int = Field(default=0, alias="advanceDays")
+    push_time: str = Field(default="09:00", alias="pushTime")
+
+    class Config:
+        populate_by_name = True
+
+
+class PushRuleUpdateRequest(BaseModel):
+    anniversary_type: Optional[AnniversaryType] = Field(default=None, alias="anniversaryType")
+    push_channels: Optional[List[PushChannel]] = Field(default=None, alias="pushChannels")
+    advance_days: Optional[int] = Field(default=None, alias="advanceDays")
+    push_time: Optional[str] = Field(default=None, alias="pushTime")
+    is_enabled: Optional[bool] = Field(default=None, alias="isEnabled")
+
+    class Config:
+        populate_by_name = True
+
+
+class PushRuleListResponse(BaseModel):
+    total: int
+    rules: List[PushRuleBase]
+
+
+class MessageBase(BaseModel):
+    id: str
+    user_id: str = Field(alias="userId")
+    family_id: Optional[str] = Field(default=None, alias="familyId")
+    anniversary_id: Optional[str] = Field(default=None, alias="anniversaryId")
+    type: MessageType
+    title: str
+    content: str
+    status: MessageStatus
+    read_at: Optional[datetime] = Field(default=None, alias="readAt")
+    created_at: datetime = Field(alias="createdAt")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
+class MessageListResponse(BaseModel):
+    total: int
+    unread_count: int = Field(alias="unreadCount")
+    messages: List[MessageBase]
+
+
+class MessageMarkReadRequest(BaseModel):
+    message_ids: Optional[List[str]] = Field(default=None, alias="messageIds")
+    mark_all: bool = Field(default=False, alias="markAll")
+
+    class Config:
+        populate_by_name = True
+
+
+class ScheduledTaskBase(BaseModel):
+    id: str
+    task_name: str = Field(alias="taskName")
+    task_type: str = Field(alias="taskType")
+    anniversary_id: Optional[str] = Field(default=None, alias="anniversaryId")
+    user_id: Optional[str] = Field(default=None, alias="userId")
+    scheduled_time: datetime = Field(alias="scheduledTime")
+    executed_at: Optional[datetime] = Field(default=None, alias="executedAt")
+    status: TaskStatus
+    result: Optional[str] = None
+    error_message: Optional[str] = Field(default=None, alias="errorMessage")
+    retry_count: int = Field(alias="retryCount")
+    max_retries: int = Field(alias="maxRetries")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
+class ScheduledTaskListResponse(BaseModel):
+    total: int
+    tasks: List[ScheduledTaskBase]

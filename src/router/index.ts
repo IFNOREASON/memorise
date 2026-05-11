@@ -12,6 +12,10 @@ import RegisterPage from '../components/RegisterPage.vue'
 import MemberManagement from '../components/MemberManagement.vue'
 import ApprovalList from '../components/ApprovalList.vue'
 import OperationLogs from '../components/OperationLogs.vue'
+import AnniversaryCalendar from '../components/AnniversaryCalendar.vue'
+import AnniversaryManagement from '../components/AnniversaryManagement.vue'
+import PushRuleConfig from '../components/PushRuleConfig.vue'
+import MessageCenter from '../components/MessageCenter.vue'
 
 const routes = [
   {
@@ -88,6 +92,30 @@ const routes = [
     path: '/family/logs',
     name: 'OperationLogs',
     component: OperationLogs,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/anniversaries/calendar',
+    name: 'AnniversaryCalendar',
+    component: AnniversaryCalendar,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/anniversaries/manage',
+    name: 'AnniversaryManagement',
+    component: AnniversaryManagement,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/push-rules',
+    name: 'PushRuleConfig',
+    component: PushRuleConfig,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/messages',
+    name: 'MessageCenter',
+    component: MessageCenter,
     meta: { requiresAuth: true }
   }
 ]

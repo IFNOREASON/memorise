@@ -560,6 +560,126 @@ interface UserFamilyInfo {
   memberCount: number;
 }
 
+type AnniversaryType = 'birthday' | 'deathday' | 'weddingday' | 'sacrificialday';
+type RepeatType = 'yearly' | 'monthly' | 'once';
+type PushChannel = 'in_app' | 'email' | 'sms';
+type MessageType = 'anniversary_reminder' | 'system_notification';
+type MessageStatus = 'unread' | 'read' | 'deleted';
+type TaskStatus = 'pending' | 'running' | 'completed' | 'failed';
+
+interface Anniversary {
+  id: string;
+  familyId: string;
+  memberId?: string;
+  name: string;
+  type: AnniversaryType;
+  description?: string;
+  date: string;
+  year?: number;
+  month: number;
+  day: number;
+  repeatType: RepeatType;
+  isLunar: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface AnniversaryCalendarItem {
+  id: string;
+  name: string;
+  type: AnniversaryType;
+  date: string;
+  year?: number;
+  month: number;
+  day: number;
+  memberId?: string;
+  memberName?: string;
+  isLunar: boolean;
+  description?: string;
+}
+
+interface AnniversaryCalendarResponse {
+  year: number;
+  month: number;
+  items: AnniversaryCalendarItem[];
+}
+
+interface CreateAnniversaryRequest {
+  memberId?: string;
+  name: string;
+  type: AnniversaryType;
+  description?: string;
+  date: string;
+  year?: number;
+  repeatType: RepeatType;
+  isLunar: boolean;
+}
+
+interface UpdateAnniversaryRequest {
+  memberId?: string;
+  name?: string;
+  type?: AnniversaryType;
+  description?: string;
+  date?: string;
+  year?: number;
+  repeatType?: RepeatType;
+  isLunar?: boolean;
+  isActive?: boolean;
+}
+
+interface PushRule {
+  id: string;
+  familyId: string;
+  userId: string;
+  anniversaryType?: AnniversaryType;
+  pushChannels: PushChannel[];
+  advanceDays: number;
+  pushTime: string;
+  isEnabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CreatePushRuleRequest {
+  anniversaryType?: AnniversaryType;
+  pushChannels: PushChannel[];
+  advanceDays: number;
+  pushTime: string;
+}
+
+interface UpdatePushRuleRequest {
+  anniversaryType?: AnniversaryType;
+  pushChannels?: PushChannel[];
+  advanceDays?: number;
+  pushTime?: string;
+  isEnabled?: boolean;
+}
+
+interface Message {
+  id: string;
+  userId: string;
+  familyId?: string;
+  anniversaryId?: string;
+  type: MessageType;
+  title: string;
+  content: string;
+  status: MessageStatus;
+  readAt?: string;
+  createdAt: string;
+}
+
+interface MessageListResponse {
+  total: number;
+  unreadCount: number;
+  messages: Message[];
+}
+
+interface MarkReadRequest {
+  messageIds?: string[];
+  markAll?: boolean;
+}
+
 type CollaborationLinkStatus = 'active' | 'expired' | 'used' | 'disabled';
 
 interface CollaborationLink {
@@ -1313,11 +1433,11 @@ class ApiService {
   }
 
   async getFamily(): Promise<ApiResponse<FamilyDetailResponse>> {
-    return this.request<FamilyDetailResponse>('/api/family');
+    return this.authRequest<FamilyDetailResponse>('/api/family');
   }
 
   async updateFamily(request: UpdateFamilyRequest): Promise<ApiResponse<Family>> {
-    return this.request<Family>('/api/family', {
+    return this.authRequest<Family>('/api/family', {
       method: 'PUT',
       body: JSON.stringify(request)
     });
@@ -1337,15 +1457,15 @@ class ApiService {
       endpoint += `?${params.toString()}`;
     }
     
-    return this.request<{ total: number; members: FamilyMember[] }>(endpoint);
+    return this.authRequest<{ total: number; members: FamilyMember[] }>(endpoint);
   }
 
   async getMember(memberId: string): Promise<ApiResponse<FamilyMember>> {
-    return this.request<FamilyMember>(`/api/family/members/${memberId}`);
+    return this.authRequest<FamilyMember>(`/api/family/members/${memberId}`);
   }
 
   async createMember(request: CreateFamilyMemberRequest): Promise<ApiResponse<FamilyMember>> {
-    return this.request<FamilyMember>('/api/family/members', {
+    return this.authRequest<FamilyMember>('/api/family/members', {
       method: 'POST',
       body: JSON.stringify(request)
     });
@@ -1355,14 +1475,14 @@ class ApiService {
     memberId: string,
     request: UpdateFamilyMemberRequest
   ): Promise<ApiResponse<FamilyMember>> {
-    return this.request<FamilyMember>(`/api/family/members/${memberId}`, {
+    return this.authRequest<FamilyMember>(`/api/family/members/${memberId}`, {
       method: 'PUT',
       body: JSON.stringify(request)
     });
   }
 
   async deleteMember(memberId: string): Promise<ApiResponse<{ message: string }>> {
-    return this.request<{ message: string }>(`/api/family/members/${memberId}`, {
+    return this.authRequest<{ message: string }>(`/api/family/members/${memberId}`, {
       method: 'DELETE'
     });
   }
@@ -1582,6 +1702,164 @@ class ApiService {
     return this.authRequest<UserFamilyInfo>('/api/collaboration/join', {
       method: 'POST',
       body: JSON.stringify({ linkCode })
+    });
+  }
+
+  async getAnniversaries(options?: {
+    type?: AnniversaryType;
+    memberId?: string;
+    search?: string;
+    isActive?: boolean;
+  }): Promise<ApiResponse<{ total: number; anniversaries: Anniversary[] }>> {
+    let endpoint = '/api/anniversaries';
+    const params = new URLSearchParams();
+    
+    if (options?.type) params.append('type', options.type);
+    if (options?.memberId) params.append('member_id', options.memberId);
+    if (options?.search) params.append('search', options.search);
+    if (options?.isActive !== undefined) params.append('is_active', options.isActive.toString());
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`;
+    }
+    
+    return this.authRequest<{ total: number; anniversaries: Anniversary[] }>(endpoint);
+  }
+
+  async getAnniversary(anniversaryId: string): Promise<ApiResponse<Anniversary>> {
+    return this.authRequest<Anniversary>(`/api/anniversaries/${anniversaryId}`);
+  }
+
+  async getAnniversariesCalendar(year?: number, month?: number): Promise<ApiResponse<AnniversaryCalendarResponse>> {
+    let endpoint = '/api/anniversaries/calendar';
+    const params = new URLSearchParams();
+    
+    if (year) params.append('year', year.toString());
+    if (month) params.append('month', month.toString());
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`;
+    }
+    
+    return this.authRequest<AnniversaryCalendarResponse>(endpoint);
+  }
+
+  async getUpcomingAnniversaries(days: number = 7): Promise<ApiResponse<AnniversaryCalendarItem[]>> {
+    return this.authRequest<AnniversaryCalendarItem[]>(`/api/anniversaries/upcoming?days=${days}`);
+  }
+
+  async createAnniversary(request: CreateAnniversaryRequest): Promise<ApiResponse<Anniversary>> {
+    return this.authRequest<Anniversary>('/api/anniversaries', {
+      method: 'POST',
+      body: JSON.stringify(request)
+    });
+  }
+
+  async updateAnniversary(
+    anniversaryId: string,
+    request: UpdateAnniversaryRequest
+  ): Promise<ApiResponse<Anniversary>> {
+    return this.authRequest<Anniversary>(`/api/anniversaries/${anniversaryId}`, {
+      method: 'PUT',
+      body: JSON.stringify(request)
+    });
+  }
+
+  async deleteAnniversary(anniversaryId: string): Promise<ApiResponse> {
+    return this.authRequest<ApiResponse>(`/api/anniversaries/${anniversaryId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async getPushRules(options?: {
+    anniversaryType?: AnniversaryType;
+    isEnabled?: boolean;
+  }): Promise<ApiResponse<{ total: number; rules: PushRule[] }>> {
+    let endpoint = '/api/push-rules';
+    const params = new URLSearchParams();
+    
+    if (options?.anniversaryType) params.append('anniversary_type', options.anniversaryType);
+    if (options?.isEnabled !== undefined) params.append('is_enabled', options.isEnabled.toString());
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`;
+    }
+    
+    return this.authRequest<{ total: number; rules: PushRule[] }>(endpoint);
+  }
+
+  async getPushRule(ruleId: string): Promise<ApiResponse<PushRule>> {
+    return this.authRequest<PushRule>(`/api/push-rules/${ruleId}`);
+  }
+
+  async createPushRule(request: CreatePushRuleRequest): Promise<ApiResponse<PushRule>> {
+    return this.authRequest<PushRule>('/api/push-rules', {
+      method: 'POST',
+      body: JSON.stringify(request)
+    });
+  }
+
+  async updatePushRule(
+    ruleId: string,
+    request: UpdatePushRuleRequest
+  ): Promise<ApiResponse<PushRule>> {
+    return this.authRequest<PushRule>(`/api/push-rules/${ruleId}`, {
+      method: 'PUT',
+      body: JSON.stringify(request)
+    });
+  }
+
+  async deletePushRule(ruleId: string): Promise<ApiResponse> {
+    return this.authRequest<ApiResponse>(`/api/push-rules/${ruleId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async getMessages(options?: {
+    type?: MessageType;
+    status?: MessageStatus;
+    limit?: number;
+    offset?: number;
+  }): Promise<ApiResponse<MessageListResponse>> {
+    let endpoint = '/api/messages';
+    const params = new URLSearchParams();
+    
+    if (options?.type) params.append('type', options.type);
+    if (options?.status) params.append('status', options.status);
+    if (options?.limit) params.append('limit', options.limit.toString());
+    if (options?.offset) params.append('offset', options.offset.toString());
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`;
+    }
+    
+    return this.authRequest<MessageListResponse>(endpoint);
+  }
+
+  async getMessage(messageId: string): Promise<ApiResponse<Message>> {
+    return this.authRequest<Message>(`/api/messages/${messageId}`);
+  }
+
+  async getUnreadCount(): Promise<ApiResponse<number>> {
+    return this.authRequest<number>('/api/messages/unread-count');
+  }
+
+  async markMessagesRead(request: MarkReadRequest): Promise<ApiResponse> {
+    return this.authRequest<ApiResponse>('/api/messages/mark-read', {
+      method: 'POST',
+      body: JSON.stringify(request)
+    });
+  }
+
+  async deleteMessage(messageId: string): Promise<ApiResponse> {
+    return this.authRequest<ApiResponse>(`/api/messages/${messageId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async deleteAllMessages(): Promise<ApiResponse> {
+    return this.authRequest<ApiResponse>('/api/messages', {
+      method: 'DELETE'
     });
   }
 }

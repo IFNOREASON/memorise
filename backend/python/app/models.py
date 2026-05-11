@@ -586,3 +586,164 @@ class CollaborationLink(Base, TimestampMixin):
         Index('idx_collaboration_links_link_code', 'link_code'),
         Index('idx_collaboration_links_status', 'status'),
     )
+
+
+class AnniversaryType(str, enum.Enum):
+    BIRTHDAY = "birthday"
+    DEATHDAY = "deathday"
+    WEDDINGDAY = "weddingday"
+    SACRIFICIALDAY = "sacrificialday"
+
+
+class RepeatType(str, enum.Enum):
+    YEARLY = "yearly"
+    MONTHLY = "monthly"
+    ONCE = "once"
+
+
+class PushChannel(str, enum.Enum):
+    IN_APP = "in_app"
+    EMAIL = "email"
+    SMS = "sms"
+
+
+class MessageType(str, enum.Enum):
+    ANNIVERSARY_REMINDER = "anniversary_reminder"
+    SYSTEM_NOTIFICATION = "system_notification"
+
+
+class MessageStatus(str, enum.Enum):
+    UNREAD = "unread"
+    READ = "read"
+    DELETED = "deleted"
+
+
+class TaskStatus(str, enum.Enum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class Anniversary(Base, TimestampMixin):
+    __tablename__ = "anniversaries"
+
+    id = Column(String(64), primary_key=True)
+    family_id = Column(String(64), ForeignKey('families.id', ondelete='CASCADE'), nullable=False, index=True)
+    member_id = Column(String(64), ForeignKey('family_members.id', ondelete='CASCADE'), nullable=True, index=True)
+
+    name = Column(String(200), nullable=False)
+    type = Column(String(20), nullable=False, default="birthday")
+    description = Column(Text, nullable=True)
+
+    date = Column(String(20), nullable=False)
+    year = Column(Integer, nullable=True)
+    month = Column(Integer, nullable=False)
+    day = Column(Integer, nullable=False)
+
+    repeat_type = Column(String(20), nullable=False, default="yearly")
+    is_lunar = Column(Boolean, nullable=False, default=False)
+
+    is_active = Column(Boolean, nullable=False, default=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+
+    family = orm_relationship("Family", foreign_keys=[family_id])
+    member = orm_relationship("FamilyMember", foreign_keys=[member_id])
+
+    __table_args__ = (
+        Index('idx_anniversaries_family_id', 'family_id'),
+        Index('idx_anniversaries_member_id', 'member_id'),
+        Index('idx_anniversaries_type', 'type'),
+        Index('idx_anniversaries_month_day', 'month', 'day'),
+        Index('idx_anniversaries_is_active', 'is_active'),
+        Index('idx_anniversaries_deleted_at', 'deleted_at'),
+    )
+
+
+class PushRule(Base, TimestampMixin):
+    __tablename__ = "push_rules"
+
+    id = Column(String(64), primary_key=True)
+    family_id = Column(String(64), ForeignKey('families.id', ondelete='CASCADE'), nullable=False, index=True)
+    user_id = Column(String(64), ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+
+    anniversary_type = Column(String(20), nullable=True)
+    push_channels = Column(JSON, nullable=False, default=list)
+
+    advance_days = Column(Integer, nullable=False, default=0)
+    push_time = Column(String(10), nullable=False, default="09:00")
+
+    is_enabled = Column(Boolean, nullable=False, default=True)
+
+    family = orm_relationship("Family", foreign_keys=[family_id])
+    user = orm_relationship("User", foreign_keys=[user_id])
+
+    __table_args__ = (
+        Index('idx_push_rules_family_id', 'family_id'),
+        Index('idx_push_rules_user_id', 'user_id'),
+        Index('idx_push_rules_anniversary_type', 'anniversary_type'),
+        Index('idx_push_rules_is_enabled', 'is_enabled'),
+    )
+
+
+class Message(Base, TimestampMixin):
+    __tablename__ = "messages"
+
+    id = Column(String(64), primary_key=True)
+    user_id = Column(String(64), ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+    family_id = Column(String(64), ForeignKey('families.id', ondelete='CASCADE'), nullable=True, index=True)
+    anniversary_id = Column(String(64), ForeignKey('anniversaries.id', ondelete='SET NULL'), nullable=True, index=True)
+
+    type = Column(String(30), nullable=False, default="anniversary_reminder")
+    title = Column(String(200), nullable=False)
+    content = Column(Text, nullable=False)
+
+    status = Column(String(20), nullable=False, default="unread")
+    read_at = Column(DateTime(timezone=True), nullable=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+
+    user = orm_relationship("User", foreign_keys=[user_id])
+    family = orm_relationship("Family", foreign_keys=[family_id])
+    anniversary = orm_relationship("Anniversary", foreign_keys=[anniversary_id])
+
+    __table_args__ = (
+        Index('idx_messages_user_id', 'user_id'),
+        Index('idx_messages_family_id', 'family_id'),
+        Index('idx_messages_anniversary_id', 'anniversary_id'),
+        Index('idx_messages_status', 'status'),
+        Index('idx_messages_created_at', 'created_at'),
+        Index('idx_messages_deleted_at', 'deleted_at'),
+    )
+
+
+class ScheduledTask(Base, TimestampMixin):
+    __tablename__ = "scheduled_tasks"
+
+    id = Column(String(64), primary_key=True)
+    task_name = Column(String(100), nullable=False, index=True)
+    task_type = Column(String(50), nullable=False)
+
+    anniversary_id = Column(String(64), ForeignKey('anniversaries.id', ondelete='SET NULL'), nullable=True, index=True)
+    user_id = Column(String(64), ForeignKey('users.id', ondelete='SET NULL'), nullable=True, index=True)
+
+    scheduled_time = Column(DateTime(timezone=True), nullable=False, index=True)
+    executed_at = Column(DateTime(timezone=True), nullable=True)
+
+    status = Column(String(20), nullable=False, default="pending")
+    result = Column(Text, nullable=True)
+    error_message = Column(Text, nullable=True)
+
+    retry_count = Column(Integer, nullable=False, default=0)
+    max_retries = Column(Integer, nullable=False, default=3)
+
+    anniversary = orm_relationship("Anniversary", foreign_keys=[anniversary_id])
+    user = orm_relationship("User", foreign_keys=[user_id])
+
+    __table_args__ = (
+        Index('idx_scheduled_tasks_task_name', 'task_name'),
+        Index('idx_scheduled_tasks_task_type', 'task_type'),
+        Index('idx_scheduled_tasks_anniversary_id', 'anniversary_id'),
+        Index('idx_scheduled_tasks_user_id', 'user_id'),
+        Index('idx_scheduled_tasks_scheduled_time', 'scheduled_time'),
+        Index('idx_scheduled_tasks_status', 'status'),
+    )

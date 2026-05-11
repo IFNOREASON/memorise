@@ -17,10 +17,14 @@ from app.routers import (
     voice_router,
     chat_router,
     auth_router,
-    family_router
+    family_router,
+    anniversaries_router,
+    push_rules_router,
+    messages_router
 )
 from app.routers import membership, approval, logs
 from app.services import generation_service
+from app.services import anniversary_service
 from app.database import AsyncSessionLocal
 
 logging.basicConfig(
@@ -42,12 +46,22 @@ async def lifespan(app: FastAPI):
     logger.info(f"阿里云API已配置: {bool(settings.ALIYUN_API_KEY)}")
     
     retry_task = asyncio.create_task(check_pending_retries_periodically())
+    anniversary_reminder_task = asyncio.create_task(anniversary_service.anniversary_reminder_worker())
+    
+    logger.info("正在初始化纪念日提醒任务...")
+    try:
+        await anniversary_service.create_recurring_reminder_tasks()
+        logger.info("纪念日提醒任务初始化完成")
+    except Exception as e:
+        logger.error(f"初始化纪念日提醒任务失败: {e}")
     
     yield
     
     retry_task.cancel()
+    anniversary_reminder_task.cancel()
     try:
         await retry_task
+        await anniversary_reminder_task
     except asyncio.CancelledError:
         pass
     
@@ -149,6 +163,9 @@ app.include_router(family_router, prefix=api_prefix)
 app.include_router(membership.router, prefix=api_prefix)
 app.include_router(approval.router, prefix=api_prefix)
 app.include_router(logs.router, prefix=api_prefix)
+app.include_router(anniversaries_router, prefix=api_prefix)
+app.include_router(push_rules_router, prefix=api_prefix)
+app.include_router(messages_router, prefix=api_prefix)
 
 
 if __name__ == "__main__":
