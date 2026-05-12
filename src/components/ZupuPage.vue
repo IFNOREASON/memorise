@@ -468,21 +468,16 @@
           <Icon icon="solar:database-bold" class="text-[#8B6F4E]" />
           <span>数据管理</span>
         </h2>
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <button class="p-4 bg-[#FAF7F2] rounded-xl hover:bg-[#E8D5C4]/50 transition-colors text-center group">
+        <div class="grid grid-cols-2 gap-4">
+          <button @click="showImportModal = true" class="p-4 bg-[#FAF7F2] rounded-xl hover:bg-[#E8D5C4]/50 transition-colors text-center group">
             <Icon icon="solar:import-bold" class="text-2xl text-[#8B6F4E] mx-auto mb-2 group-hover:scale-110 transition-transform" />
             <p class="text-sm font-medium text-[#5C4A3A]">导入数据</p>
             <p class="text-xs text-gray-500 mt-1">Excel/CSV</p>
           </button>
-          <button class="p-4 bg-[#FAF7F2] rounded-xl hover:bg-[#E8D5C4]/50 transition-colors text-center group">
+          <button @click="showExportModal = true" class="p-4 bg-[#FAF7F2] rounded-xl hover:bg-[#E8D5C4]/50 transition-colors text-center group">
             <Icon icon="solar:export-bold" class="text-2xl text-[#8B6F4E] mx-auto mb-2 group-hover:scale-110 transition-transform" />
             <p class="text-sm font-medium text-[#5C4A3A]">导出数据</p>
-            <p class="text-xs text-gray-500 mt-1">Excel/PDF</p>
-          </button>
-          <button class="p-4 bg-[#FAF7F2] rounded-xl hover:bg-[#E8D5C4]/50 transition-colors text-center group">
-            <Icon icon="solar:shield-check-bold" class="text-2xl text-[#8B6F4E] mx-auto mb-2 group-hover:scale-110 transition-transform" />
-            <p class="text-sm font-medium text-[#5C4A3A]">备份恢复</p>
-            <p class="text-xs text-gray-500 mt-1">数据安全</p>
+            <p class="text-xs text-gray-500 mt-1">Excel/CSV</p>
           </button>
         </div>
       </section>
@@ -874,6 +869,166 @@
           <button @click="saveFamilySettings" class="px-6 py-2 bg-gradient-to-r from-[#8B6F4E] to-[#A67B5B] text-white rounded-xl text-sm font-medium shadow-warm hover:shadow-lg transition-all">
             保存
           </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showImportModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" @click.self="showImportModal = false">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div class="bg-gradient-to-br from-[#8B6F4E] to-[#A67B5B] rounded-t-2xl p-6 text-white">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xl font-bold font-serif">导入族谱数据</h3>
+            <button @click="closeImportModal" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+              <Icon icon="material-symbols:close" class="text-white" />
+            </button>
+          </div>
+        </div>
+        <div class="p-6">
+          <div class="mb-6">
+            <p class="text-sm text-gray-600 mb-4">支持 Excel (.xlsx) 和 CSV 格式的文件导入。导入后数据将自动生成族谱树并保存到数据库。</p>
+            <div class="border-2 border-dashed border-[#E8D5C4] rounded-xl p-8 text-center bg-[#FAF7F2] hover:bg-[#E8D5C4]/30 transition-colors cursor-pointer" @click="triggerFileInput">
+              <input ref="fileInputRef" type="file" accept=".xlsx,.xls,.csv" class="hidden" @change="handleFileSelect" />
+              <Icon icon="solar:upload-bold" class="text-4xl text-[#8B6F4E] mx-auto mb-3" />
+              <p class="text-sm font-medium text-[#5C4A3A]">点击选择文件或拖拽文件到此处</p>
+              <p class="text-xs text-gray-500 mt-1">支持 .xlsx, .xls, .csv 格式</p>
+            </div>
+            <div v-if="selectedFile" class="mt-4 p-4 bg-blue-50 rounded-xl">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                  <Icon icon="solar:file-text-bold" class="text-blue-600" />
+                  <span class="text-sm font-medium text-blue-800">{{ selectedFile.name }}</span>
+                </div>
+                <button @click="clearSelectedFile" class="text-gray-400 hover:text-red-500">
+                  <Icon icon="solar:close-circle-bold" class="text-lg" />
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div v-if="importPreview.length > 0" class="mb-6">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-sm font-bold text-[#5C4A3A]">数据预览（前5条）</h4>
+              <div class="flex items-center space-x-3 text-xs">
+                <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded">共 {{ importPreview.length }} 条</span>
+                <span class="px-2 py-1 bg-green-100 text-green-700 rounded">新增 {{ importNewCount }} 条</span>
+                <span v-if="importDuplicateCount > 0" class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded">重复 {{ importDuplicateCount }} 条</span>
+              </div>
+            </div>
+            
+            <div v-if="importDuplicateCount > 0" class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+              <div class="flex items-start space-x-2">
+                <Icon icon="solar:warning-circle-bold" class="text-yellow-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p class="text-sm font-medium text-yellow-800">检测到 {{ importDuplicateCount }} 条重复数据</p>
+                  <p class="text-xs text-yellow-600 mt-1">以下成员已存在，导入时将自动跳过：</p>
+                  <div class="flex flex-wrap gap-2 mt-2">
+                    <span v-for="name in importDuplicateNames.slice(0, 5)" :key="name" class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs">
+                      {{ name }}
+                    </span>
+                    <span v-if="importDuplicateNames.length > 5" class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs">
+                      等{{ importDuplicateNames.length }}人
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="overflow-x-auto border border-stone-200 rounded-xl">
+              <table class="w-full text-sm">
+                <thead class="bg-[#FAF7F2]">
+                  <tr>
+                    <th class="px-3 py-2 text-left text-gray-600">姓名</th>
+                    <th class="px-3 py-2 text-left text-gray-600">性别</th>
+                    <th class="px-3 py-2 text-left text-gray-600">世代</th>
+                    <th class="px-3 py-2 text-left text-gray-600">父亲</th>
+                    <th class="px-3 py-2 text-left text-gray-600">状态</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(item, index) in importPreview.slice(0, 5)" :key="index" class="border-t border-stone-100">
+                    <td class="px-3 py-2">{{ item.name }}</td>
+                    <td class="px-3 py-2">{{ item.gender === 'male' ? '男' : '女' }}</td>
+                    <td class="px-3 py-2">{{ item.generation }}</td>
+                    <td class="px-3 py-2">{{ item.fatherName || '-' }}</td>
+                    <td class="px-3 py-2">{{ item.status === 'alive' ? '在世' : '已故' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div v-if="importError" class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <div class="flex items-center space-x-2">
+              <Icon icon="solar:danger-circle-bold" class="text-red-500" />
+              <p class="text-sm text-red-700">{{ importError }}</p>
+            </div>
+          </div>
+          
+          <div class="flex justify-end space-x-3">
+            <button @click="closeImportModal" class="px-6 py-2 text-gray-600 bg-gray-100 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">
+              取消
+            </button>
+            <button @click="handleImport" :disabled="!selectedFile || importing" class="px-6 py-2 bg-gradient-to-r from-[#8B6F4E] to-[#A67B5B] text-white rounded-xl text-sm font-medium shadow-warm hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+              <Icon v-if="importing" icon="solar:refresh-circle-bold" class="animate-spin" />
+              <span>{{ importing ? '导入中...' : '确认导入' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showExportModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" @click.self="showExportModal = false">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="bg-gradient-to-br from-[#8B6F4E] to-[#A67B5B] rounded-t-2xl p-6 text-white">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xl font-bold font-serif">导出族谱数据</h3>
+            <button @click="showExportModal = false" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+              <Icon icon="material-symbols:close" class="text-white" />
+            </button>
+          </div>
+        </div>
+        <div class="p-6">
+          <p class="text-sm text-gray-600 mb-6">选择导出格式，将导出当前家族的所有成员数据。</p>
+          
+          <div class="space-y-3 mb-6">
+            <label class="flex items-center p-4 border border-stone-200 rounded-xl cursor-pointer hover:bg-[#FAF7F2] transition-colors" :class="{ 'border-[#8B6F4E] bg-[#E8D5C4]/20': exportFormat === 'xlsx' }">
+              <input type="radio" v-model="exportFormat" value="xlsx" class="hidden" />
+              <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center mr-4">
+                <Icon icon="solar:file-sheet-bold" class="text-green-600 text-xl" />
+              </div>
+              <div>
+                <p class="font-medium text-[#5C4A3A]">Excel 格式 (.xlsx)</p>
+                <p class="text-xs text-gray-500">适合在 Excel 中编辑和查看</p>
+              </div>
+              <div v-if="exportFormat === 'xlsx'" class="ml-auto">
+                <Icon icon="solar:check-circle-bold" class="text-[#8B6F4E]" />
+              </div>
+            </label>
+            
+            <label class="flex items-center p-4 border border-stone-200 rounded-xl cursor-pointer hover:bg-[#FAF7F2] transition-colors" :class="{ 'border-[#8B6F4E] bg-[#E8D5C4]/20': exportFormat === 'csv' }">
+              <input type="radio" v-model="exportFormat" value="csv" class="hidden" />
+              <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center mr-4">
+                <Icon icon="solar:file-text-bold" class="text-blue-600 text-xl" />
+              </div>
+              <div>
+                <p class="font-medium text-[#5C4A3A]">CSV 格式 (.csv)</p>
+                <p class="text-xs text-gray-500">通用文本格式，兼容性好</p>
+              </div>
+              <div v-if="exportFormat === 'csv'" class="ml-auto">
+                <Icon icon="solar:check-circle-bold" class="text-[#8B6F4E]" />
+              </div>
+            </label>
+          </div>
+          
+          <div class="flex justify-end space-x-3">
+            <button @click="showExportModal = false" class="px-6 py-2 text-gray-600 bg-gray-100 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">
+              取消
+            </button>
+            <button @click="handleExport" :disabled="exporting" class="px-6 py-2 bg-gradient-to-r from-[#8B6F4E] to-[#A67B5B] text-white rounded-xl text-sm font-medium shadow-warm hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+              <Icon v-if="exporting" icon="solar:refresh-circle-bold" class="animate-spin" />
+              <span>{{ exporting ? '导出中...' : '导出' }}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1492,6 +1647,152 @@ const familySettingsForm = reactive({
   description: familyInfo.description,
   ziBeiStr: familyInfo.ziBei.join(',')
 })
+
+const showImportModal = ref(false)
+const showExportModal = ref(false)
+const selectedFile = ref<File | null>(null)
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const importing = ref(false)
+const exporting = ref(false)
+const importError = ref('')
+const importPreview = ref<any[]>([])
+const importDuplicateNames = ref<string[]>([])
+const importDuplicateCount = ref(0)
+const importNewCount = ref(0)
+const exportFormat = ref('xlsx')
+
+interface ImportMemberData {
+  name: string
+  gender: 'male' | 'female'
+  generation: number
+  birthYear?: string
+  deathYear?: string
+  spouse?: string
+  fatherName?: string
+  residence?: string
+  note?: string
+  status: 'alive' | 'deceased'
+}
+
+const triggerFileInput = () => {
+  fileInputRef.value?.click()
+}
+
+const clearSelectedFile = () => {
+  selectedFile.value = null
+  importPreview.value = []
+  importError.value = ''
+  importDuplicateNames.value = []
+  importDuplicateCount.value = 0
+  importNewCount.value = 0
+  if (fileInputRef.value) {
+    fileInputRef.value.value = ''
+  }
+}
+
+const closeImportModal = () => {
+  showImportModal.value = false
+  clearSelectedFile()
+}
+
+const handleFileSelect = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  const validExtensions = ['.xlsx', '.xls', '.csv']
+  const fileExtension = file.name.toLowerCase().slice(file.name.lastIndexOf('.'))
+  
+  if (!validExtensions.includes(fileExtension)) {
+    importError.value = '不支持的文件格式，请上传 .xlsx, .xls 或 .csv 文件'
+    return
+  }
+
+  selectedFile.value = file
+  importError.value = ''
+  
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    const response = await apiService.previewImport(formData)
+    if (response.success && response.data) {
+      importPreview.value = response.data.preview
+      importDuplicateNames.value = response.data.duplicate_names || []
+      importDuplicateCount.value = response.data.duplicate_count || 0
+      importNewCount.value = response.data.new_count || response.data.preview.length
+    } else {
+      importError.value = response.error || '文件解析失败'
+    }
+  } catch (error) {
+    console.error('文件预览失败:', error)
+    importError.value = '文件解析失败，请检查文件格式'
+  }
+}
+
+const handleImport = async () => {
+  if (!selectedFile.value) return
+
+  importing.value = true
+  importError.value = ''
+  
+  try {
+    const formData = new FormData()
+    formData.append('file', selectedFile.value)
+    
+    const response = await apiService.importData(formData)
+    if (response.success && response.data) {
+      const { imported_count, skipped_count, skipped_names, members } = response.data
+      
+      let message = `导入成功！\n新增：${imported_count} 条`
+      if (skipped_count > 0) {
+        message += `\n跳过重复：${skipped_count} 条`
+        if (skipped_names && skipped_names.length > 0) {
+          message += `\n\n跳过的成员：${skipped_names.slice(0, 5).join('、')}`
+          if (skipped_names.length > 5) {
+            message += ` 等${skipped_names.length}人`
+          }
+        }
+      }
+      
+      alert(message)
+      familyMembers.value = members
+      closeImportModal()
+    } else {
+      importError.value = response.error || '导入失败'
+    }
+  } catch (error) {
+    console.error('导入失败:', error)
+    importError.value = '导入失败，请稍后重试'
+  } finally {
+    importing.value = false
+  }
+}
+
+const handleExport = async () => {
+  exporting.value = true
+  
+  try {
+    const blob = await apiService.exportData(exportFormat.value)
+    
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `族谱数据_${familyInfo.surname}氏_${new Date().toISOString().slice(0, 10)}.${exportFormat.value}`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+    
+    showExportModal.value = false
+    alert('导出成功！')
+  } catch (error) {
+    console.error('导出失败:', error)
+    alert('导出失败，请稍后重试')
+  } finally {
+    exporting.value = false
+  }
+}
 
 const filteredMembers = computed(() => {
   let result = familyMembers.value

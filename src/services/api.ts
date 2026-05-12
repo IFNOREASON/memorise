@@ -1862,6 +1862,80 @@ class ApiService {
       method: 'DELETE'
     });
   }
+
+  async previewImport(formData: FormData): Promise<ApiResponse<{ preview: any[] }>> {
+    const url = `${API_BASE_URL}/api/family/import/preview`;
+    const token = authStore.token;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Family-Id': this.getCurrentFamilyId() || ''
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+      return data as ApiResponse<{ preview: any[] }>;
+    } catch (error) {
+      console.error('API 请求错误:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '网络错误或后端服务未启动'
+      };
+    }
+  }
+
+  async importData(formData: FormData): Promise<ApiResponse<{ count: number; members: any[] }>> {
+    const url = `${API_BASE_URL}/api/family/import`;
+    const token = authStore.token;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Family-Id': this.getCurrentFamilyId() || ''
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+      return data as ApiResponse<{ count: number; members: any[] }>;
+    } catch (error) {
+      console.error('API 请求错误:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '网络错误或后端服务未启动'
+      };
+    }
+  }
+
+  async exportData(format: 'xlsx' | 'csv' = 'xlsx'): Promise<Blob> {
+    const url = `${API_BASE_URL}/api/family/export?format=${format}`;
+    const token = authStore.token;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Family-Id': this.getCurrentFamilyId() || ''
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('导出失败');
+      }
+
+      return await response.blob();
+    } catch (error) {
+      console.error('导出失败:', error);
+      throw error;
+    }
+  }
 }
 
 const TOKEN_KEY = 'memorise_token';
