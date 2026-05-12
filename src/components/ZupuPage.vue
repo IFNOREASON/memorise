@@ -1,206 +1,5 @@
 <template>
   <div class="min-h-screen paper-texture">
-    <header class="sticky top-0 z-50 glass-warm border-b border-[#E8D5C4]">
-      <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-          <div class="w-12 h-12 bg-[#C84A3E] rounded-sm flex items-center justify-center shadow-md relative overflow-hidden">
-            <div class="absolute inset-0 opacity-30" :style="noisePatternStyle"></div>
-            <span class="text-white font-serif text-xl font-bold tracking-widest relative z-10">存</span>
-          </div>
-          <div>
-            <h1 class="text-2xl font-bold text-[#5C4A3A] font-serif tracking-wider">memorise</h1>
-            <p class="text-xs text-gray-500 tracking-[0.15em] uppercase font-medium">Family Memorial</p>
-          </div>
-          
-          <button v-if="hasFamily && userFamilies.length > 0" 
-            @click="showFamilySidebar = !showFamilySidebar"
-            class="hidden lg:flex items-center space-x-2 px-3 py-2 bg-white/80 rounded-lg border border-[#E8D5C4] hover:bg-[#FAF7F2] transition-all">
-            <Icon icon="solar:tree-bold-duotone" class="text-[#8B6F4E]" />
-            <span class="text-sm font-medium text-[#5C4A3A] max-w-[120px] truncate">
-              {{ currentFamily?.family.surname || familyInfo.surname }}氏
-              <span v-if="currentFamily?.family.hallName" class="text-gray-400">· {{ currentFamily.family.hallName }}</span>
-            </span>
-            <Icon icon="solar:alt-arrow-down-linear" class="text-gray-400 text-sm transition-transform" :class="{ 'rotate-180': showFamilySidebar }" />
-            <span v-if="userFamilies.length > 1" class="px-1.5 py-0.5 bg-[#E8D5C4] text-[#8B6F4E] text-xs rounded-full font-medium">
-              {{ userFamilies.length }}
-            </span>
-          </button>
-        </div>
-
-        <nav class="hidden lg:flex items-center space-x-4">
-          <button v-for="item in navItems" :key="item.id"
-            class="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all hover:bg-[#E8D5C4]/50"
-            :class="[
-              activeNav === item.id ? 'bg-[#E8D5C4] text-[#8B6F4E]' : 'text-gray-600'
-            ]"
-            @click="handleNavClick(item.id)">
-            <Icon :icon="item.icon" class="text-lg" />
-            <span class="font-medium text-sm">{{ item.label }}</span>
-          </button>
-          
-          <div v-if="(canManageMembers || canViewApprovals || canViewLogs)" class="relative">
-            <button 
-              @click="toggleManageMenu"
-              class="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all hover:bg-[#E8D5C4]/50"
-              :class="[
-                activeNav.startsWith('manage-') ? 'bg-[#E8D5C4] text-[#8B6F4E]' : 'text-gray-600'
-              ]">
-              <Icon icon="solar:settings-bold" class="text-lg" />
-              <span class="font-medium text-sm">管理</span>
-              <Icon icon="solar:alt-arrow-down-linear" class="text-gray-400 text-sm transition-transform" :class="{ 'rotate-180': showManageMenu }" />
-              <span v-if="pendingApprovalsCount > 0" class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#C84A3E] text-white text-xs flex items-center justify-center">
-                {{ pendingApprovalsCount }}
-              </span>
-            </button>
-            
-            <div v-if="showManageMenu" 
-              class="absolute left-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-[#E8D5C4] py-2 z-50">
-              <button
-                @click="navigateToMemberManagement"
-                v-if="canManageMembers"
-                class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors">
-                <Icon icon="solar:users-group-two-bold" class="text-[#8B6F4E]" />
-                <span>成员管理</span>
-              </button>
-              <button
-                @click="navigateToApprovals"
-                v-if="canViewApprovals"
-                class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors">
-                <Icon icon="solar:document-bold" class="text-[#8B6F4E]" />
-                <span>审核中心</span>
-                <span v-if="pendingApprovalsCount > 0" class="ml-auto w-5 h-5 rounded-full bg-[#C84A3E] text-white text-xs flex items-center justify-center">
-                  {{ pendingApprovalsCount }}
-                </span>
-              </button>
-              <button
-                @click="navigateToLogs"
-                v-if="canViewLogs"
-                class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors">
-                <Icon icon="solar:history-bold" class="text-[#8B6F4E]" />
-                <span>操作日志</span>
-              </button>
-            </div>
-          </div>
-        </nav>
-
-        <div class="flex items-center space-x-4">
-          <button 
-            v-if="isHead && hasFamily" 
-            @click="showCollaborationModal = true; loadCollaborationLinks()"
-            class="px-4 py-2 bg-gradient-to-r from-[#C84A3E] to-[#E86B5F] text-white rounded-xl text-sm font-medium shadow-warm hover:shadow-lg transition-all flex items-center space-x-2"
-          >
-            <Icon icon="solar:share-bold" class="text-sm" />
-            <span>邀请共建</span>
-          </button>
-          <button class="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow">
-            <Icon icon="solar:bell-bold" class="text-gray-600" />
-          </button>
-          <div class="relative flex items-center space-x-3 pl-4 border-l border-[#E8D5C4]">
-            <button 
-              @click="toggleUserMenu"
-              class="flex items-center space-x-3 focus:outline-none"
-            >
-              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#E8D5C4] to-[#D4A574] p-0.5">
-                <div class="w-full h-full rounded-full bg-gray-200 overflow-hidden">
-                  <img 
-                    :src="authStore.user?.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face'" 
-                    class="w-full h-full object-cover" 
-                    alt="用户头像"
-                  >
-                </div>
-              </div>
-              <div class="hidden md:block text-left">
-                <p class="text-sm font-semibold text-gray-800">{{ authStore.user?.nickname || authStore.user?.username || '用户' }}</p>
-                <p class="text-xs text-gray-500">{{ authStore.isAuthenticated ? '已登录' : '未登录' }}</p>
-              </div>
-              <Icon 
-                icon="solar:alt-arrow-down-linear" 
-                class="text-gray-400 text-sm transition-transform"
-                :class="{ 'rotate-180': showUserMenu }"
-              />
-            </button>
-
-            <div 
-              v-if="showUserMenu"
-              class="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-[#E8D5C4] py-2 z-50"
-            >
-              <template v-if="authStore.isAuthenticated">
-                <div class="px-4 py-3 border-b border-[#E8D5C4]">
-                  <p class="text-sm font-medium text-[#5C4A3A]">
-                    {{ authStore.user?.nickname || authStore.user?.username }}
-                  </p>
-                  <div v-if="myRole" class="flex items-center space-x-2 mt-1">
-                    <span class="text-xs text-gray-500">角色:</span>
-                    <span class="px-2 py-0.5 rounded text-xs font-medium" :class="roleClass(myRole)">
-                      {{ roleLabel(myRole) }}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  @click="navigateToMemberManagement"
-                  v-if="canManageMembers"
-                  class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors"
-                >
-                  <Icon icon="solar:users-group-two-bold" class="text-[#8B6F4E]" />
-                  <span>成员管理</span>
-                </button>
-                <button
-                  @click="navigateToApprovals"
-                  v-if="canViewApprovals"
-                  class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors"
-                >
-                  <Icon icon="solar:document-bold" class="text-[#8B6F4E]" />
-                  <span>审核中心</span>
-                  <span v-if="pendingApprovalsCount > 0" class="w-5 h-5 rounded-full bg-[#C84A3E] text-white text-xs flex items-center justify-center ml-auto">
-                    {{ pendingApprovalsCount }}
-                  </span>
-                </button>
-                <button
-                  @click="navigateToLogs"
-                  v-if="canViewLogs"
-                  class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors"
-                >
-                  <Icon icon="solar:history-bold" class="text-[#8B6F4E]" />
-                  <span>操作日志</span>
-                </button>
-                <div class="border-t border-[#E8D5C4] my-1"></div>
-                <button
-                  @click="handleChangePassword"
-                  class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors"
-                >
-                  <Icon icon="solar:lock-password-bold" class="text-[#8B6F4E]" />
-                  <span>修改密码</span>
-                </button>
-                <div class="border-t border-[#E8D5C4] my-1"></div>
-                <button
-                  @click="handleLogout"
-                  class="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 flex items-center space-x-3 transition-colors"
-                >
-                  <Icon icon="solar:logout-3-bold" />
-                  <span>退出登录</span>
-                </button>
-              </template>
-              <template v-else>
-                <button
-                  @click="handleLogin"
-                  class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors"
-                >
-                  <Icon icon="solar:login-3-bold" class="text-[#8B6F4E]" />
-                  <span>登录</span>
-                </button>
-                <button
-                  @click="handleRegister"
-                  class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors"
-                >
-                  <Icon icon="solar:user-add-bold" class="text-[#8B6F4E]" />
-                  <span>注册</span>
-                </button>
-              </template>
-            </div>
-          </div>
-        </div>
-      </div>
-    </header>
 
     <div v-if="showFamilySidebar && hasFamily && userFamilies.length > 0" 
       class="fixed left-0 top-0 h-full w-72 bg-white shadow-2xl z-50 overflow-y-auto"
@@ -398,15 +197,90 @@
 
       <template v-else>
       <section class="bg-white rounded-2xl shadow-soft border border-stone-100 p-6 mb-6">
-        <div class="flex items-center justify-between mb-4">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+          <div class="flex flex-wrap items-center gap-3">
+            <button v-if="hasFamily && userFamilies.length > 0" 
+              @click="showFamilySidebar = !showFamilySidebar"
+              class="flex items-center space-x-2 px-4 py-2 bg-white/80 rounded-lg border border-[#E8D5C4] hover:bg-[#FAF7F2] transition-all">
+              <Icon icon="solar:tree-bold-duotone" class="text-[#8B6F4E]" />
+              <span class="text-sm font-medium text-[#5C4A3A] max-w-[150px] truncate">
+                {{ currentFamily?.family.surname || familyInfo.surname }}氏
+                <span v-if="currentFamily?.family.hallName" class="text-gray-400">· {{ currentFamily.family.hallName }}</span>
+              </span>
+              <Icon icon="solar:alt-arrow-down-linear" class="text-gray-400 text-sm transition-transform" :class="{ 'rotate-180': showFamilySidebar }" />
+              <span v-if="userFamilies.length > 1" class="px-1.5 py-0.5 bg-[#E8D5C4] text-[#8B6F4E] text-xs rounded-full font-medium">
+                {{ userFamilies.length }}
+              </span>
+            </button>
+            
+            <div v-if="(canManageMembers || canViewApprovals || canViewLogs)" class="relative">
+              <button 
+                @click="toggleManageMenu"
+                class="flex items-center space-x-2 px-4 py-2 rounded-lg border border-[#E8D5C4] hover:bg-[#E8D5C4]/50 transition-all">
+                <Icon icon="solar:settings-bold" class="text-[#8B6F4E]" />
+                <span class="font-medium text-sm text-gray-600">管理功能</span>
+                <Icon icon="solar:alt-arrow-down-linear" class="text-gray-400 text-sm transition-transform" :class="{ 'rotate-180': showManageMenu }" />
+                <span v-if="pendingApprovalsCount > 0" class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#C84A3E] text-white text-xs flex items-center justify-center">
+                  {{ pendingApprovalsCount }}
+                </span>
+              </button>
+              
+              <div v-if="showManageMenu" 
+                class="absolute left-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-[#E8D5C4] py-2 z-50">
+                <button
+                  @click="navigateToMemberManagement"
+                  v-if="canManageMembers"
+                  class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors">
+                  <Icon icon="solar:users-group-two-bold" class="text-[#8B6F4E]" />
+                  <span>成员管理</span>
+                </button>
+                <button
+                  @click="navigateToApprovals"
+                  v-if="canViewApprovals"
+                  class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors">
+                  <Icon icon="solar:document-bold" class="text-[#8B6F4E]" />
+                  <span>审核中心</span>
+                  <span v-if="pendingApprovalsCount > 0" class="ml-auto w-5 h-5 rounded-full bg-[#C84A3E] text-white text-xs flex items-center justify-center">
+                    {{ pendingApprovalsCount }}
+                  </span>
+                </button>
+                <button
+                  @click="navigateToLogs"
+                  v-if="canViewLogs"
+                  class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#FAF7F2] flex items-center space-x-3 transition-colors">
+                  <Icon icon="solar:history-bold" class="text-[#8B6F4E]" />
+                  <span>操作日志</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="flex items-center gap-3">
+            <button 
+              v-if="isHead && hasFamily" 
+              @click="showCollaborationModal = true; loadCollaborationLinks()"
+              class="px-4 py-2 bg-gradient-to-r from-[#C84A3E] to-[#E86B5F] text-white rounded-xl text-sm font-medium shadow-warm hover:shadow-lg transition-all flex items-center space-x-2"
+            >
+              <Icon icon="solar:share-bold" class="text-sm" />
+              <span>邀请共建</span>
+            </button>
+            <button @click="showFamilySettings = true" class="px-4 py-2 bg-white border border-[#E8D5C4] text-[#8B6F4E] rounded-xl text-sm font-medium hover:bg-[#FAF7F2] transition-colors flex items-center space-x-2">
+              <Icon icon="solar:settings-bold" class="text-lg" />
+              <span>设置</span>
+            </button>
+          </div>
+        </div>
+        
+        <div class="flex items-center justify-between mb-4 pt-4 border-t border-stone-100">
           <h2 class="text-lg font-bold text-[#5C4A3A] font-serif flex items-center space-x-2">
             <Icon icon="solar:home-2-bold" class="text-[#8B6F4E]" />
             <span>家族信息</span>
           </h2>
-          <button @click="showFamilySettings = true" class="text-sm text-[#8B6F4E] font-medium hover:text-[#D4A574] transition-colors flex items-center space-x-1">
-            <Icon icon="solar:settings-bold" class="text-lg" />
-            <span>设置</span>
-          </button>
+          <template v-if="myRole">
+            <span class="px-2 py-0.5 rounded text-xs font-medium" :class="roleClass(myRole)">
+              您的角色: {{ roleLabel(myRole) }}
+            </span>
+          </template>
         </div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div class="bg-[#FAF7F2] rounded-xl p-4">
@@ -443,51 +317,6 @@
               class="px-3 py-1 bg-[#E8D5C4] text-[#8B6F4E] text-sm rounded-full font-medium">
               第{{ index + 1 }}世：{{ zi }}
             </span>
-          </div>
-        </div>
-
-        <div v-if="(canManageMembers || canViewApprovals || canViewLogs)" class="mt-6 pt-6 border-t border-stone-200">
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center space-x-2">
-              <Icon icon="solar:settings-bold" class="text-[#8B6F4E]" />
-              <h3 class="text-sm font-bold text-[#5C4A3A]">快捷操作</h3>
-              <template v-if="myRole">
-                <span class="px-2 py-0.5 rounded text-xs font-medium" :class="roleClass(myRole)">
-                  您的角色: {{ roleLabel(myRole) }}
-                </span>
-              </template>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <button v-if="canManageMembers" 
-              @click="navigateToMemberManagement"
-              class="p-4 bg-gradient-to-br from-[#E8D5C4]/50 to-[#D4A574]/20 rounded-xl hover:from-[#E8D5C4] hover:to-[#D4A574]/30 transition-all text-center group border border-[#E8D5C4]">
-              <Icon icon="solar:users-group-two-bold" class="text-2xl text-[#8B6F4E] mx-auto mb-2 group-hover:scale-110 transition-transform" />
-              <p class="text-sm font-medium text-[#5C4A3A]">成员管理</p>
-              <p class="text-xs text-gray-500 mt-1">邀请/角色</p>
-            </button>
-            <button v-if="canViewApprovals" 
-              @click="navigateToApprovals"
-              class="p-4 bg-gradient-to-br from-[#E8D5C4]/50 to-[#D4A574]/20 rounded-xl hover:from-[#E8D5C4] hover:to-[#D4A574]/30 transition-all text-center group border border-[#E8D5C4] relative">
-              <Icon icon="solar:document-bold" class="text-2xl text-[#8B6F4E] mx-auto mb-2 group-hover:scale-110 transition-transform" />
-              <p class="text-sm font-medium text-[#5C4A3A]">审核中心</p>
-              <p class="text-xs text-gray-500 mt-1">修改审批</p>
-              <span v-if="pendingApprovalsCount > 0" class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#C84A3E] text-white text-xs flex items-center justify-center shadow-md">
-                {{ pendingApprovalsCount }}
-              </span>
-            </button>
-            <button v-if="canViewLogs" 
-              @click="navigateToLogs"
-              class="p-4 bg-gradient-to-br from-[#E8D5C4]/50 to-[#D4A574]/20 rounded-xl hover:from-[#E8D5C4] hover:to-[#D4A574]/30 transition-all text-center group border border-[#E8D5C4]">
-              <Icon icon="solar:history-bold" class="text-2xl text-[#8B6F4E] mx-auto mb-2 group-hover:scale-110 transition-transform" />
-              <p class="text-sm font-medium text-[#5C4A3A]">操作日志</p>
-              <p class="text-xs text-gray-500 mt-1">变更记录</p>
-            </button>
-            <div v-if="myRole === 'viewer'" class="p-4 bg-gray-50 rounded-xl text-center border border-gray-200">
-              <Icon icon="solar:eye-bold" class="text-2xl text-gray-400 mx-auto mb-2" />
-              <p class="text-sm font-medium text-gray-500">只读模式</p>
-              <p class="text-xs text-gray-400 mt-1">仅可查看</p>
-            </div>
           </div>
         </div>
       </section>
@@ -639,7 +468,7 @@
           <Icon icon="solar:database-bold" class="text-[#8B6F4E]" />
           <span>数据管理</span>
         </h2>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
           <button class="p-4 bg-[#FAF7F2] rounded-xl hover:bg-[#E8D5C4]/50 transition-colors text-center group">
             <Icon icon="solar:import-bold" class="text-2xl text-[#8B6F4E] mx-auto mb-2 group-hover:scale-110 transition-transform" />
             <p class="text-sm font-medium text-[#5C4A3A]">导入数据</p>
@@ -650,28 +479,10 @@
             <p class="text-sm font-medium text-[#5C4A3A]">导出数据</p>
             <p class="text-xs text-gray-500 mt-1">Excel/PDF</p>
           </button>
-          <button v-if="canViewLogs" @click="navigateToLogs" class="p-4 bg-[#FAF7F2] rounded-xl hover:bg-[#E8D5C4]/50 transition-colors text-center group">
-            <Icon icon="solar:history-bold" class="text-2xl text-[#8B6F4E] mx-auto mb-2 group-hover:scale-110 transition-transform" />
-            <p class="text-sm font-medium text-[#5C4A3A]">操作日志</p>
-            <p class="text-xs text-gray-500 mt-1">修改记录</p>
-          </button>
           <button class="p-4 bg-[#FAF7F2] rounded-xl hover:bg-[#E8D5C4]/50 transition-colors text-center group">
             <Icon icon="solar:shield-check-bold" class="text-2xl text-[#8B6F4E] mx-auto mb-2 group-hover:scale-110 transition-transform" />
             <p class="text-sm font-medium text-[#5C4A3A]">备份恢复</p>
             <p class="text-xs text-gray-500 mt-1">数据安全</p>
-          </button>
-          <button v-if="canManageMembers" @click="navigateToMemberManagement" class="p-4 bg-[#FAF7F2] rounded-xl hover:bg-[#E8D5C4]/50 transition-colors text-center group">
-            <Icon icon="solar:users-group-two-bold" class="text-2xl text-[#8B6F4E] mx-auto mb-2 group-hover:scale-110 transition-transform" />
-            <p class="text-sm font-medium text-[#5C4A3A]">成员管理</p>
-            <p class="text-xs text-gray-500 mt-1">邀请/角色</p>
-          </button>
-          <button v-if="canViewApprovals" @click="navigateToApprovals" class="p-4 bg-[#FAF7F2] rounded-xl hover:bg-[#E8D5C4]/50 transition-colors text-center group relative">
-            <Icon icon="solar:document-bold" class="text-2xl text-[#8B6F4E] mx-auto mb-2 group-hover:scale-110 transition-transform" />
-            <p class="text-sm font-medium text-[#5C4A3A]">审核中心</p>
-            <p class="text-xs text-gray-500 mt-1">待处理申请</p>
-            <span v-if="pendingApprovalsCount > 0" class="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#C84A3E] text-white text-xs flex items-center justify-center">
-              {{ pendingApprovalsCount }}
-            </span>
           </button>
         </div>
       </section>
@@ -1218,17 +1029,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, defineComponent, h, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, reactive, defineComponent, h, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import D3Tree from './D3Tree.vue'
-import { apiService, authStore, Family, FamilyMember, FamilyRole, CollaborationLink, UserFamilyListItem } from '../services/api'
+import { apiService, Family, FamilyMember, FamilyRole, CollaborationLink, UserFamilyListItem } from '../services/api'
 
 const router = useRouter()
 
 const isLoading = ref(false)
 
-const showUserMenu = ref(false)
 const showManageMenu = ref(false)
 
 const hasFamily = ref<boolean | null>(null)
@@ -1532,25 +1342,8 @@ const handleCopyLink = async (linkCode: string) => {
   }
 }
 
-interface NavItem {
-  id: string
-  label: string
-  icon: string
-  badge?: number
-}
-
-const activeNav = ref('family')
-
 const pendingApprovalsCount = ref(0)
 const myPendingInvitationsCount = ref(0)
-
-const navItems = computed<NavItem[]>(() => [
-  { id: 'home', label: '首页', icon: 'solar:home-2-bold' },
-  { id: 'family', label: '家承', icon: 'solar:tree-bold-duotone' },
-  { id: 'gallery', label: '影集', icon: 'solar:gallery-wide-bold-duotone' },
-  { id: 'digital', label: '生境', icon: 'solar:magic-stick-3-bold-duotone' },
-  { id: 'chat', label: '语伴', icon: 'solar:chat-round-dots-bold-duotone' },
-])
 
 const myRole = ref<FamilyRole | null>(null)
 
@@ -1604,63 +1397,16 @@ const roleClass = (role: FamilyRole) => {
   return classes[role]
 }
 
-const toggleUserMenu = () => {
-  showUserMenu.value = !showUserMenu.value
-  showManageMenu.value = false
-}
-
 const toggleManageMenu = () => {
   showManageMenu.value = !showManageMenu.value
-  showUserMenu.value = false
 }
 
-const closeUserMenu = (event: MouseEvent) => {
+const closeManageMenu = (event: MouseEvent) => {
   const target = event.target as HTMLElement
   if (!target.closest('.relative')) {
-    showUserMenu.value = false
     showManageMenu.value = false
   }
 }
-
-const handleNavClick = (navId: string) => {
-  activeNav.value = navId
-  if (navId === 'home') {
-    router.push('/')
-  } else if (navId === 'family') {
-    router.push('/zupu')
-  } else if (navId === 'gallery') {
-    router.push('/gallery')
-  } else if (navId === 'digital') {
-    router.push('/habitat')
-  } else if (navId === 'chat') {
-    router.push('/chat')
-  }
-}
-
-const handleLogout = () => {
-  showUserMenu.value = false
-  authStore.clearAuth()
-  router.push('/login')
-}
-
-const handleLogin = () => {
-  showUserMenu.value = false
-  router.push('/login')
-}
-
-const handleRegister = () => {
-  showUserMenu.value = false
-  router.push('/register')
-}
-
-const handleChangePassword = () => {
-  showUserMenu.value = false
-  alert('修改密码功能请在首页使用')
-}
-
-const noisePatternStyle = computed(() => ({
-  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox=%220 0 100 100%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22 opacity=%220.3%22/%3E%3C/svg%3E")`
-}))
 
 const familyInfo = reactive<{
   hallName: string
@@ -1957,32 +1703,29 @@ const switchFamily = async (familyId: string) => {
 }
 
 const navigateToMemberManagement = () => {
-  showUserMenu.value = false
   showManageMenu.value = false
   router.push('/family/members')
 }
 
 const navigateToApprovals = () => {
-  showUserMenu.value = false
   showManageMenu.value = false
   router.push('/family/approvals')
 }
 
 const navigateToLogs = () => {
-  showUserMenu.value = false
   showManageMenu.value = false
   router.push('/family/logs')
 }
 
 onMounted(() => {
   loadData()
-  document.addEventListener('click', closeUserMenu)
+  document.addEventListener('click', closeManageMenu)
   
   permissionPollTimer = window.setInterval(refreshPermissions, POLL_INTERVAL)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('click', closeUserMenu)
+  document.removeEventListener('click', closeManageMenu)
   
   if (permissionPollTimer !== null) {
     window.clearInterval(permissionPollTimer)

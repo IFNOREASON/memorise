@@ -1,50 +1,5 @@
 <template>
   <div class="min-h-screen paper-texture">
-    <header class="sticky top-0 z-50 glass-warm border-b border-[#E8D5C4]">
-      <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-          <div class="w-12 h-12 bg-[#C84A3E] rounded-sm flex items-center justify-center shadow-md">
-            <span class="text-white font-serif text-xl font-bold tracking-widest">存</span>
-          </div>
-          <div>
-            <h1 class="text-2xl font-bold text-[#5C4A3A] font-serif tracking-wider">memorise</h1>
-            <p class="text-xs text-gray-500 tracking-[0.15em] uppercase font-medium">Family Memorial</p>
-          </div>
-        </div>
-
-        <nav class="hidden lg:flex items-center space-x-8">
-          <button v-for="item in navItems" :key="item.id"
-            class="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all hover:bg-[#E8D5C4]/50"
-            :class="[
-              activeNav === item.id ? 'bg-[#E8D5C4] text-[#8B6F4E]' : 'text-gray-600'
-            ]"
-            @click="handleNavClick(item.id)">
-            <Icon :icon="item.icon" class="text-lg" />
-            <span class="font-medium text-sm">{{ item.label }}</span>
-          </button>
-        </nav>
-
-        <div class="flex items-center space-x-3">
-          <button 
-            @click="showVoiceSettings = !showVoiceSettings"
-            class="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow"
-          >
-            <Icon v-if="!isMuted" icon="solar:volume-high-bold" class="text-[#8B6F4E]" />
-            <Icon v-else icon="solar:volume-muted-cross-bold" class="text-gray-400" />
-          </button>
-
-          <div class="flex items-center space-x-3 pl-4 border-l border-[#E8D5C4]">
-            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#E8D5C4] to-[#D4A574] p-0.5">
-              <div class="w-full h-full rounded-full bg-gray-200 overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face" 
-                     class="w-full h-full object-cover" alt="用户头像">
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </header>
-
     <div class="max-w-7xl mx-auto px-6 py-6">
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center space-x-4">
@@ -346,7 +301,6 @@ interface ChatMessage {
   audioUrl?: string
 }
 
-const activeNav = ref('chat')
 const currentAvatar = ref<Avatar | null>(null)
 const availableAvatars = ref<Avatar[]>([])
 const loadingAvatars = ref(false)
@@ -374,29 +328,6 @@ let mediaRecorder: MediaRecorder | null = null
 let audioChunks: Blob[] = []
 let currentAudio: HTMLAudioElement | null = null
 let speechRecognition: any = null
-
-const navItems = [
-  { id: 'home', label: '首页', icon: 'solar:home-2-bold' },
-  { id: 'family', label: '家承', icon: 'solar:tree-bold-duotone' },
-  { id: 'gallery', label: '影集', icon: 'solar:gallery-wide-bold-duotone' },
-  { id: 'digital', label: '生境', icon: 'solar:magic-stick-3-bold-duotone' },
-  { id: 'chat', label: '语伴', icon: 'solar:chat-round-dots-bold-duotone' },
-]
-
-const handleNavClick = (navId: string) => {
-  activeNav.value = navId
-  if (navId === 'home') {
-    router.push('/')
-  } else if (navId === 'family') {
-    router.push('/zupu')
-  } else if (navId === 'gallery') {
-    router.push('/gallery')
-  } else if (navId === 'digital') {
-    router.push('/habitat')
-  } else if (navId === 'chat') {
-    router.push('/chat')
-  }
-}
 
 const formatTime = (date: Date) => {
   const now = new Date()

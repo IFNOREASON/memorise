@@ -1,50 +1,5 @@
 <template>
   <div class="min-h-screen paper-texture">
-    <header class="sticky top-0 z-50 glass-warm border-b border-[#E8D5C4]">
-      <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-          <button @click="router.push('/')" class="w-12 h-12 bg-[#C84A3E] rounded-sm flex items-center justify-center shadow-md relative overflow-hidden">
-            <div class="absolute inset-0 opacity-30" :style="noisePatternStyle"></div>
-            <span class="text-white font-serif text-xl font-bold tracking-widest relative z-10">存</span>
-          </button>
-          <div>
-            <h1 class="text-2xl font-bold text-[#5C4A3A] font-serif tracking-wider">生境</h1>
-            <p class="text-xs text-gray-500 tracking-[0.15em] uppercase font-medium">数字生命管理</p>
-          </div>
-        </div>
-
-        <nav class="hidden lg:flex items-center space-x-8">
-          <button v-for="item in navItems" :key="item.id"
-            class="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all hover:bg-[#E8D5C4]/50"
-            :class="[
-              item.id === 'habitat' ? 'bg-[#E8D5C4] text-[#8B6F4E]' : 'text-gray-600'
-            ]"
-            @click="handleNavClick(item.id)">
-            <Icon :icon="item.icon" class="text-lg" />
-            <span class="font-medium text-sm">{{ item.label }}</span>
-          </button>
-        </nav>
-
-        <div class="flex items-center space-x-4">
-          <button class="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow">
-            <Icon icon="solar:bell-bold" class="text-gray-600" />
-          </button>
-          <div class="flex items-center space-x-3 pl-4 border-l border-[#E8D5C4]">
-            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#E8D5C4] to-[#D4A574] p-0.5">
-              <div class="w-full h-full rounded-full bg-gray-200 overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face" 
-                     class="w-full h-full object-cover" alt="用户头像">
-              </div>
-            </div>
-            <div class="hidden md:block">
-              <p class="text-sm font-semibold text-gray-800">张家族长</p>
-              <p class="text-xs text-gray-500">管理员</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </header>
-
     <div class="max-w-7xl mx-auto px-6 py-8">
       <div class="flex gap-6 h-[calc(100vh-200px)]">
         <div class="w-64 flex-shrink-0 bg-white rounded-2xl shadow-soft border border-stone-100 flex flex-col overflow-hidden">
@@ -2619,28 +2574,6 @@ const hairStyles: HairStyle[] = [
   { id: 'straight-hair', label: '直发' }
 ]
 
-const navItems = [
-  { id: 'home', label: '首页', icon: 'solar:home-2-bold' },
-  { id: 'family', label: '家承', icon: 'solar:tree-bold-duotone' },
-  { id: 'gallery', label: '影集', icon: 'solar:gallery-wide-bold-duotone' },
-  { id: 'habitat', label: '生境', icon: 'solar:magic-stick-3-bold-duotone' },
-  { id: 'chat', label: '语伴', icon: 'solar:chat-round-dots-bold-duotone' }
-]
-
-const handleNavClick = (navId: string) => {
-  if (navId === 'home') {
-    router.push('/')
-  } else if (navId === 'family') {
-    router.push('/zupu')
-  } else if (navId === 'gallery') {
-    router.push('/gallery')
-  } else if (navId === 'digital') {
-    router.push('/habitat')
-  } else if (navId === 'chat') {
-    router.push('/chat')
-  }
-}
-
 const getActiveModuleIcon = () => {
   const module = habitatModules.find(m => m.id === activeModule.value)
   return module?.icon || 'solar:info-circle-bold'
@@ -3281,10 +3214,6 @@ const testConnection = async () => {
     isTestingConnection.value = false
   }
 }
-
-const noisePatternStyle = computed(() => ({
-  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox=%220 0 100 100%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22 opacity=%220.3%22/%3E%3C/svg%3E")`
-}))
 
 const dotPatternStyle = computed(() => ({
   backgroundImage: `url("data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%22%23ffffff%22 fill-opacity=%220.4%22%3E%3Cpath d=%22M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
