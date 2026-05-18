@@ -792,6 +792,72 @@ interface JoinByLinkRequest {
   linkCode: string;
 }
 
+type FamilyMemoryType = 'text' | 'image' | 'video';
+
+interface FamilyMemory {
+  id: string;
+  familyId: string;
+  title: string;
+  type: FamilyMemoryType;
+  description?: string;
+  content?: string;
+  eventDate?: string;
+  location?: string;
+  mediaUrl?: string;
+  mediaType?: string;
+  tags?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CreateFamilyMemoryRequest {
+  title: string;
+  type: FamilyMemoryType;
+  description?: string;
+  content?: string;
+  eventDate?: string;
+  location?: string;
+  mediaUrl?: string;
+  mediaType?: string;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+}
+
+interface UpdateFamilyMemoryRequest {
+  title?: string;
+  type?: FamilyMemoryType;
+  description?: string;
+  content?: string;
+  eventDate?: string;
+  location?: string;
+  mediaUrl?: string;
+  mediaType?: string;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+}
+
+interface FamilyMemoryTimelineItem {
+  id: string;
+  title: string;
+  type: FamilyMemoryType;
+  description?: string;
+  eventDate?: string;
+  location?: string;
+  mediaUrl?: string;
+  mediaType?: string;
+  createdAt: string;
+}
+
+interface FamilyMemoryListResponse {
+  total: number;
+  memories: FamilyMemory[];
+}
+
+interface FamilyMemoryTimelineResponse {
+  total: number;
+  items: FamilyMemoryTimelineItem[];
+}
+
 interface CreateFamilyRequest {
   hallName?: string;
   surname: string;
@@ -2156,6 +2222,80 @@ class ApiService {
     }
     
     return this.request<GalleryMediaListResponse>(endpoint);
+  }
+
+  async getFamilyMemories(options?: {
+    type?: FamilyMemoryType;
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<ApiResponse<FamilyMemoryListResponse>> {
+    let endpoint = '/api/family-memories';
+    const params = new URLSearchParams();
+    
+    if (options?.type) params.append('type', options.type);
+    if (options?.keyword) params.append('keyword', options.keyword);
+    if (options?.startDate) params.append('start_date', options.startDate);
+    if (options?.endDate) params.append('end_date', options.endDate);
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`;
+    }
+    
+    return this.request<FamilyMemoryListResponse>(endpoint);
+  }
+
+  async getFamilyMemoryTimeline(limit: number = 20): Promise<ApiResponse<FamilyMemoryTimelineResponse>> {
+    return this.request<FamilyMemoryTimelineResponse>(`/api/family-memories/timeline?limit=${limit}`);
+  }
+
+  async getFamilyMemory(memoryId: string): Promise<ApiResponse<FamilyMemory>> {
+    return this.request<FamilyMemory>(`/api/family-memories/${memoryId}`);
+  }
+
+  async createFamilyMemory(request: CreateFamilyMemoryRequest): Promise<ApiResponse<FamilyMemory>> {
+    return this.request<FamilyMemory>('/api/family-memories', {
+      method: 'POST',
+      body: JSON.stringify(request)
+    });
+  }
+
+  async updateFamilyMemory(
+    memoryId: string,
+    request: UpdateFamilyMemoryRequest
+  ): Promise<ApiResponse<FamilyMemory>> {
+    return this.request<FamilyMemory>(`/api/family-memories/${memoryId}`, {
+      method: 'PUT',
+      body: JSON.stringify(request)
+    });
+  }
+
+  async deleteFamilyMemory(memoryId: string): Promise<ApiResponse> {
+    return this.request<ApiResponse>(`/api/family-memories/${memoryId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async uploadFamilyMemoryWithMedia(
+    formData: FormData
+  ): Promise<ApiResponse<FamilyMemory>> {
+    const url = `${API_BASE_URL}/api/family-memories/upload`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await response.json();
+      return data as ApiResponse<FamilyMemory>;
+    } catch (error) {
+      console.error('API 请求错误:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '网络错误或后端服务未启动'
+      };
+    }
   }
 }
 

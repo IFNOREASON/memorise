@@ -23,7 +23,8 @@ from app.routers import (
     anniversaries_router,
     push_rules_router,
     messages_router,
-    galleries_router
+    galleries_router,
+    family_memories_router
 )
 from app.routers import membership, approval, logs
 from app.services import generation_service
@@ -173,6 +174,7 @@ app.include_router(anniversaries_router, prefix=api_prefix)
 app.include_router(push_rules_router, prefix=api_prefix)
 app.include_router(messages_router, prefix=api_prefix)
 app.include_router(galleries_router, prefix=api_prefix)
+app.include_router(family_memories_router, prefix=api_prefix)
 
 
 if __name__ == "__main__":

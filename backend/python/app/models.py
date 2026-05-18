@@ -811,3 +811,42 @@ class GalleryMedia(Base, TimestampMixin):
         Index('idx_gallery_medias_type', 'type'),
         Index('idx_gallery_medias_created_at', 'created_at'),
     )
+
+
+class FamilyMemoryType(str, enum.Enum):
+    TEXT = "text"
+    IMAGE = "image"
+    VIDEO = "video"
+
+
+class FamilyMemory(Base, TimestampMixin):
+    __tablename__ = "family_memories"
+
+    id = Column(String(64), primary_key=True)
+    family_id = Column(String(64), ForeignKey('families.id', ondelete='CASCADE'), nullable=False, index=True)
+
+    title = Column(String(200), nullable=False)
+    type = Column(String(20), nullable=False, default="text")
+    description = Column(Text, nullable=True)
+    content = Column(Text, nullable=True)
+
+    event_date = Column(String(50), nullable=True)
+    location = Column(String(200), nullable=True)
+
+    media_url = Column(String(500), nullable=True)
+    media_type = Column(String(20), nullable=True)
+
+    tags = Column(JSON)
+    meta_data = Column('meta_data', JSON)
+
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+
+    family = orm_relationship("Family", foreign_keys=[family_id])
+
+    __table_args__ = (
+        Index('idx_family_memories_family_id', 'family_id'),
+        Index('idx_family_memories_type', 'type'),
+        Index('idx_family_memories_event_date', 'event_date'),
+        Index('idx_family_memories_created_at', 'created_at'),
+        Index('idx_family_memories_deleted_at', 'deleted_at'),
+    )

@@ -481,8 +481,305 @@
           </button>
         </div>
       </section>
+
+      <section class="mb-8 px-6" v-if="hasFamily">
+        <div class="max-w-7xl mx-auto">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-[#5C4A3A] font-serif">家族记忆管理</h3>
+            <button 
+              class="flex items-center space-x-2 px-5 py-2.5 bg-[#8B6F4E] text-white rounded-xl hover:bg-[#6B5342] transition-colors shadow-soft"
+              @click="showFamilyMemoryModal = true">
+              <Icon icon="solar:add-circle-bold" class="text-lg" />
+              <span class="font-medium">添加记忆</span>
+            </button>
+          </div>
+
+          <div class="relative pl-8">
+            <div class="absolute left-[11px] top-2 bottom-2 w-px bg-[#E8D5C4]"></div>
+            
+            <div v-if="familyMemories.length === 0" class="text-center py-12 text-gray-500">
+              <Icon icon="solar:bookmark-bold" class="text-4xl mb-3 mx-auto text-[#E8D5C4]" />
+              <p>暂无家族记忆，点击上方按钮添加</p>
+            </div>
+
+            <div v-else class="space-y-6">
+              <div v-for="memory in familyMemories" :key="memory.id" class="relative">
+                <div class="absolute left-[-29px] top-2 w-4 h-4 rounded-full border-2 border-white shadow-sm z-10"
+                     :class="getMemoryTypeColor(memory.type)"></div>
+                
+                <div class="bg-white rounded-xl shadow-soft border border-stone-100 hover-lift cursor-pointer"
+                     @click="openFamilyMemoryDetail(memory)">
+                  <div class="p-4">
+                    <div class="flex items-start justify-between mb-2">
+                      <div class="flex-1">
+                        <div class="flex items-center space-x-2 mb-1">
+                          <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                                :class="getMemoryTypeBadge(memory.type)">
+                            {{ getMemoryTypeLabel(memory.type) }}
+                          </span>
+                          <span v-if="memory.eventDate" class="text-xs text-gray-400">
+                            {{ formatEventDate(memory.eventDate) }}
+                          </span>
+                        </div>
+                        <h4 class="font-bold text-[#5C4A3A] mb-1">{{ memory.title }}</h4>
+                        <p v-if="memory.description" class="text-sm text-gray-500 line-clamp-2 mb-2">
+                          {{ memory.description }}
+                        </p>
+                        <div class="flex items-center space-x-3 text-xs text-gray-400">
+                          <span v-if="memory.location" class="flex items-center">
+                            <Icon icon="solar:point-on-map-linear" class="mr-1 w-3 h-3" />
+                            {{ memory.location }}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div class="flex items-center space-x-1 ml-4">
+                        <button 
+                          class="p-2 text-gray-400 hover:text-[#8B6F4E] hover:bg-[#E8D5C4]/30 rounded-lg transition-colors"
+                          @click.stop="editFamilyMemory(memory)">
+                          <Icon icon="solar:pen-bold" class="w-4 h-4" />
+                        </button>
+                        <button 
+                          class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          @click.stop="confirmDeleteFamilyMemory(memory)">
+                          <Icon icon="solar:trash-bin-trash-bold" class="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div v-if="memory.mediaUrl" class="mt-3">
+                      <img 
+                        :src="getFullMediaUrl(memory.mediaUrl)" 
+                        :alt="memory.title"
+                        class="w-full max-h-64 object-contain rounded-lg bg-gray-50" />
+                    </div>
+                    
+                    <div v-if="memory.tags && memory.tags.length > 0" class="mt-3 flex flex-wrap gap-1">
+                      <span 
+                        v-for="tag in memory.tags" 
+                        :key="tag"
+                        class="px-2 py-0.5 bg-[#E8D5C4]/30 text-[#8B6F4E] rounded-full text-xs">
+                        {{ tag }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
       </template>
     </main>
+
+    <div v-if="showFamilyMemoryModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="absolute inset-0 bg-black/60" @click="closeFamilyMemoryModal"></div>
+      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div class="p-6 border-b border-[#E8D5C4] flex items-center justify-between">
+          <h3 class="text-lg font-bold text-[#5C4A3A] font-serif">
+            {{ editingFamilyMemory ? '编辑家族记忆' : '添加家族记忆' }}
+          </h3>
+          <button 
+            class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+            @click="closeFamilyMemoryModal">
+            <Icon icon="solar:close-circle-bold" class="text-xl" />
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 space-y-5">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">记忆标题 *</label>
+            <input 
+              type="text" 
+              v-model="newFamilyMemory.title"
+              class="w-full px-4 py-3 border border-[#E8D5C4] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4A574] focus:border-transparent"
+              placeholder="输入记忆标题">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">记忆类型</label>
+            <div class="grid grid-cols-3 gap-3">
+              <button 
+                v-for="type in ['text', 'image', 'video']" 
+                :key="type"
+                class="p-3 border-2 rounded-xl transition-all"
+                :class="newFamilyMemory.type === type ? 'border-[#8B6F4E] bg-[#E8D5C4]/30' : 'border-[#E8D5C4] hover:border-[#D4A574]'"
+                @click="newFamilyMemory.type = type">
+                <Icon :icon="getMemoryTypeIcon(type)" class="text-xl mx-auto mb-1" :class="newFamilyMemory.type === type ? 'text-[#8B6F4E]' : 'text-gray-400'" />
+                <p class="text-sm font-medium" :class="newFamilyMemory.type === type ? 'text-[#8B6F4E]' : 'text-gray-600'">
+                  {{ getMemoryTypeLabel(type) }}
+                </p>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">事件日期</label>
+            <input 
+              type="date" 
+              v-model="newFamilyMemory.eventDate"
+              class="w-full px-4 py-3 border border-[#E8D5C4] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4A574] focus:border-transparent">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">发生地点</label>
+            <div class="relative">
+              <Icon icon="solar:point-on-map-linear" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input 
+                type="text" 
+                v-model="newFamilyMemory.location"
+                class="w-full pl-10 pr-4 py-3 border border-[#E8D5C4] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4A574] focus:border-transparent"
+                placeholder="例如：北京市海淀区老宅">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">详细描述</label>
+            <textarea 
+              v-model="newFamilyMemory.description"
+              rows="4"
+              class="w-full px-4 py-3 border border-[#E8D5C4] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4A574] focus:border-transparent resize-none"
+              placeholder="详细描述这个家族记忆..."></textarea>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">上传照片/视频</label>
+            <div class="border-2 border-dashed border-[#E8D5C4] rounded-xl p-8 text-center hover:border-[#D4A574] transition-colors cursor-pointer"
+                 @click="triggerFamilyMemoryMediaUpload">
+              <Icon icon="solar:upload-minimalistic-bold" class="text-4xl text-gray-300 mx-auto mb-3" />
+              <p class="text-sm text-gray-500">点击或拖拽上传照片/视频</p>
+              <p class="text-xs text-gray-400 mt-1">支持 JPG、PNG、MP4 格式</p>
+            </div>
+            <input 
+              type="file" 
+              ref="familyMemoryMediaInput"
+              accept="image/*,video/*"
+              class="hidden"
+              @change="handleFamilyMemoryMediaUpload">
+            
+            <div v-if="newFamilyMemory.previewUrl" class="mt-3">
+              <img 
+                :src="newFamilyMemory.previewUrl" 
+                alt="预览"
+                class="w-full max-h-64 object-contain rounded-lg bg-gray-50" />
+              <button 
+                class="mt-2 text-sm text-red-500 hover:text-red-600"
+                @click="removeFamilyMemoryMedia">
+                移除媒体
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">标签（用逗号分隔）</label>
+            <input 
+              type="text" 
+              v-model="newFamilyMemory.tagsStr"
+              class="w-full px-4 py-3 border border-[#E8D5C4] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4A574] focus:border-transparent"
+              placeholder="例如：春节, 团圆, 老照片">
+          </div>
+        </div>
+
+        <div class="p-6 border-t border-gray-100 flex items-center justify-end space-x-3">
+          <button 
+            class="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+            @click="closeFamilyMemoryModal">
+            取消
+          </button>
+          <button 
+            class="px-5 py-2.5 bg-[#8B6F4E] text-white rounded-xl hover:bg-[#6B5342] transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            :disabled="!newFamilyMemory.title || isFamilyMemoryLoading"
+            @click="saveFamilyMemory">
+            {{ isFamilyMemoryLoading ? '保存中...' : '保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showFamilyMemoryDetailModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="absolute inset-0 bg-black/60" @click="showFamilyMemoryDetailModal = false"></div>
+      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div class="p-6 border-b border-[#E8D5C4] flex items-center justify-between">
+          <h3 class="text-lg font-bold text-[#5C4A3A] font-serif">{{ selectedFamilyMemory?.title }}</h3>
+          <button 
+            class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+            @click="showFamilyMemoryDetailModal = false">
+            <Icon icon="solar:close-circle-bold" class="text-xl" />
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6">
+          <div class="flex items-center space-x-3 mb-4">
+            <span class="px-3 py-1 rounded-full text-sm font-medium"
+                  :class="getMemoryTypeBadge(selectedFamilyMemory?.type || 'text')">
+              {{ getMemoryTypeLabel(selectedFamilyMemory?.type || 'text') }}
+            </span>
+            <span v-if="selectedFamilyMemory?.eventDate" class="text-sm text-gray-400">
+              {{ formatEventDate(selectedFamilyMemory?.eventDate || '') }}
+            </span>
+            <span v-if="selectedFamilyMemory?.location" class="flex items-center text-sm text-gray-400">
+              <Icon icon="solar:point-on-map-linear" class="mr-1 w-4 h-4" />
+              {{ selectedFamilyMemory?.location }}
+            </span>
+          </div>
+
+          <div v-if="selectedFamilyMemory?.mediaUrl" class="mb-6">
+            <img 
+              :src="getFullMediaUrl(selectedFamilyMemory?.mediaUrl || '')" 
+              :alt="selectedFamilyMemory?.title"
+              class="w-full max-h-96 object-contain rounded-xl bg-gray-50" />
+          </div>
+
+          <div v-if="selectedFamilyMemory?.description" class="mb-6">
+            <h4 class="font-medium text-gray-700 mb-2">记忆描述</h4>
+            <p class="text-gray-600 whitespace-pre-wrap">{{ selectedFamilyMemory?.description }}</p>
+          </div>
+
+          <div v-if="selectedFamilyMemory?.tags && selectedFamilyMemory?.tags.length > 0" class="mb-6">
+            <h4 class="font-medium text-gray-700 mb-2">标签</h4>
+            <div class="flex flex-wrap gap-2">
+              <span 
+                v-for="tag in selectedFamilyMemory?.tags" 
+                :key="tag"
+                class="px-3 py-1 bg-[#E8D5C4]/30 text-[#8B6F4E] rounded-full text-sm">
+                {{ tag }}
+              </span>
+            </div>
+          </div>
+
+          <div class="text-xs text-gray-400 pt-4 border-t border-gray-100">
+            创建时间：{{ selectedFamilyMemory?.createdAt ? new Date(selectedFamilyMemory.createdAt).toLocaleString('zh-CN') : '' }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showDeleteFamilyMemoryConfirm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="absolute inset-0 bg-black/50" @click="showDeleteFamilyMemoryConfirm = false"></div>
+      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+        <div class="text-center">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
+            <Icon icon="solar:trash-bin-trash-bold" class="text-red-500 text-3xl" />
+          </div>
+          <h3 class="text-lg font-bold text-gray-800 mb-2">确认删除</h3>
+          <p class="text-sm text-gray-500 mb-6">
+            确定要删除记忆「<span class="font-medium">{{ deletingFamilyMemory?.title }}</span>」吗？<br>此操作不可撤销。
+          </p>
+        </div>
+        <div class="flex items-center justify-center space-x-3">
+          <button 
+            class="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+            @click="showDeleteFamilyMemoryConfirm = false">
+            取消
+          </button>
+          <button 
+            class="px-5 py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors"
+            @click="deleteFamilyMemory">
+            确认删除
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div v-if="showCreateFamilyModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -1195,6 +1492,282 @@ const router = useRouter()
 const isLoading = ref(false)
 
 const showManageMenu = ref(false)
+
+interface FamilyMemoryItem {
+  id: string
+  familyId: string
+  title: string
+  type: 'text' | 'image' | 'video'
+  description?: string
+  content?: string
+  eventDate?: string
+  location?: string
+  mediaUrl?: string
+  mediaType?: string
+  tags?: string[]
+  createdAt: string
+  updatedAt: string
+}
+
+const familyMemories = ref<FamilyMemoryItem[]>([])
+const showFamilyMemoryModal = ref(false)
+const showFamilyMemoryDetailModal = ref(false)
+const showDeleteFamilyMemoryConfirm = ref(false)
+const editingFamilyMemory = ref<FamilyMemoryItem | null>(null)
+const selectedFamilyMemory = ref<FamilyMemoryItem | null>(null)
+const deletingFamilyMemory = ref<FamilyMemoryItem | null>(null)
+const isFamilyMemoryLoading = ref(false)
+const familyMemoryMediaInput = ref<HTMLInputElement | null>(null)
+
+const newFamilyMemory = reactive({
+  title: '',
+  type: 'text' as 'text' | 'image' | 'video',
+  description: '',
+  eventDate: '',
+  location: '',
+  tagsStr: '',
+  mediaFile: null as File | null,
+  previewUrl: ''
+})
+
+const getMemoryTypeIcon = (type: string) => {
+  const icons: Record<string, string> = {
+    text: 'solar:note-book-bold',
+    image: 'solar:gallery-wide-bold',
+    video: 'solar:video-camera-bold'
+  }
+  return icons[type] || icons.text
+}
+
+const getMemoryTypeLabel = (type: string) => {
+  const labels: Record<string, string> = {
+    text: '文字记忆',
+    image: '照片记忆',
+    video: '视频记忆'
+  }
+  return labels[type] || '文字记忆'
+}
+
+const getMemoryTypeColor = (type: string) => {
+  const colors: Record<string, string> = {
+    text: 'bg-[#8B6F4E]',
+    image: 'bg-[#D4A574]',
+    video: 'bg-emerald-500'
+  }
+  return colors[type] || colors.text
+}
+
+const getMemoryTypeBadge = (type: string) => {
+  const badges: Record<string, string> = {
+    text: 'bg-[#8B6F4E]/10 text-[#8B6F4E]',
+    image: 'bg-[#D4A574]/10 text-[#D4A574]',
+    video: 'bg-emerald-500/10 text-emerald-600'
+  }
+  return badges[type] || badges.text
+}
+
+const formatEventDate = (dateStr: string) => {
+  if (!dateStr) return ''
+  try {
+    return new Date(dateStr).toLocaleDateString('zh-CN')
+  } catch {
+    return dateStr
+  }
+}
+
+const getFullMediaUrl = (url: string) => {
+  if (!url) return ''
+  if (url.startsWith('http') || url.startsWith('data:')) {
+    return url
+  }
+  return `http://localhost:8000${url}`
+}
+
+const loadFamilyMemories = async () => {
+  if (!hasFamily.value) return
+  isFamilyMemoryLoading.value = true
+  try {
+    const response = await apiService.getFamilyMemories()
+    if (response.success && response.data) {
+      familyMemories.value = response.data.memories.sort((a, b) => {
+        const dateA = a.eventDate || a.createdAt
+        const dateB = b.eventDate || b.createdAt
+        return new Date(dateB).getTime() - new Date(dateA).getTime()
+      })
+    }
+  } catch (error) {
+    console.error('加载家族记忆失败:', error)
+  } finally {
+    isFamilyMemoryLoading.value = false
+  }
+}
+
+const triggerFamilyMemoryMediaUpload = () => {
+  if (familyMemoryMediaInput.value) {
+    familyMemoryMediaInput.value.click()
+  }
+}
+
+const handleFamilyMemoryMediaUpload = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (!input.files || input.files.length === 0) return
+  
+  const file = input.files[0]
+  newFamilyMemory.mediaFile = file
+  
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    newFamilyMemory.previewUrl = e.target?.result as string
+  }
+  reader.readAsDataURL(file)
+}
+
+const removeFamilyMemoryMedia = () => {
+  newFamilyMemory.mediaFile = null
+  newFamilyMemory.previewUrl = ''
+  if (familyMemoryMediaInput.value) {
+    familyMemoryMediaInput.value.value = ''
+  }
+}
+
+const closeFamilyMemoryModal = () => {
+  showFamilyMemoryModal.value = false
+  editingFamilyMemory.value = null
+  resetNewFamilyMemory()
+}
+
+const resetNewFamilyMemory = () => {
+  newFamilyMemory.title = ''
+  newFamilyMemory.type = 'text'
+  newFamilyMemory.description = ''
+  newFamilyMemory.eventDate = ''
+  newFamilyMemory.location = ''
+  newFamilyMemory.tagsStr = ''
+  newFamilyMemory.mediaFile = null
+  newFamilyMemory.previewUrl = ''
+}
+
+const saveFamilyMemory = async () => {
+  if (!newFamilyMemory.title) return
+  
+  isFamilyMemoryLoading.value = true
+  try {
+    const tags = newFamilyMemory.tagsStr
+      ? newFamilyMemory.tagsStr.split(/[,，]/).map(t => t.trim()).filter(t => t)
+      : undefined
+    
+    if (editingFamilyMemory.value) {
+      const response = await apiService.updateFamilyMemory(editingFamilyMemory.value.id, {
+        title: newFamilyMemory.title,
+        type: newFamilyMemory.type,
+        description: newFamilyMemory.description,
+        eventDate: newFamilyMemory.eventDate,
+        location: newFamilyMemory.location,
+        tags
+      })
+      
+      if (response.success && response.data) {
+        const index = familyMemories.value.findIndex(m => m.id === editingFamilyMemory.value?.id)
+        if (index > -1) {
+          familyMemories.value[index] = response.data
+        }
+      }
+    } else {
+      if (newFamilyMemory.mediaFile) {
+        const formData = new FormData()
+        formData.append('title', newFamilyMemory.title)
+        formData.append('type', newFamilyMemory.type)
+        if (newFamilyMemory.description) {
+          formData.append('description', newFamilyMemory.description)
+        }
+        if (newFamilyMemory.eventDate) {
+          formData.append('eventDate', newFamilyMemory.eventDate)
+        }
+        if (newFamilyMemory.location) {
+          formData.append('location', newFamilyMemory.location)
+        }
+        if (tags) {
+          formData.append('tags', tags.join(','))
+        }
+        formData.append('file', newFamilyMemory.mediaFile)
+        
+        const response = await apiService.uploadFamilyMemoryWithMedia(formData)
+        if (response.success && response.data) {
+          familyMemories.value.unshift(response.data)
+        }
+      } else {
+        const response = await apiService.createFamilyMemory({
+          title: newFamilyMemory.title,
+          type: newFamilyMemory.type,
+          description: newFamilyMemory.description,
+          eventDate: newFamilyMemory.eventDate,
+          location: newFamilyMemory.location,
+          tags
+        })
+        
+        if (response.success && response.data) {
+          familyMemories.value.unshift(response.data)
+        }
+      }
+    }
+    
+    familyMemories.value.sort((a, b) => {
+      const dateA = a.eventDate || a.createdAt
+      const dateB = b.eventDate || b.createdAt
+      return new Date(dateB).getTime() - new Date(dateA).getTime()
+    })
+    
+    closeFamilyMemoryModal()
+  } catch (error) {
+    console.error('保存家族记忆失败:', error)
+  } finally {
+    isFamilyMemoryLoading.value = false
+  }
+}
+
+const editFamilyMemory = (memory: FamilyMemoryItem) => {
+  editingFamilyMemory.value = memory
+  newFamilyMemory.title = memory.title
+  newFamilyMemory.type = memory.type
+  newFamilyMemory.description = memory.description || ''
+  newFamilyMemory.eventDate = memory.eventDate || ''
+  newFamilyMemory.location = memory.location || ''
+  newFamilyMemory.tagsStr = memory.tags?.join(', ') || ''
+  newFamilyMemory.mediaFile = null
+  newFamilyMemory.previewUrl = memory.mediaUrl ? getFullMediaUrl(memory.mediaUrl) : ''
+  showFamilyMemoryModal.value = true
+}
+
+const openFamilyMemoryDetail = (memory: FamilyMemoryItem) => {
+  selectedFamilyMemory.value = memory
+  showFamilyMemoryDetailModal.value = true
+}
+
+const confirmDeleteFamilyMemory = (memory: FamilyMemoryItem) => {
+  deletingFamilyMemory.value = memory
+  showDeleteFamilyMemoryConfirm.value = true
+}
+
+const deleteFamilyMemory = async () => {
+  if (!deletingFamilyMemory.value) return
+  
+  isFamilyMemoryLoading.value = true
+  try {
+    const response = await apiService.deleteFamilyMemory(deletingFamilyMemory.value.id)
+    if (response.success) {
+      const index = familyMemories.value.findIndex(m => m.id === deletingFamilyMemory.value?.id)
+      if (index > -1) {
+        familyMemories.value.splice(index, 1)
+      }
+      showDeleteFamilyMemoryConfirm.value = false
+      deletingFamilyMemory.value = null
+    }
+  } catch (error) {
+    console.error('删除家族记忆失败:', error)
+  } finally {
+    isFamilyMemoryLoading.value = false
+  }
+}
 
 const hasFamily = ref<boolean | null>(null)
 const showCreateFamilyModal = ref(false)
@@ -1943,6 +2516,8 @@ const loadData = async () => {
       if (invitationsResp.success && invitationsResp.data) {
         myPendingInvitationsCount.value = invitationsResp.data.invitations.length
       }
+      
+      await loadFamilyMemories()
     } else {
       console.error('获取家族状态失败:', statusResp.error)
       if (statusResp.error && statusResp.error.includes('404')) {

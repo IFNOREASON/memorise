@@ -11,6 +11,7 @@ from app.routers.anniversaries import router as anniversaries_router
 from app.routers.push_rules import router as push_rules_router
 from app.routers.messages import router as messages_router
 from app.routers.galleries import router as galleries_router
+from app.routers.family_memories import router as family_memories_router
 
 __all__ = [
     "health_router",
@@ -25,5 +26,6 @@ __all__ = [
     "anniversaries_router",
     "push_rules_router",
     "messages_router",
-    "galleries_router"
+    "galleries_router",
+    "family_memories_router"
 ]

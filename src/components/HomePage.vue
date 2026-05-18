@@ -197,61 +197,36 @@
         <section class="px-6 mt-8">
           <h3 class="text-base font-bold text-[#5C4A3A] font-serif mb-4">家族记忆轴</h3>
           
-          <div class="relative pl-6 space-y-6">
-            <div class="absolute left-[11px] top-2 bottom-2 w-px timeline-line"></div>
+          <div class="relative">
+            <div v-if="familyMemories.length === 0" class="text-center py-8 text-gray-400">
+              <p class="text-xs">暂无家族记忆</p>
+            </div>
+
+            <div v-else class="flex items-start space-x-4 overflow-x-auto pb-4 no-scrollbar" style="scroll-snap-type: x mandatory;">
+              <div v-for="(memory, index) in familyMemories.slice(0, 8)" :key="memory.id" 
+                   class="flex-shrink-0 flex flex-col items-center" style="scroll-snap-align: start; width: 160px;">
+                <div class="w-40 h-32 rounded-xl overflow-hidden shadow-soft border border-stone-100 mb-2 flex-shrink-0">
+                  <img v-if="memory.mediaUrl" 
+                       :src="getFullMediaUrl(memory.mediaUrl)" 
+                       class="w-full h-full object-contain bg-gray-50" 
+                       :alt="memory.title">
+                  <div v-else class="w-full h-full flex flex-col items-center justify-center"
+                       :class="getMemoryTypeBgColor(memory.type)">
+                    <Icon :icon="getMemoryTypeIcon(memory.type)" class="text-2xl" :class="getMemoryTypeIconColor(memory.type)" />
+                    <span class="text-xs mt-1" :class="getMemoryTypeIconColor(memory.type)">{{ getMemoryTypeLabel(memory.type) }}</span>
+                  </div>
+                </div>
+                <div class="w-full text-center">
+                  <p class="text-[10px] text-gray-400 mb-1">{{ formatMemoryDate(memory.eventDate || memory.createdAt) }}</p>
+                  <h4 class="text-xs font-bold text-gray-800 truncate">{{ memory.title }}</h4>
+                  <p v-if="memory.description" class="text-[10px] text-gray-500 mt-1 line-clamp-2">{{ memory.description }}</p>
+                </div>
+                <div class="w-4 h-4 rounded-full border-2 border-white shadow-sm mt-2"
+                     :class="getMemoryTypeColor(memory.type)"></div>
+              </div>
+            </div>
             
-            <div class="relative">
-              <div class="absolute left-[-17px] top-1 w-3 h-3 bg-[#8B6F4E] rounded-full border-2 border-white shadow-sm"></div>
-              <div class="bg-white rounded-xl p-3 shadow-soft border border-stone-100">
-                <div class="flex items-start space-x-3">
-                  <div class="photo-frame w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                    <img src="https://images.unsplash.com/photo-1511895426328-dc8714191300?w=300&h=300&fit=crop" class="w-full h-full object-cover" alt="全家福">
-                  </div>
-                  <div>
-                    <p class="text-xs text-gray-400 mb-1">1985年春</p>
-                    <h4 class="text-sm font-bold text-gray-800">四世同堂全家福</h4>
-                    <p class="text-xs text-gray-500 mt-1 line-clamp-2">爷爷六十大寿，全家二十三口人在老宅院子里的合影...</p>
-                    <div class="flex items-center mt-2 space-x-2">
-                      <span class="text-[10px] text-gray-400">12张影像</span>
-                      <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
-                      <span class="text-[10px] text-gray-400">3个故事</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="relative">
-              <div class="absolute left-[-17px] top-1 w-3 h-3 bg-[#D4A574] rounded-full border-2 border-white shadow-sm"></div>
-              <div class="bg-white rounded-xl p-3 shadow-soft border border-stone-100">
-                <div class="flex items-start space-x-3">
-                  <div class="w-10 h-10 rounded-full bg-[#E8D5C4] flex items-center justify-center flex-shrink-0">
-                    <Icon icon="solar:pen-new-square-bold" class="text-[#8B6F4E]" />
-                  </div>
-                  <div>
-                    <p class="text-xs text-gray-400 mb-1">昨天</p>
-                    <h4 class="text-sm font-bold text-gray-800">给爷爷写了一封信</h4>
-                    <p class="text-xs text-gray-500 mt-1">通过时光信箱功能，倾诉近期的工作感悟...</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="relative">
-              <div class="absolute left-[-17px] top-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white shadow-sm"></div>
-              <div class="bg-white rounded-xl p-3 shadow-soft border border-stone-100">
-                <div class="flex items-start space-x-3">
-                  <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                    <Icon icon="solar:chat-round-dots-bold" class="text-emerald-600" />
-                  </div>
-                  <div>
-                    <p class="text-xs text-gray-400 mb-1">2小时前</p>
-                    <h4 class="text-sm font-bold text-gray-800">与祖父数字人对话</h4>
-                    <p class="text-xs text-gray-500 mt-1">讨论了关于家族传承的话题，获得了宝贵建议...</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <div class="absolute left-0 right-0 top-36 h-0.5 bg-gradient-to-r from-transparent via-[#E8D5C4] to-transparent pointer-events-none"></div>
           </div>
         </section>
 
@@ -326,8 +301,23 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
+import { apiService } from '@/services/api'
+
+interface FamilyMemoryItem {
+  id: string
+  familyId: string
+  title: string
+  type: 'text' | 'image' | 'video'
+  description?: string
+  eventDate?: string
+  location?: string
+  mediaUrl?: string
+  createdAt: string
+}
+
+const familyMemories = ref<FamilyMemoryItem[]>([])
 
 const noisePatternStyle = computed(() => ({
   backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox=%220 0 100 100%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22 opacity=%220.3%22/%3E%3C/svg%3E")`
@@ -336,4 +326,96 @@ const noisePatternStyle = computed(() => ({
 const dotPatternStyle = computed(() => ({
   backgroundImage: `url("data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%22%23ffffff%22 fill-opacity=%220.4%22%3E%3Cpath d=%22M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
 }))
+
+const getMemoryTypeColor = (type: string) => {
+  const colors: Record<string, string> = {
+    text: 'bg-[#8B6F4E]',
+    image: 'bg-[#D4A574]',
+    video: 'bg-emerald-500'
+  }
+  return colors[type] || colors.text
+}
+
+const getMemoryTypeBgColor = (type: string) => {
+  const colors: Record<string, string> = {
+    text: 'bg-[#E8D5C4]',
+    image: 'bg-[#F5E6D3]',
+    video: 'bg-emerald-50'
+  }
+  return colors[type] || colors.text
+}
+
+const getMemoryTypeIcon = (type: string) => {
+  const icons: Record<string, string> = {
+    text: 'solar:note-book-bold',
+    image: 'solar:gallery-wide-bold',
+    video: 'solar:video-camera-bold'
+  }
+  return icons[type] || icons.text
+}
+
+const getMemoryTypeIconColor = (type: string) => {
+  const colors: Record<string, string> = {
+    text: 'text-[#8B6F4E]',
+    image: 'text-[#D4A574]',
+    video: 'text-emerald-600'
+  }
+  return colors[type] || colors.text
+}
+
+const getMemoryTypeLabel = (type: string) => {
+  const labels: Record<string, string> = {
+    text: '文字记忆',
+    image: '照片记忆',
+    video: '视频记忆'
+  }
+  return labels[type] || '文字记忆'
+}
+
+const getFullMediaUrl = (url: string) => {
+  if (!url) return ''
+  if (url.startsWith('http')) {
+    return url
+  }
+  return `http://localhost:8000${url}`
+}
+
+const formatMemoryDate = (dateStr: string) => {
+  if (!dateStr) return ''
+  try {
+    const date = new Date(dateStr)
+    const now = new Date()
+    const diffTime = now.getTime() - date.getTime()
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+    
+    if (diffDays === 0) return '今天'
+    if (diffDays === 1) return '昨天'
+    if (diffDays < 7) return `${diffDays}天前`
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)}周前`
+    if (diffDays < 365) return `${Math.floor(diffDays / 30)}个月前`
+    
+    return `${date.getFullYear()}年${date.getMonth() + 1}月`
+  } catch {
+    return dateStr
+  }
+}
+
+const loadFamilyMemories = async () => {
+  try {
+    const response = await apiService.getFamilyMemories()
+    if (response.success && response.data) {
+      familyMemories.value = response.data.memories.sort((a, b) => {
+        const dateA = a.eventDate || a.createdAt
+        const dateB = b.eventDate || b.createdAt
+        return new Date(dateB).getTime() - new Date(dateA).getTime()
+      })
+    }
+  } catch (error) {
+    console.error('加载家族记忆失败:', error)
+  }
+}
+
+onMounted(() => {
+  loadFamilyMemories()
+})
 </script>

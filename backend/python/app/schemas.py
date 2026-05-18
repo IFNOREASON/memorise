@@ -1273,3 +1273,87 @@ class GalleryListResponse(BaseModel):
 class GalleryMediaListResponse(BaseModel):
     total: int
     medias: List[GalleryMediaBase]
+
+
+class FamilyMemoryType(str, enum.Enum):
+    TEXT = "text"
+    IMAGE = "image"
+    VIDEO = "video"
+
+
+class FamilyMemoryBase(BaseModel):
+    id: str
+    family_id: str = Field(alias="familyId")
+    title: str
+    type: FamilyMemoryType
+    description: Optional[str] = None
+    content: Optional[str] = None
+    event_date: Optional[str] = Field(default=None, alias="eventDate")
+    location: Optional[str] = None
+    media_url: Optional[str] = Field(default=None, alias="mediaUrl")
+    media_type: Optional[str] = Field(default=None, alias="mediaType")
+    tags: Optional[List[str]] = None
+    created_at: datetime = Field(alias="createdAt")
+    updated_at: datetime = Field(alias="updatedAt")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
+class FamilyMemoryCreateRequest(BaseModel):
+    title: str
+    type: FamilyMemoryType = FamilyMemoryType.TEXT
+    description: Optional[str] = None
+    content: Optional[str] = None
+    event_date: Optional[str] = Field(default=None, alias="eventDate")
+    location: Optional[str] = None
+    media_url: Optional[str] = Field(default=None, alias="mediaUrl")
+    media_type: Optional[str] = Field(default=None, alias="mediaType")
+    tags: Optional[List[str]] = None
+    meta_data: Optional[Dict[str, Any]] = Field(default=None, alias="metadata")
+
+    class Config:
+        populate_by_name = True
+
+
+class FamilyMemoryUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    type: Optional[FamilyMemoryType] = None
+    description: Optional[str] = None
+    content: Optional[str] = None
+    event_date: Optional[str] = Field(default=None, alias="eventDate")
+    location: Optional[str] = None
+    media_url: Optional[str] = Field(default=None, alias="mediaUrl")
+    media_type: Optional[str] = Field(default=None, alias="mediaType")
+    tags: Optional[List[str]] = None
+    meta_data: Optional[Dict[str, Any]] = Field(default=None, alias="metadata")
+
+    class Config:
+        populate_by_name = True
+
+
+class FamilyMemoryListResponse(BaseModel):
+    total: int
+    memories: List[FamilyMemoryBase]
+
+
+class FamilyMemoryTimelineItem(BaseModel):
+    id: str
+    title: str
+    type: FamilyMemoryType
+    description: Optional[str] = None
+    event_date: Optional[str] = Field(default=None, alias="eventDate")
+    location: Optional[str] = None
+    media_url: Optional[str] = Field(default=None, alias="mediaUrl")
+    media_type: Optional[str] = Field(default=None, alias="mediaType")
+    created_at: datetime = Field(alias="createdAt")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
+class FamilyMemoryTimelineResponse(BaseModel):
+    total: int
+    items: List[FamilyMemoryTimelineItem]
