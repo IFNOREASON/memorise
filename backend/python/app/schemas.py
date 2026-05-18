@@ -1172,3 +1172,104 @@ class ScheduledTaskBase(BaseModel):
 class ScheduledTaskListResponse(BaseModel):
     total: int
     tasks: List[ScheduledTaskBase]
+
+
+class GalleryStatus(str, enum.Enum):
+    DRAFT = "draft"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+
+
+class GalleryType(str, enum.Enum):
+    IMAGE = "image"
+    VIDEO = "video"
+
+
+class GalleryMediaBase(BaseModel):
+    id: str
+    gallery_id: str = Field(alias="galleryId")
+    url: str
+    type: MediaType
+    date_time: Optional[str] = Field(default=None, alias="dateTime")
+    location: Optional[str] = None
+    duration: Optional[str] = None
+    audio_url: Optional[str] = Field(default=None, alias="audioUrl")
+    description: Optional[str] = None
+    thumbnail_url: Optional[str] = Field(default=None, alias="thumbnailUrl")
+    sort_order: int = Field(default=0, alias="sortOrder")
+    created_at: datetime = Field(alias="createdAt")
+    updated_at: datetime = Field(alias="updatedAt")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
+class GalleryMediaCreateRequest(BaseModel):
+    url: str
+    type: MediaType = MediaType.IMAGE
+    date_time: Optional[str] = Field(default=None, alias="dateTime")
+    location: Optional[str] = None
+    duration: Optional[str] = None
+    audio_url: Optional[str] = Field(default=None, alias="audioUrl")
+    description: Optional[str] = None
+    thumbnail_url: Optional[str] = Field(default=None, alias="thumbnailUrl")
+
+    class Config:
+        populate_by_name = True
+
+
+class GalleryBase(BaseModel):
+    id: str
+    family_id: str = Field(alias="familyId")
+    name: str
+    description: Optional[str] = None
+    person_name: Optional[str] = Field(default=None, alias="personName")
+    type: GalleryType
+    status: GalleryStatus
+    progress: int
+    cover_url: Optional[str] = Field(default=None, alias="coverUrl")
+    media_count: int = Field(default=0, alias="mediaCount")
+    created_at: datetime = Field(alias="createdAt")
+    updated_at: datetime = Field(alias="updatedAt")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
+class GalleryCreateRequest(BaseModel):
+    name: str
+    description: Optional[str] = None
+    person_name: Optional[str] = Field(default=None, alias="personName")
+    type: GalleryType = GalleryType.IMAGE
+
+    class Config:
+        populate_by_name = True
+
+
+class GalleryUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    person_name: Optional[str] = Field(default=None, alias="personName")
+    type: Optional[GalleryType] = None
+    status: Optional[GalleryStatus] = None
+    cover_url: Optional[str] = Field(default=None, alias="coverUrl")
+
+    class Config:
+        populate_by_name = True
+
+
+class GalleryDetailResponse(BaseModel):
+    gallery: GalleryBase
+    medias: List[GalleryMediaBase]
+
+
+class GalleryListResponse(BaseModel):
+    total: int
+    galleries: List[GalleryBase]
+
+
+class GalleryMediaListResponse(BaseModel):
+    total: int
+    medias: List[GalleryMediaBase]

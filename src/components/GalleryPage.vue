@@ -221,11 +221,12 @@
                 type="text" 
                 v-model="searchKeyword"
                 class="w-full pl-10 pr-10 py-3 border border-[#E8D5C4] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4A574] focus:border-transparent"
-                placeholder="搜索地点、日期...">
+                placeholder="搜索地点、日期..."
+                @keyup.enter="handleSearch">
               <button 
                 v-if="searchKeyword"
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                @click="searchKeyword = ''">
+                @click="clearSearch">
                 <Icon icon="solar:close-circle-bold" class="text-lg" />
               </button>
             </div>
@@ -329,7 +330,9 @@
                     </div>
                     <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
                       <div class="flex items-center space-x-2">
-                        <button class="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-[#E8D5C4] transition-colors">
+                        <button 
+                          class="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-[#E8D5C4] transition-colors"
+                          @click.stop="openMediaPreview(media)">
                           <Icon icon="solar:eye-bold" class="text-[#8B6F4E]" />
                         </button>
                         <button v-if="media.audio" 
@@ -712,7 +715,77 @@
         </div>
       </div>
     </div>
-
+    
+    <div v-if="showPreviewModal && previewMedia" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="absolute inset-0 bg-black/70" @click="closePreviewModal"></div>
+      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div class="absolute top-4 right-4 z-10 flex space-x-2">
+          <button 
+            v-if="previewMedia.audio"
+            class="w-10 h-10 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-lg"
+            @click.stop="playMediaAudio(previewMedia)">
+            <Icon :icon="playingMediaAudio === previewMedia.id ? 'solar:pause-bold' : 'solar:play-bold'" class="text-[#8B6F4E]" />
+          </button>
+          <button 
+            class="w-10 h-10 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-lg"
+            @click.stop="closePreviewModal">
+            <Icon icon="solar:close-bold" class="text-gray-600" />
+          </button>
+        </div>
+        
+        <div class="flex-1 flex items-center justify-center bg-gray-100 overflow-hidden">
+          <img 
+            v-if="previewMedia.type === 'image'"
+            :src="previewMedia.url" 
+            class="max-w-full max-h-full object-contain" 
+            alt="预览图片">
+          <video 
+            v-else
+            :src="previewMedia.url" 
+            class="max-w-full max-h-full object-contain"
+            controls
+            autoplay>
+          </video>
+        </div>
+        
+        <div v-if="previewMedia.audio" class="p-4 border-t border-gray-200 bg-gray-50">
+          <div class="flex items-center space-x-3">
+            <button 
+              class="w-10 h-10 bg-[#8B6F4E] rounded-full flex items-center justify-center hover:bg-[#6B5342] transition-colors flex-shrink-0"
+              @click.stop="playMediaAudio(previewMedia)">
+              <Icon 
+                :icon="playingMediaAudio === previewMedia.id ? 'solar:pause-bold' : 'solar:play-bold'" 
+                class="text-white text-lg" />
+            </button>
+            <div class="flex-1">
+              <p class="text-sm font-medium text-gray-700">{{ previewMedia.audio.name }}</p>
+              <p class="text-xs text-gray-500">{{ previewMedia.audio.createdAt }}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="p-4 border-t border-gray-200">
+          <div class="flex items-center justify-between text-sm">
+            <div class="flex items-center space-x-4">
+              <div class="flex items-center space-x-1 text-gray-500">
+                <Icon icon="solar:clock-circle-linear" class="w-4 h-4" />
+                <span>{{ previewMedia.date }}</span>
+              </div>
+              <div v-if="previewMedia.location" class="flex items-center space-x-1 text-gray-500">
+                <Icon icon="solar:point-on-map-linear" class="w-4 h-4" />
+                <span>{{ previewMedia.location }}</span>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="px-2 py-1 bg-[#E8D5C4] text-[#5C4A3A] rounded-full text-xs">
+                {{ previewMedia.type === 'image' ? '图片' : '视频' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <div v-if="showDeleteConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div class="absolute inset-0 bg-black/50" @click="showDeleteConfirmModal = false"></div>
       <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
@@ -764,12 +837,22 @@
 
         <div class="flex-1 overflow-y-auto p-6 space-y-5">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">任务名称</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">影集名称</label>
             <input 
               type="text" 
               v-model="newTask.name"
               class="w-full px-4 py-3 border border-[#E8D5C4] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4A574] focus:border-transparent"
               placeholder="例如：爷爷的青春岁月">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">影集介绍</label>
+            <textarea 
+              v-model="newTask.description"
+              rows="3"
+              class="w-full px-4 py-3 border border-[#E8D5C4] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4A574] focus:border-transparent resize-none"
+              placeholder="简单描述这个影集的内容和意义...">
+            </textarea>
           </div>
 
           <div>
@@ -811,9 +894,10 @@
             取消
           </button>
           <button 
-            class="px-5 py-2.5 bg-[#8B6F4E] text-white rounded-xl hover:bg-[#6B5342] transition-colors"
-            @click="createTask">
-            创建任务
+            class="px-5 py-2.5 bg-[#8B6F4E] text-white rounded-xl hover:bg-[#6B5342] transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            :disabled="isLoading"
+            @click="createGallery">
+            {{ isLoading ? '创建中...' : '创建影集' }}
           </button>
         </div>
       </div>
@@ -839,9 +923,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
+import { apiService } from '@/services/api'
 
 const router = useRouter()
 const currentSlide = ref(0)
@@ -853,12 +938,23 @@ const showAdvancedSearch = ref(false)
 const activeMediaTask = ref<Task | null>(null)
 const addingMediaTask = ref<Task | null>(null)
 const deleteTask = ref<Task | null>(null)
-const newMediaDateTime = ref(new Date().toISOString().slice(0, 16))
+const getCurrentLocalDateTime = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+const newMediaDateTime = ref(getCurrentLocalDateTime())
 const newMediaLocation = ref('')
+const isLoading = ref(false)
 
 interface PreviewMedia {
   url: string
   type: 'image' | 'video'
+  file?: File
   audio?: RecordedAudio
 }
 
@@ -880,6 +976,8 @@ const expandedMediaAudio = ref<string | null>(null)
 const currentAudioProgress = ref(0)
 const audioUploadInput = ref<HTMLInputElement | null>(null)
 const mediaUploadInput = ref<HTMLInputElement | null>(null)
+const showPreviewModal = ref(false)
+const previewMedia = ref<Media | null>(null)
 
 let mediaRecorder: MediaRecorder | null = null
 let audioChunks: Blob[] = []
@@ -924,82 +1022,103 @@ interface RecordedAudio {
 
 const newTask = ref({
   name: '',
+  description: '',
   personName: '',
   type: 'image' as 'image' | 'video'
 })
 
-const tasks = ref<Task[]>([
-  {
-    id: '1',
-    name: '爷爷的青春岁月',
-    personName: '张明远',
-    type: 'image',
-    status: 'completed',
-    progress: 100,
-    mediaCount: 12,
-    createTime: '2024-01-15',
-    thumbnails: [
-      { url: 'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?w=200&h=200&fit=crop', type: 'image' },
-      { url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200&h=200&fit=crop', type: 'image' },
-      { url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop', type: 'image' },
-      { url: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=200&h=200&fit=crop', type: 'image' }
-    ],
-    medias: [
-      { id: '1-1', url: 'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?w=400&h=400&fit=crop', type: 'image', date: '1985年3月', dateTime: '1985-03-15 14:30:00', location: '北京市海淀区老宅子', year: 1985, month: '1985年3月' },
-      { id: '1-2', url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop', type: 'image', date: '1985年3月', dateTime: '1985-03-15 15:45:00', location: '北京市海淀区老宅子', year: 1985, month: '1985年3月' },
-      { id: '1-3', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop', type: 'image', date: '1985年3月', dateTime: '1985-03-16 10:20:00', location: '北京市海淀区老宅子', year: 1985, month: '1985年3月' },
-      { id: '1-4', url: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=400&h=400&fit=crop', type: 'image', date: '1990年7月', dateTime: '1990-07-20 09:15:00', location: '上海市黄浦区外滩', year: 1990, month: '1990年7月' },
-      { id: '1-5', url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop', type: 'image', date: '1990年7月', dateTime: '1990-07-20 11:30:00', location: '上海市黄浦区外滩', year: 1990, month: '1990年7月' },
-      { id: '1-6', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop', type: 'image', date: '1995年10月', dateTime: '1995-10-01 16:45:00', location: '杭州市西湖区西湖', year: 1995, month: '1995年10月' },
-      { id: '1-7', url: 'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?w=400&h=400&fit=crop', type: 'image', date: '1995年10月', dateTime: '1995-10-01 17:20:00', location: '杭州市西湖区西湖', year: 1995, month: '1995年10月' },
-      { id: '1-8', url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop', type: 'image', date: '2000年2月', dateTime: '2000-02-05 13:00:00', location: '北京市朝阳区新宅子', year: 2000, month: '2000年2月' },
-      { id: '1-9', url: '', type: 'video', date: '2000年2月', dateTime: '2000-02-05 14:30:00', location: '北京市朝阳区新宅子', year: 2000, month: '2000年2月', duration: '3:25' },
-      { id: '1-10', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop', type: 'image', date: '2005年5月', dateTime: '2005-05-10 09:30:00', location: '西安市雁塔区大雁塔', year: 2005, month: '2005年5月' },
-      { id: '1-11', url: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=400&h=400&fit=crop', type: 'image', date: '2005年5月', dateTime: '2005-05-10 10:45:00', location: '西安市雁塔区大雁塔', year: 2005, month: '2005年5月' },
-      { id: '1-12', url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop', type: 'image', date: '2010年8月', dateTime: '2010-08-15 15:20:00', location: '青岛市市南区栈桥', year: 2010, month: '2010年8月' }
-    ]
-  },
-  {
-    id: '2',
-    name: '奶奶的美好时光',
-    personName: '李淑华',
-    type: 'video',
-    status: 'processing',
-    progress: 68,
-    mediaCount: 8,
-    createTime: '2024-01-20',
-    thumbnails: [],
-    medias: [
-      { id: '2-1', url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop', type: 'image', date: '1970年1月', dateTime: '1970-01-15 10:30:00', location: '苏州市姑苏区老巷', year: 1970, month: '1970年1月' },
-      { id: '2-2', url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop', type: 'image', date: '1975年4月', dateTime: '1975-04-20 14:15:00', location: '南京市玄武区紫金山', year: 1975, month: '1975年4月' },
-      { id: '2-3', url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop', type: 'image', date: '1980年9月', dateTime: '1980-09-10 16:45:00', location: '扬州市广陵区瘦西湖', year: 1980, month: '1980年9月' }
-    ]
-  },
-  {
-    id: '3',
-    name: '家族团圆纪念',
-    personName: '家族全员',
-    type: 'video',
-    status: 'completed',
-    progress: 100,
-    mediaCount: 24,
-    createTime: '2024-01-10',
-    thumbnails: [
-      { url: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=200&h=200&fit=crop', type: 'image' },
-      { url: 'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?w=200&h=200&fit=crop', type: 'image' },
-      { url: '', type: 'video' },
-      { url: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&h=200&fit=crop', type: 'image' }
-    ],
-    medias: [
-      { id: '3-1', url: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400&h=400&fit=crop', type: 'image', date: '2023年春节', dateTime: '2023-01-22 12:30:00', location: '北京市朝阳区新宅子', year: 2023, month: '2023年1月' },
-      { id: '3-2', url: 'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?w=400&h=400&fit=crop', type: 'image', date: '2023年春节', dateTime: '2023-01-22 13:15:00', location: '北京市朝阳区新宅子', year: 2023, month: '2023年1月' },
-      { id: '3-3', url: '', type: 'video', date: '2023年春节', dateTime: '2023-01-22 14:00:00', location: '北京市朝阳区新宅子', year: 2023, month: '2023年1月', duration: '5:30' },
-      { id: '3-4', url: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=400&fit=crop', type: 'image', date: '2022年中秋', dateTime: '2022-09-10 19:30:00', location: '北京市海淀区老宅子', year: 2022, month: '2022年9月' },
-      { id: '3-5', url: 'https://images.unsplash.com/photo-1491013516836-7db643ee125a?w=400&h=400&fit=crop', type: 'image', date: '2022年中秋', dateTime: '2022-09-10 20:15:00', location: '北京市海淀区老宅子', year: 2022, month: '2022年9月' },
-      { id: '3-6', url: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400&h=400&fit=crop', type: 'image', date: '2021年国庆', dateTime: '2021-10-01 10:30:00', location: '天津市和平区五大道', year: 2021, month: '2021年10月' }
-    ]
+const tasks = ref<Task[]>([])
+
+const loadGalleries = async () => {
+  isLoading.value = true
+  try {
+    const response = await apiService.getGalleries()
+    if (response.success && response.data) {
+      tasks.value = response.data.galleries.map(gallery => ({
+        id: gallery.id,
+        name: gallery.name,
+        personName: gallery.personName || '',
+        type: gallery.type,
+        status: gallery.status,
+        progress: gallery.progress,
+        mediaCount: gallery.mediaCount,
+        createTime: gallery.createdAt.split('T')[0],
+        thumbnails: [],
+        medias: []
+      }))
+    }
+  } catch (error) {
+    console.error('加载影集失败:', error)
+  } finally {
+    isLoading.value = false
   }
-])
+}
+
+const createGallery = async () => {
+  if (!newTask.value.name) {
+    return
+  }
+  
+  isLoading.value = true
+  try {
+    const response = await apiService.createGallery({
+      name: newTask.value.name,
+      description: newTask.value.description,
+      personName: newTask.value.personName,
+      type: newTask.value.type
+    })
+    
+    if (response.success && response.data) {
+      const newGallery: Task = {
+        id: response.data.id,
+        name: response.data.name,
+        personName: response.data.personName || '',
+        type: response.data.type,
+        status: response.data.status,
+        progress: response.data.progress,
+        mediaCount: response.data.mediaCount,
+        createTime: response.data.createdAt.split('T')[0],
+        thumbnails: [],
+        medias: []
+      }
+      tasks.value.unshift(newGallery)
+      
+      newTask.value = {
+        name: '',
+        description: '',
+        personName: '',
+        type: 'image'
+      }
+      
+      closeCreateModal()
+    }
+  } catch (error) {
+    console.error('创建影集失败:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const deleteGallery = async () => {
+  if (!deleteTask.value) return
+  
+  isLoading.value = true
+  try {
+    const response = await apiService.deleteGallery(deleteTask.value.id)
+    if (response.success) {
+      const index = tasks.value.findIndex(t => t.id === deleteTask.value?.id)
+      if (index > -1) {
+        tasks.value.splice(index, 1)
+      }
+      showDeleteConfirmModal.value = false
+      deleteTask.value = null
+    }
+  } catch (error) {
+    console.error('删除影集失败:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
 
 const totalSlides = computed(() => {
   if (tasks.value.length <= 1) return 1
@@ -1107,10 +1226,53 @@ const nextSlide = () => {
   }
 }
 
-const openMediaModal = (task: Task) => {
+const loadMediaList = async (galleryId: string) => {
+  try {
+    const response = await apiService.searchGalleryMedias(galleryId, {
+      keyword: searchKeyword.value,
+      startDate: searchStartDate.value,
+      endDate: searchEndDate.value,
+      location: searchLocation.value
+    })
+    if (response.success && response.data) {
+      if (activeMediaTask.value) {
+        activeMediaTask.value.medias = response.data.medias.map(m => {
+          let audio: RecordedAudio | undefined
+          if (m.audioUrl) {
+            audio = {
+              name: '录音文件',
+              url: `http://localhost:8000${m.audioUrl}`,
+              duration: 0,
+              isUploaded: true,
+              createdAt: m.createdAt ? new Date(m.createdAt).toLocaleDateString() : ''
+            }
+          }
+          
+          return {
+            id: m.id,
+            url: `http://localhost:8000${m.url}`,
+            type: m.type as 'image' | 'video',
+            date: m.dateTime ? new Date(m.dateTime).toLocaleDateString('zh-CN') : '',
+            dateTime: m.dateTime || '',
+            location: m.location || '',
+            duration: m.duration || '',
+            year: m.dateTime ? new Date(m.dateTime).getFullYear() : new Date().getFullYear(),
+            month: m.dateTime ? `${new Date(m.dateTime).getFullYear()}年${new Date(m.dateTime).getMonth() + 1}月` : '',
+            audio
+          }
+        })
+      }
+    }
+  } catch (error) {
+    console.error('加载媒体列表失败:', error)
+  }
+}
+
+const openMediaModal = async (task: Task) => {
   activeMediaTask.value = task
   addingMediaTask.value = task
   showMediaModal.value = true
+  await loadMediaList(task.id)
 }
 
 const handleDeleteTask = (task: Task) => {
@@ -1119,13 +1281,7 @@ const handleDeleteTask = (task: Task) => {
 }
 
 const confirmDeleteTask = () => {
-  if (!deleteTask.value) return
-  const index = tasks.value.findIndex(t => t.id === deleteTask.value?.id)
-  if (index > -1) {
-    tasks.value.splice(index, 1)
-  }
-  showDeleteConfirmModal.value = false
-  deleteTask.value = null
+  deleteGallery()
 }
 
 const triggerMediaUpload = () => {
@@ -1153,15 +1309,12 @@ const handleMediaUpload = (event: Event) => {
     const newMedia: PreviewMedia = {
       url,
       type,
+      file,
       audio: undefined
     }
     
     previewMedias.value.push(newMedia)
   })
-  
-  if (input) {
-    input.value = ''
-  }
 }
 
 const removePreview = (idx: number) => {
@@ -1185,27 +1338,95 @@ const removePreview = (idx: number) => {
   }
 }
 
-const addMedia = () => {
-  previewMedias.value.forEach(media => {
-    if (media.url) {
-      URL.revokeObjectURL(media.url)
+const addMedia = async () => {
+  if (!addingMediaTask.value || previewMedias.value.length === 0) return
+  
+  isLoading.value = true
+  try {
+    for (let i = 0; i < previewMedias.value.length; i++) {
+      const previewMedia = previewMedias.value[i]
+      
+      if (previewMedia.file) {
+        console.log('正在上传文件:', previewMedia.file.name)
+        
+        let audioFile: File | undefined
+        if (previewMedia.audio?.blob) {
+          audioFile = new File([previewMedia.audio.blob], previewMedia.audio.name, { type: 'audio/webm' })
+        }
+        
+        const response = await apiService.uploadGalleryMedia(
+          addingMediaTask.value.id,
+          previewMedia.file,
+          {
+            dateTime: newMediaDateTime.value,
+            location: newMediaLocation.value,
+            audioFile
+          }
+        )
+        
+        if (!response.success) {
+          console.error('上传媒体失败:', response.error)
+          alert(`上传失败: ${response.error}`)
+        } else {
+          console.log('上传成功:', response.data)
+        }
+      }
     }
-    if (media.audio?.blob) {
-      URL.revokeObjectURL(media.audio.url)
+    
+    previewMedias.value.forEach(media => {
+      if (media.url) {
+        URL.revokeObjectURL(media.url)
+      }
+      if (media.audio?.blob) {
+        URL.revokeObjectURL(media.audio.url)
+      }
+    })
+    
+    showAddMediaModal.value = false
+    previewMedias.value = []
+    
+    if (addingMediaTask.value) {
+      await loadMediaList(addingMediaTask.value.id)
+      await loadGalleries()
     }
-  })
-  showAddMediaModal.value = false
-  previewMedias.value = []
+  } catch (error) {
+    console.error('添加媒体失败:', error)
+    alert('添加媒体失败，请重试')
+  } finally {
+    isLoading.value = false
+  }
 }
 
-const applyAdvancedSearch = () => {
+const applyAdvancedSearch = async () => {
+  if (activeMediaTask.value) {
+    await loadMediaList(activeMediaTask.value.id)
+  }
 }
 
-const clearAdvancedSearch = () => {
+const handleSearch = async () => {
+  if (activeMediaTask.value) {
+    await loadMediaList(activeMediaTask.value.id)
+  }
+}
+
+const clearSearch = async () => {
   searchKeyword.value = ''
   searchStartDate.value = ''
   searchEndDate.value = ''
   searchLocation.value = ''
+  if (activeMediaTask.value) {
+    await loadMediaList(activeMediaTask.value.id)
+  }
+}
+
+const clearAdvancedSearch = async () => {
+  searchKeyword.value = ''
+  searchStartDate.value = ''
+  searchEndDate.value = ''
+  searchLocation.value = ''
+  if (activeMediaTask.value) {
+    await loadMediaList(activeMediaTask.value.id)
+  }
 }
 
 const getTaskIcon = (type: string) => {
@@ -1460,6 +1681,16 @@ const playMediaAudio = (media: Media) => {
   startAudioProgressTimer()
 }
 
+const openMediaPreview = (media: Media) => {
+  previewMedia.value = media
+  showPreviewModal.value = true
+}
+
+const closePreviewModal = () => {
+  showPreviewModal.value = false
+  previewMedia.value = null
+}
+
 const toggleExpandMediaAudio = (media: Media) => {
   if (expandedMediaAudio.value === media.id) {
     expandedMediaAudio.value = null
@@ -1568,34 +1799,6 @@ const closeCreateModal = () => {
   cleanupRecording()
 }
 
-const createTask = () => {
-  if (!newTask.value.name || !newTask.value.personName) {
-    return
-  }
-  
-  const task: Task = {
-    id: Date.now().toString(),
-    name: newTask.value.name,
-    personName: newTask.value.personName,
-    type: newTask.value.type,
-    status: 'draft',
-    progress: 0,
-    mediaCount: 0,
-    createTime: new Date().toISOString().split('T')[0],
-    thumbnails: [],
-    medias: []
-  }
-  
-  tasks.value.unshift(task)
-  newTask.value = {
-    name: '',
-    personName: '',
-    type: 'image'
-  }
-  
-  closeCreateModal()
-}
-
 const cleanupRecording = () => {
   if (isRecording.value || isPaused.value) {
     stopRecording()
@@ -1620,6 +1823,7 @@ const cleanupRecording = () => {
 let autoPlayInterval: number | null = null
 
 onMounted(() => {
+  loadGalleries()
   autoPlayInterval = window.setInterval(() => {
     nextSlide()
   }, 5000)

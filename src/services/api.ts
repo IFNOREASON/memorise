@@ -349,6 +349,82 @@ type Gender = 'male' | 'female';
 type MemberStatus = 'alive' | 'deceased';
 type MediaType = 'image' | 'video';
 
+type GalleryType = 'image' | 'video';
+type GalleryStatus = 'draft' | 'processing' | 'completed';
+
+interface GalleryMedia {
+  id: string;
+  galleryId: string;
+  url: string;
+  type: MediaType;
+  dateTime?: string;
+  location?: string;
+  duration?: string;
+  audioUrl?: string;
+  description?: string;
+  thumbnailUrl?: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Gallery {
+  id: string;
+  familyId: string;
+  name: string;
+  description?: string;
+  personName?: string;
+  type: GalleryType;
+  status: GalleryStatus;
+  progress: number;
+  coverUrl?: string;
+  mediaCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CreateGalleryRequest {
+  name: string;
+  description?: string;
+  personName?: string;
+  type: GalleryType;
+}
+
+interface UpdateGalleryRequest {
+  name?: string;
+  description?: string;
+  personName?: string;
+  type?: GalleryType;
+  status?: GalleryStatus;
+  coverUrl?: string;
+}
+
+interface GalleryDetailResponse {
+  gallery: Gallery;
+  medias: GalleryMedia[];
+}
+
+interface GalleryListResponse {
+  total: number;
+  galleries: Gallery[];
+}
+
+interface GalleryMediaListResponse {
+  total: number;
+  medias: GalleryMedia[];
+}
+
+interface CreateGalleryMediaRequest {
+  url: string;
+  type: MediaType;
+  dateTime?: string;
+  location?: string;
+  duration?: string;
+  audioUrl?: string;
+  description?: string;
+  thumbnailUrl?: string;
+}
+
 interface MemberMedia {
   id: string;
   url: string;
@@ -1935,6 +2011,151 @@ class ApiService {
       console.error('导出失败:', error);
       throw error;
     }
+  }
+
+  async getGalleries(options?: {
+    status?: GalleryStatus;
+    type?: GalleryType;
+  }): Promise<ApiResponse<GalleryListResponse>> {
+    let endpoint = '/api/galleries';
+    const params = new URLSearchParams();
+    
+    if (options?.status) params.append('status', options.status);
+    if (options?.type) params.append('type', options.type);
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`;
+    }
+    
+    return this.request<GalleryListResponse>(endpoint);
+  }
+
+  async getGallery(galleryId: string): Promise<ApiResponse<GalleryDetailResponse>> {
+    return this.request<GalleryDetailResponse>(`/api/galleries/${galleryId}`);
+  }
+
+  async createGallery(request: CreateGalleryRequest): Promise<ApiResponse<Gallery>> {
+    return this.request<Gallery>('/api/galleries', {
+      method: 'POST',
+      body: JSON.stringify(request)
+    });
+  }
+
+  async updateGallery(
+    galleryId: string,
+    updates: UpdateGalleryRequest
+  ): Promise<ApiResponse<Gallery>> {
+    return this.request<Gallery>(`/api/galleries/${galleryId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates)
+    });
+  }
+
+  async deleteGallery(galleryId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<{ message: string }>(`/api/galleries/${galleryId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async addGalleryMedia(
+    galleryId: string,
+    media: CreateGalleryMediaRequest
+  ): Promise<ApiResponse<GalleryMedia>> {
+    return this.request<GalleryMedia>(`/api/galleries/${galleryId}/medias`, {
+      method: 'POST',
+      body: JSON.stringify(media)
+    });
+  }
+
+  async getGalleryMedias(
+    galleryId: string,
+    options?: {
+      type?: MediaType;
+    }
+  ): Promise<ApiResponse<GalleryMediaListResponse>> {
+    let endpoint = `/api/galleries/${galleryId}/medias`;
+    const params = new URLSearchParams();
+    
+    if (options?.type) params.append('type', options.type);
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`;
+    }
+    
+    return this.request<GalleryMediaListResponse>(endpoint);
+  }
+
+  async deleteGalleryMedia(
+    galleryId: string,
+    mediaId: string
+  ): Promise<ApiResponse<{ message: string }>> {
+    return this.request<{ message: string }>(`/api/galleries/${galleryId}/medias/${mediaId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async uploadGalleryMedia(
+    galleryId: string,
+    file: File,
+    options: {
+      dateTime?: string;
+      location?: string;
+      duration?: string;
+      description?: string;
+      audioFile?: File;
+    } = {}
+  ): Promise<ApiResponse<GalleryMedia>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (options.audioFile) {
+      formData.append('audio_file', options.audioFile);
+    }
+    if (options.dateTime) formData.append('date_time', options.dateTime);
+    if (options.location) formData.append('location', options.location);
+    if (options.duration) formData.append('duration', options.duration);
+    if (options.description) formData.append('description', options.description);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/galleries/${galleryId}/medias/upload`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+      return data as ApiResponse<GalleryMedia>;
+    } catch (error) {
+      console.error('上传媒体失败:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '网络错误'
+      };
+    }
+  }
+
+  async searchGalleryMedias(
+    galleryId: string,
+    options: {
+      keyword?: string;
+      startDate?: string;
+      endDate?: string;
+      location?: string;
+      type?: MediaType;
+    } = {}
+  ): Promise<ApiResponse<GalleryMediaListResponse>> {
+    let endpoint = `/api/galleries/${galleryId}/medias/search`;
+    const params = new URLSearchParams();
+    
+    if (options.keyword) params.append('keyword', options.keyword);
+    if (options.startDate) params.append('start_date', options.startDate);
+    if (options.endDate) params.append('end_date', options.endDate);
+    if (options.location) params.append('location', options.location);
+    if (options.type) params.append('type', options.type);
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`;
+    }
+    
+    return this.request<GalleryMediaListResponse>(endpoint);
   }
 }
 

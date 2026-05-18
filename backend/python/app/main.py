@@ -2,9 +2,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 import logging
 import asyncio
 from datetime import datetime
+import os
 
 from app.config import settings
 from app.database import init_db
@@ -20,7 +22,8 @@ from app.routers import (
     family_router,
     anniversaries_router,
     push_rules_router,
-    messages_router
+    messages_router,
+    galleries_router
 )
 from app.routers import membership, approval, logs
 from app.services import generation_service
@@ -151,6 +154,9 @@ async def api_root():
 
 api_prefix = "/api"
 
+os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+
 app.include_router(auth_router, prefix=api_prefix)
 app.include_router(health_router, prefix=api_prefix)
 app.include_router(config_router, prefix=api_prefix)
@@ -166,6 +172,7 @@ app.include_router(logs.router, prefix=api_prefix)
 app.include_router(anniversaries_router, prefix=api_prefix)
 app.include_router(push_rules_router, prefix=api_prefix)
 app.include_router(messages_router, prefix=api_prefix)
+app.include_router(galleries_router, prefix=api_prefix)
 
 
 if __name__ == "__main__":

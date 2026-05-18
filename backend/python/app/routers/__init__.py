@@ -10,6 +10,7 @@ from app.routers.family import router as family_router
 from app.routers.anniversaries import router as anniversaries_router
 from app.routers.push_rules import router as push_rules_router
 from app.routers.messages import router as messages_router
+from app.routers.galleries import router as galleries_router
 
 __all__ = [
     "health_router",
@@ -23,5 +24,6 @@ __all__ = [
     "family_router",
     "anniversaries_router",
     "push_rules_router",
-    "messages_router"
+    "messages_router",
+    "galleries_router"
 ]

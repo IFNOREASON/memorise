@@ -747,3 +747,67 @@ class ScheduledTask(Base, TimestampMixin):
         Index('idx_scheduled_tasks_scheduled_time', 'scheduled_time'),
         Index('idx_scheduled_tasks_status', 'status'),
     )
+
+
+class GalleryStatus(str, enum.Enum):
+    DRAFT = "draft"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+
+
+class GalleryType(str, enum.Enum):
+    IMAGE = "image"
+    VIDEO = "video"
+
+
+class Gallery(Base, TimestampMixin):
+    __tablename__ = "galleries"
+
+    id = Column(String(64), primary_key=True)
+    family_id = Column(String(64), ForeignKey('families.id', ondelete='CASCADE'), nullable=False, index=True)
+
+    name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    person_name = Column(String(100), nullable=True)
+    type = Column(String(20), nullable=False, default="image")
+    status = Column(String(20), nullable=False, default="draft")
+    progress = Column(Integer, nullable=False, default=0)
+
+    cover_url = Column(String(500), nullable=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+
+    medias = orm_relationship("GalleryMedia", back_populates="gallery", cascade="all, delete-orphan")
+    family = orm_relationship("Family", foreign_keys=[family_id])
+
+    __table_args__ = (
+        Index('idx_galleries_family_id', 'family_id'),
+        Index('idx_galleries_status', 'status'),
+        Index('idx_galleries_created_at', 'created_at'),
+        Index('idx_galleries_deleted_at', 'deleted_at'),
+    )
+
+
+class GalleryMedia(Base, TimestampMixin):
+    __tablename__ = "gallery_medias"
+
+    id = Column(String(64), primary_key=True)
+    gallery_id = Column(String(64), ForeignKey('galleries.id', ondelete='CASCADE'), nullable=False, index=True)
+
+    url = Column(String(500), nullable=False)
+    type = Column(String(20), nullable=False, default="image")
+    date_time = Column(String(50), nullable=True)
+    location = Column(String(200), nullable=True)
+    duration = Column(String(20), nullable=True)
+    audio_url = Column(String(500), nullable=True)
+    description = Column(Text, nullable=True)
+
+    thumbnail_url = Column(String(500), nullable=True)
+    sort_order = Column(Integer, nullable=False, default=0)
+
+    gallery = orm_relationship("Gallery", back_populates="medias")
+
+    __table_args__ = (
+        Index('idx_gallery_medias_gallery_id', 'gallery_id'),
+        Index('idx_gallery_medias_type', 'type'),
+        Index('idx_gallery_medias_created_at', 'created_at'),
+    )
