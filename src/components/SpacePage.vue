@@ -14,8 +14,8 @@
           >
             <div class="h-[500px] relative">
               <ThreeDModelViewer
-                :key="selectedModel?.id"
-                :model-url="selectedModel?.url"
+                :key="(selectedScene?.isCustom ? selectedScene?.id : selectedModel?.id) + '-' + modelKey"
+                :model-url="currentModelUrl"
                 :auto-rotate="autoRotate"
                 :full-height="true"
                 :debug-mode="false"
@@ -170,14 +170,14 @@
 
     <Teleport to="body">
       <div v-if="showImportModal" class="fixed inset-0 z-50 flex items-center justify-center">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showImportModal = false"></div>
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeImportModal"></div>
         
         <div class="relative w-full max-w-md mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden">
           <div class="bg-gradient-to-r from-[#8B6F4E] to-[#A67B5B] px-6 py-4">
             <div class="flex items-center justify-between">
               <h3 class="text-lg font-bold text-white font-serif">导入自定义场景</h3>
               <button 
-                @click="showImportModal = false"
+                @click="closeImportModal"
                 class="text-white/80 hover:text-white transition-colors"
               >
                 <Icon icon="solar:close-circle-bold" class="text-xl" />
@@ -216,7 +216,7 @@
                 @drop="handleDrop"
                 @dragover.prevent="dragOver = true"
                 @dragleave="dragOver = false"
-                class="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all"
+                class="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all"
                 :class="dragOver 
                   ? 'border-[#8B6F4E] bg-[#FAF7F2]' 
                   : importError 
@@ -234,15 +234,16 @@
                 />
                 
                 <div v-if="importFile" class="space-y-2">
-                  <div class="w-12 h-12 mx-auto bg-emerald-100 rounded-full flex items-center justify-center">
-                    <Icon icon="solar:check-circle-bold" class="text-2xl text-emerald-600" />
+                  <div class="w-10 h-10 mx-auto bg-emerald-100 rounded-full flex items-center justify-center">
+                    <Icon icon="solar:check-circle-bold" class="text-xl text-emerald-600" />
                   </div>
                   <p class="text-sm font-medium text-gray-800">{{ importFile.name }}</p>
                   <p class="text-xs text-gray-500">{{ formatFileSize(importFile.size) }}</p>
+                  <p class="text-xs text-emerald-600 mt-2">✓ 点击下方预览区域查看模型</p>
                 </div>
                 <div v-else>
-                  <div class="w-12 h-12 mx-auto bg-[#E8D5C4] rounded-full flex items-center justify-center mb-3">
-                    <Icon icon="solar:upload-minimalistic-bold" class="text-2xl text-[#8B6F4E]" />
+                  <div class="w-10 h-10 mx-auto bg-[#E8D5C4] rounded-full flex items-center justify-center mb-2">
+                    <Icon icon="solar:upload-minimalistic-bold" class="text-xl text-[#8B6F4E]" />
                   </div>
                   <p class="text-sm font-medium text-gray-700 mb-1">点击或拖拽文件到此处</p>
                   <p class="text-xs text-gray-400">支持 .glb, .gltf, .obj, .fbx 格式</p>
@@ -255,9 +256,26 @@
               </p>
             </div>
 
+            <div v-if="previewUrl" class="mb-6">
+              <label class="block text-sm font-medium text-gray-700 mb-2">模型预览</label>
+              <div class="relative w-full h-64 rounded-xl overflow-hidden border border-stone-200 bg-[#FAF7F2]">
+                <ThreeDModelViewer
+                  :key="previewKey"
+                  :model-url="previewUrl"
+                  :auto-rotate="true"
+                  :full-height="true"
+                  :debug-mode="false"
+                  :background-color="0xFAF7F2"
+                />
+                <div class="absolute top-2 right-2 bg-white/80 backdrop-blur px-2 py-1 rounded-full text-xs text-gray-600">
+                  拖拽旋转 · 滚轮缩放
+                </div>
+              </div>
+            </div>
+
             <div class="flex space-x-3">
               <button
-                @click="showImportModal = false"
+                @click="closeImportModal"
                 class="flex-1 py-3 border border-stone-200 text-gray-600 font-medium rounded-xl hover:bg-stone-50 transition-all"
               >
                 取消
@@ -317,6 +335,8 @@ const importError = ref('')
 const importing = ref(false)
 const dragOver = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const previewUrl = ref<string | null>(null)
+const previewKey = ref(0)
 
 const customScenes = ref<Scene[]>([])
 
@@ -371,8 +391,15 @@ const sceneBgColor = computed(() => {
   return selectedScene.value?.bgColorHex || 0xFAF7F2
 })
 
+const currentModelUrl = computed(() => {
+  if (selectedScene.value?.isCustom && selectedScene.value?.customUrl) {
+    return selectedScene.value.customUrl
+  }
+  return selectedModel.value?.url || ''
+})
+
 const models: Model[] = [
-  { id: 'default', name: '先祖雕像', icon: 'solar:user-circle-bold' },
+  { id: 'default', name: '先祖雕像', icon: 'solar:user-circle-bold', url: '/models/girl_speedsculpt.glb' },
   { id: 'lantern', name: '祈福天灯', icon: 'solar:lamp-2-bold' },
   { id: 'heart', name: '永恒之心', icon: 'solar:heart-lock-bold' },
   { id: 'tree', name: '生命之树', icon: 'solar:tree-bold-duotone' }
@@ -381,14 +408,20 @@ const models: Model[] = [
 const selectScene = (scene: Scene) => {
   console.log('选择场景:', scene.name)
   selectedScene.value = scene
+  if (scene.isCustom) {
+    modelKey.value++
+  }
 }
+
+const modelKey = ref(0)
 
 const selectModel = (model: Model) => {
   console.log('选择模型:', model.name)
   selectedModel.value = model
+  if (selectedScene.value && !selectedScene.value.isCustom) {
+    modelKey.value++
+  }
 }
-
-const modelKey = ref(0)
 
 const toggleAutoRotate = () => {
   autoRotate.value = !autoRotate.value
@@ -443,12 +476,21 @@ const handleFileSelect = (event: Event) => {
     if (error) {
       importError.value = error
       importFile.value = null
+      if (previewUrl.value) {
+        URL.revokeObjectURL(previewUrl.value)
+        previewUrl.value = null
+      }
     } else {
       importError.value = ''
       importFile.value = file
       if (!importSceneName.value) {
         importSceneName.value = file.name.replace(/\.[^/.]+$/, '')
       }
+      if (previewUrl.value) {
+        URL.revokeObjectURL(previewUrl.value)
+      }
+      previewUrl.value = URL.createObjectURL(file)
+      previewKey.value++
     }
   }
 }
@@ -465,12 +507,21 @@ const handleDrop = (event: DragEvent) => {
     if (error) {
       importError.value = error
       importFile.value = null
+      if (previewUrl.value) {
+        URL.revokeObjectURL(previewUrl.value)
+        previewUrl.value = null
+      }
     } else {
       importError.value = ''
       importFile.value = file
       if (!importSceneName.value) {
         importSceneName.value = file.name.replace(/\.[^/.]+$/, '')
       }
+      if (previewUrl.value) {
+        URL.revokeObjectURL(previewUrl.value)
+      }
+      previewUrl.value = URL.createObjectURL(file)
+      previewKey.value++
     }
   }
 }
@@ -504,14 +555,30 @@ const confirmImport = async () => {
     
     customScenes.value.push(newCustomScene)
     selectedScene.value = newCustomScene
+    modelKey.value++
     
     showImportModal.value = false
     importSceneName.value = ''
     importFile.value = null
+    if (previewUrl.value) {
+      URL.revokeObjectURL(previewUrl.value)
+      previewUrl.value = null
+    }
   } catch (error) {
     importError.value = '导入失败，请重试'
   } finally {
     importing.value = false
+  }
+}
+
+const closeImportModal = () => {
+  showImportModal.value = false
+  importSceneName.value = ''
+  importFile.value = null
+  importError.value = ''
+  if (previewUrl.value) {
+    URL.revokeObjectURL(previewUrl.value)
+    previewUrl.value = null
   }
 }
 

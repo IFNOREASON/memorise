@@ -114,7 +114,9 @@ const initScene = () => {
   renderer.outputColorSpace = THREE.SRGBColorSpace
   
   renderer.toneMapping = THREE.ACESFilmicToneMapping
-  renderer.toneMappingExposure = 0.8
+  renderer.toneMappingExposure = 1.2
+  
+  renderer.useLegacyLights = false
 
   containerRef.value.appendChild(renderer.domElement)
 
@@ -160,11 +162,11 @@ const initScene = () => {
   controls.target.set(0, 1, 0)
   controls.update()
 
-  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0)
+  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x888888, 0.8)
   hemiLight.position.set(0, 20, 0)
   scene.add(hemiLight)
 
-  const mainLight = new THREE.DirectionalLight(0xffffff, 1.5)
+  const mainLight = new THREE.DirectionalLight(0xffffff, 2.0)
   mainLight.position.set(3, 5, 3)
   mainLight.castShadow = true
   mainLight.shadow.mapSize.width = 2048
@@ -177,23 +179,23 @@ const initScene = () => {
   mainLight.shadow.camera.bottom = -10
   scene.add(mainLight)
 
-  const mainLight2 = new THREE.DirectionalLight(0xffffff, 1.0)
-  mainLight2.position.set(-3, 5, -3)
+  const mainLight2 = new THREE.DirectionalLight(0xffffff, 1.2)
+  mainLight2.position.set(-3, 4, -3)
   scene.add(mainLight2)
 
-  const fillLight = new THREE.DirectionalLight(0xffffff, 0.6)
+  const fillLight = new THREE.DirectionalLight(0xffffff, 0.8)
   fillLight.position.set(-5, 3, 5)
   scene.add(fillLight)
 
-  const rimLight = new THREE.DirectionalLight(0xffffff, 0.8)
-  rimLight.position.set(0, 6, -5)
+  const rimLight = new THREE.DirectionalLight(0xffffff, 0.6)
+  rimLight.position.set(0, 5, -5)
   scene.add(rimLight)
 
-  const bottomLight = new THREE.DirectionalLight(0xffffff, 0.4)
-  bottomLight.position.set(0, -2, 0)
+  const bottomLight = new THREE.DirectionalLight(0xffffff, 0.3)
+  bottomLight.position.set(0, -1, 0)
   scene.add(bottomLight)
 
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
   scene.add(ambientLight)
 
   const floorGeometry = new THREE.CircleGeometry(4, 64)
@@ -295,55 +297,79 @@ const processMaterial = (material: THREE.Material) => {
     return
   }
 
+  const matAny = material as any
+  
+  if (matAny.map) {
+    matAny.map.colorSpace = THREE.SRGBColorSpace
+    matAny.map.needsUpdate = true
+  }
+  
+  if (matAny.roughnessMap) {
+    matAny.roughnessMap.colorSpace = THREE.NoColorSpace
+  }
+  
+  if (matAny.normalMap) {
+    matAny.normalMap.colorSpace = THREE.NoColorSpace
+  }
+  
+  if (matAny.metalnessMap) {
+    matAny.metalnessMap.colorSpace = THREE.NoColorSpace
+  }
+  
+  if (matAny.emissiveMap) {
+    matAny.emissiveMap.colorSpace = THREE.SRGBColorSpace
+  }
+  
+  if (matAny.aoMap) {
+    matAny.aoMap.colorSpace = THREE.NoColorSpace
+  }
+  
+  if (matAny.displacementMap) {
+    matAny.displacementMap.colorSpace = THREE.NoColorSpace
+  }
+  
+  if (matAny.lightMap) {
+    matAny.lightMap.colorSpace = THREE.NoColorSpace
+  }
+  
+  if (matAny.bumpMap) {
+    matAny.bumpMap.colorSpace = THREE.NoColorSpace
+  }
+  
+  if (matAny.envMap) {
+    matAny.envMap.colorSpace = THREE.SRGBColorSpace
+  }
+  
+  if (matAny.alphaMap) {
+    matAny.alphaMap.colorSpace = THREE.NoColorSpace
+  }
+  
+  if (matAny.aoMapIntensity !== undefined) {
+    matAny.aoMapIntensity = 1.0
+  }
+  
+  if (matAny.normalScale) {
+    matAny.normalScale.set(1, 1)
+  }
+  
   if (material instanceof THREE.MeshStandardMaterial || 
       material instanceof THREE.MeshPhysicalMaterial) {
     console.log('  - 是 PBR 材质')
     
-    if (material.map) {
-      console.log('  - 有漫反射贴图:', material.map)
-      material.map.colorSpace = THREE.SRGBColorSpace
-      material.map.needsUpdate = true
+    if (!material.map) {
+      material.color.convertSRGBToLinear()
     }
     
-    if (material.roughnessMap) {
-      console.log('  - 有粗糙度贴图')
-      material.roughnessMap.colorSpace = THREE.NoColorSpace
+    if (material.emissive) {
+      material.emissive.convertSRGBToLinear()
     }
     
-    if (material.normalMap) {
-      console.log('  - 有法线贴图')
-      material.normalMap.colorSpace = THREE.NoColorSpace
+    if (!material.roughnessMap && material.roughness > 0.8) {
+      material.roughness = 0.5
     }
     
-    if (material.metalnessMap) {
-      console.log('  - 有金属度贴图')
-      material.metalnessMap.colorSpace = THREE.NoColorSpace
-    }
-    
-    if (material.emissiveMap) {
-      console.log('  - 有自发光贴图')
-      material.emissiveMap.colorSpace = THREE.SRGBColorSpace
-    }
-    
-    if (material.aoMap) {
-      console.log('  - 有环境光遮蔽贴图')
-      material.aoMap.colorSpace = THREE.NoColorSpace
-    }
-    
-    if (material.displacementMap) {
-      material.displacementMap.colorSpace = THREE.NoColorSpace
-    }
-    
-    if (material.lightMap) {
-      material.lightMap.colorSpace = THREE.NoColorSpace
-    }
-    
-    if (material.bumpMap) {
-      material.bumpMap.colorSpace = THREE.NoColorSpace
-    }
-    
-    if (material.envMap) {
-      material.envMap.colorSpace = THREE.SRGBColorSpace
+    if (!material.metalnessMap && material.metalness > 0.8) {
+      material.metalness = 0.1
     }
     
     material.needsUpdate = true
@@ -352,58 +378,53 @@ const processMaterial = (material: THREE.Material) => {
     console.log('  - 粗糙度:', material.roughness)
     
     if ((material as any).vertexColors) {
-      console.log('  - 材质有vertexColors，进一步优化显示')
-      if (material.roughness > 0.3 && !material.roughnessMap) {
-        console.log('  - 降低粗糙度以增加亮度和饱和度，原值:', material.roughness)
-        material.roughness = 0.2
-        console.log('  - 新粗糙度:', material.roughness)
-      }
-      if (material.metalness > 0.5 && !material.metalnessMap) {
-        console.log('  - 降低金属度，原值:', material.metalness)
-        material.metalness = 0.0
-        console.log('  - 新金属度:', material.metalness)
-      }
-    } else {
-      if (material.roughness > 0.7 && !material.roughnessMap) {
-        console.log('  - 降低粗糙度以增加亮度，原值:', material.roughness)
-        material.roughness = Math.max(0.3, material.roughness * 0.6)
-        console.log('  - 新粗糙度:', material.roughness)
+      console.log('  - 材质有vertexColors')
+      if (!material.map && !material.roughnessMap && !material.normalMap && !material.metalnessMap) {
+        material.color.setHex(0xffffff)
       }
     }
-  } else if ('isMeshBasicMaterial' in material) {
+  } else if (material instanceof THREE.MeshBasicMaterial) {
     console.log('  - 是基础材质')
-    const basicMat = material as THREE.MeshBasicMaterial
-    if (basicMat.map) {
-      basicMat.map.colorSpace = THREE.SRGBColorSpace
-      basicMat.map.needsUpdate = true
+    if (!material.map) {
+      material.color.convertSRGBToLinear()
     }
-  } else if ('isMeshLambertMaterial' in material) {
+    material.needsUpdate = true
+  } else if (material instanceof THREE.MeshLambertMaterial) {
     console.log('  - 是 Lambert 材质')
-    const lambertMat = material as THREE.MeshLambertMaterial
-    if (lambertMat.map) {
-      lambertMat.map.colorSpace = THREE.SRGBColorSpace
-      lambertMat.map.needsUpdate = true
+    if (!material.map) {
+      material.color.convertSRGBToLinear()
     }
-  } else if ('isMeshPhongMaterial' in material) {
+    if (material.emissive) {
+      material.emissive.convertSRGBToLinear()
+    }
+    material.needsUpdate = true
+  } else if (material instanceof THREE.MeshPhongMaterial) {
     console.log('  - 是 Phong 材质')
-    const phongMat = material as THREE.MeshPhongMaterial
-    if (phongMat.map) {
-      phongMat.map.colorSpace = THREE.SRGBColorSpace
-      phongMat.map.needsUpdate = true
+    if (!material.map) {
+      material.color.convertSRGBToLinear()
     }
+    if (material.emissive) {
+      material.emissive.convertSRGBToLinear()
+    }
+    if (material.specular) {
+      material.specular.convertSRGBToLinear()
+    }
+    material.needsUpdate = true
+  } else if (material instanceof THREE.MeshMatcapMaterial) {
+    console.log('  - 是 Matcap 材质')
+    if (material.matcap) {
+      material.matcap.colorSpace = THREE.SRGBColorSpace
+    }
+    material.needsUpdate = true
+  } else if (material instanceof THREE.MeshDepthMaterial) {
+    console.log('  - 是深度材质')
+    material.needsUpdate = true
+  } else if (material instanceof THREE.MeshNormalMaterial) {
+    console.log('  - 是法向材质')
+    material.needsUpdate = true
   } else {
-    console.warn('  - 未知材质类型，尝试通用处理')
-    
-    const matAny = material as any
-    
-    if (matAny.map) {
-      matAny.map.colorSpace = THREE.SRGBColorSpace
-      matAny.map.needsUpdate = true
-    }
-    
-    if (matAny.specular) {
-      console.log('  - 检测到 specular 材质，可能是 KHR_materials_pbrSpecularGlossiness')
-    }
+    console.warn('  - 未知材质类型，已应用通用处理')
+    material.needsUpdate = true
   }
 }
 
@@ -443,20 +464,25 @@ const loadModel = (url: string) => {
       model.traverse((child) => {
         const mesh = child as THREE.Mesh
         
-        if (mesh.isMesh) {
+        if (mesh.isMesh || (child as any).isSkinnedMesh) {
           meshCount++
-          console.log(`\n发现网格 [${meshCount}]:`, mesh.name || '未命名')
+          console.log(`\n发现网格 [${meshCount}]:`, mesh.name || '未命名', (child as any).isSkinnedMesh ? '(蒙皮网格)' : '')
           
           mesh.castShadow = true
           mesh.receiveShadow = true
+          
+          mesh.frustumCulled = false
           
           const hasVertexColors = mesh.geometry && mesh.geometry.attributes.color
           
           if (mesh.geometry) {
             console.log('  几何体属性:', Object.keys(mesh.geometry.attributes))
             if (hasVertexColors) {
-              console.log('  检测到顶点颜色属性，需要启用材质的vertexColors')
+              console.log('  检测到顶点颜色属性')
             }
+            
+            mesh.geometry.computeBoundingBox()
+            mesh.geometry.computeBoundingSphere()
           }
           
           if (mesh.material) {
@@ -483,6 +509,9 @@ const loadModel = (url: string) => {
                   }
                 }
               }
+              
+              mat.transparent = mat.opacity < 1.0
+              mat.depthWrite = !mat.transparent
               
               processMaterial(mat)
             })
@@ -514,11 +543,21 @@ const loadModel = (url: string) => {
       model.position.sub(center)
       
       const maxDim = Math.max(size.x, size.y, size.z)
-      const scale = 2 / maxDim
+      const minDim = Math.min(size.x, size.y, size.z)
+      
+      let scale = 2 / maxDim
+      
+      if (minDim < 0.1) {
+        scale = Math.min(scale, 10)
+      }
+      
       model.scale.setScalar(scale)
       
       const scaledSizeY = size.y * scale
-      model.position.y += scaledSizeY / 2 - 0.01
+      model.position.y += scaledSizeY / 2
+      
+      console.log('模型缩放:', scale)
+      console.log('模型最终位置:', model.position)
 
       scene.add(model)
       loading.value = false

@@ -43,7 +43,7 @@
             class="flex items-center space-x-2 px-5 py-2.5 bg-[#8B6F4E] text-white rounded-xl hover:bg-[#6B5342] transition-colors shadow-soft"
             @click="showCreateModal = true">
             <Icon icon="solar:add-circle-bold" class="text-lg" />
-            <span class="font-medium">新建影像任务</span>
+            <span class="font-medium">创建影像集</span>
           </button>
         </div>
 
@@ -754,7 +754,7 @@
       <div class="absolute inset-0 bg-black/50" @click="closeCreateModal"></div>
       <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
         <div class="p-6 border-b border-[#E8D5C4] flex items-center justify-between">
-          <h3 class="text-lg font-bold text-[#5C4A3A] font-serif">新建影像任务</h3>
+          <h3 class="text-lg font-bold text-[#5C4A3A] font-serif">创建影像集</h3>
           <button 
             class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
             @click="closeCreateModal">
