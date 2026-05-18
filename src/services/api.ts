@@ -470,6 +470,12 @@ interface FamilyDetailResponse {
   members: FamilyMember[];
 }
 
+interface HomeStatsResponse {
+  memberCount: number;
+  galleryCount: number;
+  avatarCount: number;
+}
+
 interface CreateFamilyMemberRequest {
   name: string;
   gender?: Gender;
@@ -1576,6 +1582,10 @@ class ApiService {
 
   async getFamily(): Promise<ApiResponse<FamilyDetailResponse>> {
     return this.authRequest<FamilyDetailResponse>('/api/family');
+  }
+
+  async getHomeStats(): Promise<ApiResponse<HomeStatsResponse>> {
+    return this.authRequest<HomeStatsResponse>('/api/home/stats');
   }
 
   async updateFamily(request: UpdateFamilyRequest): Promise<ApiResponse<Family>> {

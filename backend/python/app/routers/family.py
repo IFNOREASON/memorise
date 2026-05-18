@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from typing import Optional, List
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete, or_
+from sqlalchemy import select, update, delete, or_, func
 from sqlalchemy.orm import selectinload
 import uuid
 import pandas as pd
@@ -14,13 +14,13 @@ from urllib.parse import quote
 from app.database import get_async_session
 from app.models import (
     Family, FamilyMember, MemberMedia, MemberStatus, Gender, MediaType,
-    User, FamilyUser, OperationType, TargetType
+    User, FamilyUser, OperationType, TargetType, Gallery, Avatar
 )
 from app.schemas import (
     ApiResponse,
     FamilyBase, FamilyCreateRequest, FamilyUpdateRequest, FamilyDetailResponse,
     FamilyMemberBase, FamilyMemberCreateRequest, FamilyMemberUpdateRequest, FamilyMemberListResponse,
-    MemberMediaBase, MemberMediaCreateRequest
+    MemberMediaBase, MemberMediaCreateRequest, HomeStatsResponse
 )
 from app.permissions import (
     viewer_required, editor_required, admin_required,
@@ -1010,3 +1010,41 @@ async def export_family_members(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"导出失败: {str(e)}")
+
+
+@router.get("/home/stats", response_model=ApiResponse[HomeStatsResponse])
+async def get_home_stats(
+    user_and_family: tuple = Depends(viewer_required),
+    db: AsyncSession = Depends(get_async_session)
+):
+    current_user, family, family_user = user_and_family
+    
+    try:
+        member_count_stmt = select(func.count(FamilyMember.id)).where(
+            FamilyMember.family_id == family.id,
+            FamilyMember.deleted_at.is_(None)
+        )
+        member_count_result = await db.execute(member_count_stmt)
+        member_count = member_count_result.scalar() or 0
+        
+        gallery_count_stmt = select(func.count(Gallery.id)).where(
+            Gallery.family_id == family.id,
+            Gallery.deleted_at.is_(None)
+        )
+        gallery_count_result = await db.execute(gallery_count_stmt)
+        gallery_count = gallery_count_result.scalar() or 0
+        
+        avatar_count_stmt = select(func.count(Avatar.id)).where(Avatar.deleted_at.is_(None))
+        avatar_count_result = await db.execute(avatar_count_stmt)
+        avatar_count = avatar_count_result.scalar() or 0
+        
+        return ApiResponse(
+            success=True,
+            data=HomeStatsResponse(
+                member_count=member_count,
+                gallery_count=gallery_count,
+                avatar_count=avatar_count
+            )
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取首页统计数据失败: {str(e)}")

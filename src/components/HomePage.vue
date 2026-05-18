@@ -55,15 +55,15 @@
               
               <div class="flex items-center space-x-6 border-t border-white/20 pt-4">
                 <div>
-                  <p class="text-lg font-bold">128</p>
+                  <p class="text-lg font-bold">{{ memberCount }}</p>
                   <p class="text-[10px] text-white/60">家族成员</p>
                 </div>
                 <div>
-                  <p class="text-lg font-bold">56</p>
+                  <p class="text-lg font-bold">{{ galleryCount }}</p>
                   <p class="text-[10px] text-white/60">珍贵影像</p>
                 </div>
                 <div>
-                  <p class="text-lg font-bold">3</p>
+                  <p class="text-lg font-bold">{{ avatarCount }}</p>
                   <p class="text-[10px] text-white/60">数字生命</p>
                 </div>
               </div>
@@ -136,60 +136,49 @@
           </div>
           
           <div class="space-y-3">
-            <div class="bg-white rounded-2xl p-4 shadow-soft border border-stone-100 hover-lift cursor-pointer flex items-center space-x-4">
+            <div v-if="avatars.length === 0" class="text-center py-8 text-gray-400">
+              <p class="text-xs">暂无数字家人</p>
+            </div>
+            <div v-for="avatar in avatars" :key="avatar.id" 
+                 class="bg-white rounded-2xl p-4 shadow-soft border border-stone-100 hover-lift cursor-pointer flex items-center space-x-4"
+                 :class="{ 'opacity-80': avatar.status !== 'active' }">
               <div class="relative">
                 <div class="w-16 h-16 rounded-full bg-gradient-to-br from-[#E8D5C4] to-[#D4A574] p-0.5">
-                  <div class="w-full h-full rounded-full bg-gray-200 overflow-hidden">
-                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face" class="w-full h-full object-cover" alt="祖父">
+                  <div class="w-full h-full rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
+                    <img v-if="avatar.avatar" :src="getFullMediaUrl(avatar.avatar)" class="w-full h-full object-cover" :alt="avatar.name">
+                    <Icon v-else icon="solar:user-bold" class="text-3xl text-gray-400" />
                   </div>
                 </div>
-                <div class="absolute bottom-0 right-0 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                <div v-if="avatar.status === 'active'" class="absolute bottom-0 right-0 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
                   <Icon icon="solar:check-bold" class="text-white text-xs" />
                 </div>
-              </div>
-              <div class="flex-1">
-                <div class="flex items-center space-x-2">
-                  <h4 class="font-bold text-gray-800">祖父 · 张明远</h4>
-                  <span class="px-2 py-0.5 bg-[#E8D5C4] text-[#8B6F4E] text-[10px] rounded-full">已激活</span>
-                </div>
-                <p class="text-xs text-gray-500 mt-1">1928-2018 · 训练度 98%</p>
-                <div class="flex items-center mt-2 space-x-3">
-                  <span class="text-[10px] text-gray-400 flex items-center">
-                    <Icon icon="solar:chat-dots-linear" class="mr-1" style="font-size: 12px;" />
-                    2.3k 对话
-                  </span>
-                  <span class="text-[10px] text-gray-400 flex items-center">
-                    <Icon icon="solar:clock-circle-linear" class="mr-1" style="font-size: 12px;" />
-                    3天前互动
-                  </span>
-                </div>
-              </div>
-              <button class="w-10 h-10 rounded-full bg-[#8B6F4E] flex items-center justify-center shadow-md hover:shadow-lg transition-shadow">
-                <Icon icon="solar:phone-bold" class="text-white text-xl" />
-              </button>
-            </div>
-
-            <div class="bg-white rounded-2xl p-4 shadow-soft border border-stone-100 hover-lift cursor-pointer flex items-center space-x-4 opacity-80">
-              <div class="relative">
-                <div class="w-16 h-16 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 p-0.5">
-                  <div class="w-full h-full rounded-full bg-gray-200 overflow-hidden">
-                    <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face" class="w-full h-full object-cover grayscale" alt="祖母">
-                  </div>
-                </div>
-                <div class="absolute bottom-0 right-0 w-5 h-5 bg-amber-400 rounded-full border-2 border-white flex items-center justify-center">
+                <div v-else-if="avatar.status === 'training'" class="absolute bottom-0 right-0 w-5 h-5 bg-amber-400 rounded-full border-2 border-white flex items-center justify-center">
                   <Icon icon="solar:pause-bold" class="text-white text-xs" />
                 </div>
               </div>
               <div class="flex-1">
                 <div class="flex items-center space-x-2">
-                  <h4 class="font-bold text-gray-800">祖母 · 李淑华</h4>
-                  <span class="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] rounded-full">训练中</span>
+                  <h4 class="font-bold text-gray-800">{{ avatar.relationship }} · {{ avatar.name }}</h4>
+                  <span v-if="avatar.status === 'active'" class="px-2 py-0.5 bg-[#E8D5C4] text-[#8B6F4E] text-[10px] rounded-full">已激活</span>
+                  <span v-else-if="avatar.status === 'training'" class="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] rounded-full">训练中</span>
+                  <span v-else class="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] rounded-full">{{ avatar.status }}</span>
                 </div>
-                <p class="text-xs text-gray-500 mt-1">1932-2020 · 训练度 76%</p>
-                <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
-                  <div class="bg-amber-400 h-1.5 rounded-full" style="width: 76%"></div>
+                <p class="text-xs text-gray-500 mt-1">
+                  {{ avatar.birthYear }}{{ avatar.deathYear ? '-' + avatar.deathYear : '' }} · 训练度 {{ avatar.progress }}%
+                </p>
+                <div v-if="avatar.status === 'active'" class="flex items-center mt-2 space-x-3">
+                  <span class="text-[10px] text-gray-400 flex items-center">
+                    <Icon icon="solar:chat-dots-linear" class="mr-1" style="font-size: 12px;" />
+                    {{ avatar.chatCount || 0 }} 对话
+                  </span>
+                </div>
+                <div v-else-if="avatar.status === 'training'" class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                  <div class="bg-amber-400 h-1.5 rounded-full" :style="{ width: avatar.progress + '%' }"></div>
                 </div>
               </div>
+              <button v-if="avatar.status === 'active'" class="w-10 h-10 rounded-full bg-[#8B6F4E] flex items-center justify-center shadow-md hover:shadow-lg transition-shadow">
+                <Icon icon="solar:phone-bold" class="text-white text-xl" />
+              </button>
             </div>
           </div>
         </section>
@@ -317,7 +306,24 @@ interface FamilyMemoryItem {
   createdAt: string
 }
 
+interface AvatarItem {
+  id: string
+  name: string
+  relationship: string
+  gender: 'male' | 'female'
+  birthYear?: string
+  deathYear?: string
+  status: 'active' | 'training' | 'generating' | 'inactive' | 'failed' | 'retry_pending' | 'pending'
+  progress: number
+  avatar?: string
+  chatCount?: number
+}
+
 const familyMemories = ref<FamilyMemoryItem[]>([])
+const memberCount = ref(0)
+const galleryCount = ref(0)
+const avatarCount = ref(0)
+const avatars = ref<AvatarItem[]>([])
 
 const noisePatternStyle = computed(() => ({
   backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox=%220 0 100 100%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22 opacity=%220.3%22/%3E%3C/svg%3E")`
@@ -400,6 +406,30 @@ const formatMemoryDate = (dateStr: string) => {
   }
 }
 
+const loadHomeStats = async () => {
+  try {
+    const response = await apiService.getHomeStats()
+    if (response.success && response.data) {
+      memberCount.value = response.data.memberCount
+      galleryCount.value = response.data.galleryCount
+      avatarCount.value = response.data.avatarCount
+    }
+  } catch (error) {
+    console.error('加载首页统计数据失败:', error)
+  }
+}
+
+const loadAvatars = async () => {
+  try {
+    const response = await apiService.getAvatars()
+    if (response.success && response.data) {
+      avatars.value = response.data.avatars
+    }
+  } catch (error) {
+    console.error('加载数字家人失败:', error)
+  }
+}
+
 const loadFamilyMemories = async () => {
   try {
     const response = await apiService.getFamilyMemories()
@@ -416,6 +446,8 @@ const loadFamilyMemories = async () => {
 }
 
 onMounted(() => {
+  loadHomeStats()
+  loadAvatars()
   loadFamilyMemories()
 })
 </script>

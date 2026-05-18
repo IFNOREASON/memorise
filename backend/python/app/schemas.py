@@ -675,6 +675,15 @@ class FamilyDetailResponse(BaseModel):
         populate_by_name = True
 
 
+class HomeStatsResponse(BaseModel):
+    member_count: int = Field(alias="memberCount")
+    gallery_count: int = Field(alias="galleryCount")
+    avatar_count: int = Field(alias="avatarCount")
+    
+    class Config:
+        populate_by_name = True
+
+
 class FamilyRole(str, enum.Enum):
     HEAD = "head"
     ADMIN = "admin"
