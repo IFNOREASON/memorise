@@ -333,6 +333,7 @@ const navItems = [
   { id: 'gallery', label: '影集', icon: 'solar:gallery-wide-bold-duotone', path: '/gallery' },
   { id: 'digital', label: '生境', icon: 'solar:magic-stick-3-bold-duotone', path: '/habitat' },
   { id: 'chat', label: '语伴', icon: 'solar:chat-round-dots-bold-duotone', path: '/chat' },
+  { id: 'space', label: '念境', icon: 'solar:heart-lock-bold-duotone', path: '/space' },
 ]
 
 const isActiveNav = (navId: string): boolean => {
@@ -347,6 +348,8 @@ const isActiveNav = (navId: string): boolean => {
     return path === '/habitat'
   } else if (navId === 'chat') {
     return path === '/chat'
+  } else if (navId === 'space') {
+    return path === '/space'
   }
   return false
 }

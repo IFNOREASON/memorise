@@ -16,6 +16,7 @@ import AnniversaryCalendar from '../components/AnniversaryCalendar.vue'
 import AnniversaryManagement from '../components/AnniversaryManagement.vue'
 import PushRuleConfig from '../components/PushRuleConfig.vue'
 import MessageCenter from '../components/MessageCenter.vue'
+import SpacePage from '../components/SpacePage.vue'
 
 const routes = [
   {
@@ -75,6 +76,11 @@ const routes = [
     path: '/chat',
     name: 'ChatCompanion',
     component: ChatCompanionPage
+  },
+  {
+    path: '/space',
+    name: 'Space',
+    component: SpacePage
   },
   {
     path: '/family/members',

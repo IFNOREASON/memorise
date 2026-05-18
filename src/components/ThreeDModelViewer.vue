@@ -631,10 +631,19 @@ onUnmounted(() => {
 })
 
 watch(() => props.modelUrl, (newUrl, oldUrl) => {
-  if (newUrl !== oldUrl && newUrl) {
+  console.log('modelUrl 变化:', oldUrl, '->', newUrl)
+  if (newUrl !== oldUrl) {
     loading.value = true
     error.value = null
-    loadModel(newUrl)
+    if (newUrl) {
+      loadModel(newUrl)
+    } else {
+      if (model && scene) {
+        scene.remove(model)
+        model = null
+      }
+      createPlaceholderHuman()
+    }
   }
 })
 
@@ -645,8 +654,10 @@ watch(() => props.backgroundColor, () => {
 })
 
 watch(() => props.autoRotate, (newVal) => {
+  console.log('autoRotate 变更:', newVal)
   if (controls) {
     controls.autoRotate = newVal
+    controls.update()
   }
 })
 

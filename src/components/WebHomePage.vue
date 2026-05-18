@@ -54,52 +54,7 @@
         </div>
       </section>
 
-      <section class="mb-10">
-        <div class="flex items-center justify-between mb-6">
-          <h3 class="text-xl font-bold text-[#5C4A3A] font-serif">五大传承模块</h3>
-        </div>
-        
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div v-for="module in modules" :key="module.id"
-            class="group cursor-pointer"
-            :class="[
-              module.highlight 
-                ? 'bg-gradient-to-br from-[#8B6F4E] to-[#A67B5B] shadow-glow border-2 border-white' 
-                : 'bg-white shadow-soft border border-stone-100 hover-lift'
-            ]"
-            @click="handleModuleClick(module.id)">
-            <div class="p-6 rounded-2xl text-center relative">
-              <div v-if="module.highlight" class="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full border-2 border-white"></div>
-              
-              <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3"
-                   :class="[
-                     module.highlight 
-                       ? 'bg-white/20' 
-                       : 'bg-[#E8D5C4]'
-                   ]">
-                <Icon :icon="module.icon" 
-                      :class="[
-                        module.highlight ? 'text-white' : module.color || 'text-[#8B6F4E]'
-                      ]"
-                      class="text-2xl" />
-              </div>
-              
-              <span class="block font-bold text-sm"
-                    :class="[
-                      module.highlight ? 'text-white' : 'text-[#5C4A3A]'
-                    ]">
-                {{ module.label }}
-              </span>
-              <span class="block text-xs mt-1"
-                    :class="[
-                      module.highlight ? 'text-[#E8D5C4]' : 'text-gray-400'
-                    ]">
-                {{ module.subLabel }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
+
 
       <section class="mb-10">
         <div class="flex items-center justify-between mb-6">
@@ -265,27 +220,6 @@ import { Icon } from '@iconify/vue'
 
 const router = useRouter()
 
-const handleModuleClick = (moduleId: string) => {
-  if (moduleId === 'family') {
-    router.push('/zupu')
-  } else if (moduleId === 'gallery') {
-    router.push('/gallery')
-  } else if (moduleId === 'digital') {
-    router.push('/habitat')
-  } else if (moduleId === 'chat') {
-    router.push('/chat')
-  }
-}
-
-interface Module {
-  id: string
-  label: string
-  subLabel: string
-  icon: string
-  highlight: boolean
-  color?: string
-}
-
 interface DigitalFamilyMember {
   id: string
   name: string
@@ -306,14 +240,6 @@ interface Memory {
   icon?: string
   tags?: string[]
 }
-
-const modules: Module[] = [
-  { id: 'family', label: '家承', subLabel: '族谱', icon: 'solar:tree-bold-duotone', highlight: false },
-  { id: 'gallery', label: '影集', subLabel: '影像', icon: 'solar:gallery-wide-bold-duotone', highlight: false, color: 'text-orange-600' },
-  { id: 'digital', label: '生境', subLabel: '数字生命', icon: 'solar:magic-stick-3-bold-duotone', highlight: true },
-  { id: 'chat', label: '语伴', subLabel: 'AI对话', icon: 'solar:chat-round-dots-bold-duotone', highlight: false, color: 'text-emerald-600' },
-  { id: 'space', label: '念境', subLabel: '3D空间', icon: 'solar:heart-lock-bold-duotone', highlight: false, color: 'text-blue-500' },
-]
 
 const digitalFamily: DigitalFamilyMember[] = [
   {
