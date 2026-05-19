@@ -300,10 +300,14 @@ interface FamilyMemoryItem {
   title: string
   type: 'text' | 'image' | 'video'
   description?: string
+  content?: string
   eventDate?: string
   location?: string
   mediaUrl?: string
+  mediaType?: string
+  tags?: string[]
   createdAt: string
+  updatedAt: string
 }
 
 interface AvatarItem {

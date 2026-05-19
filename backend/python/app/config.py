@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = os.path.join(BASE_DIR, "uploads")
     MAX_UPLOAD_SIZE: int = 50 * 1024 * 1024
     
+    IMAGE_PROCESSING_ENABLED: bool = True
+    IMAGE_PROCESSING_MAX_CONCURRENT: int = 5
+    IMAGE_PROCESSING_DEFAULT_QUALITY: int = 90
+    IMAGE_PROCESSING_WATERMARK_TEXT: str = "Memorise"
+    
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
     
     JWT_SECRET_KEY: str = "memorise-secret-key-change-in-production-2024"

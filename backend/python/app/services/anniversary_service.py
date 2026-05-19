@@ -7,7 +7,7 @@ from sqlalchemy import select, update, delete, or_, and_, func
 from sqlalchemy.orm import selectinload
 import uuid
 
-from app.database import AsyncSessionLocal
+from app.database import db_manager
 from app.models import (
     Anniversary, AnniversaryType, RepeatType,
     PushRule, PushChannel,
@@ -83,7 +83,7 @@ async def check_anniversaries_for_reminder():
     """
     检查需要提醒的纪念日
     """
-    async with AsyncSessionLocal() as db:
+    async with db_manager.session_maker() as db:
         try:
             now = datetime.now(timezone.utc)
             today_month = now.month
@@ -197,7 +197,7 @@ async def run_scheduled_task(task: ScheduledTask) -> ScheduledTask:
     """
     执行定时任务
     """
-    async with AsyncSessionLocal() as db:
+    async with db_manager.session_maker() as db:
         try:
             task.status = TaskStatus.RUNNING.value
             await db.commit()
@@ -239,7 +239,7 @@ async def check_pending_tasks():
     """
     检查并执行待处理的定时任务
     """
-    async with AsyncSessionLocal() as db:
+    async with db_manager.session_maker() as db:
         try:
             now = datetime.now(timezone.utc)
 
@@ -291,7 +291,7 @@ async def create_recurring_reminder_tasks():
     """
     创建定期的纪念日提醒任务
     """
-    async with AsyncSessionLocal() as db:
+    async with db_manager.session_maker() as db:
         now = datetime.now(timezone.utc)
         
         today_9am = now.replace(hour=9, minute=0, second=0, microsecond=0)

@@ -179,6 +179,7 @@ class AvatarBase(BaseModel):
     voice_model_id: Optional[str] = Field(default=None, alias="voiceModelId")
     voice_enabled: bool = Field(default=False, alias="voiceEnabled")
     created_at: datetime = Field(alias="createdAt")
+    chat_count: Optional[int] = Field(default=None, alias="chatCount")
 
     class Config:
         populate_by_name = True
@@ -1366,3 +1367,235 @@ class FamilyMemoryTimelineItem(BaseModel):
 class FamilyMemoryTimelineResponse(BaseModel):
     total: int
     items: List[FamilyMemoryTimelineItem]
+
+
+class ImageProcessType(str, enum.Enum):
+    RESTORATION = "restoration"
+    ENHANCEMENT = "enhancement"
+    DYNAMIC_PORTRAIT = "dynamic_portrait"
+    CROSS_GENERATION = "cross_generation"
+    VIDEO_HIGHLIGHTS = "video_highlights"
+    AI_SCENE = "ai_scene"
+
+
+class ImageProcessStatus(str, enum.Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    RETRY_PENDING = "retry_pending"
+
+
+class ExportFormat(str, enum.Enum):
+    JPG = "jpg"
+    PNG = "png"
+    WEBP = "webp"
+    MP4 = "mp4"
+    GIF = "gif"
+
+
+class WatermarkPosition(str, enum.Enum):
+    TOP_LEFT = "top_left"
+    TOP_RIGHT = "top_right"
+    BOTTOM_LEFT = "bottom_left"
+    BOTTOM_RIGHT = "bottom_right"
+    CENTER = "center"
+
+
+class RestorationParams(BaseModel):
+    remove_scratches: bool = Field(default=True, alias="removeScratches")
+    remove_stains: bool = Field(default=True, alias="removeStains")
+    restore_color: bool = Field(default=True, alias="restoreColor")
+    sharpen_details: bool = Field(default=True, alias="sharpenDetails")
+    denoise_strength: int = Field(default=50, ge=0, le=100, alias="denoiseStrength")
+    upscale_factor: int = Field(default=2, ge=1, le=4, alias="upscaleFactor")
+
+    class Config:
+        populate_by_name = True
+
+
+class EnhancementParams(BaseModel):
+    upscale_factor: int = Field(default=2, ge=1, le=8, alias="upscaleFactor")
+    enhance_face: bool = Field(default=True, alias="enhanceFace")
+    sharpen: bool = Field(default=True)
+    color_enhance: bool = Field(default=True, alias="colorEnhance")
+    hdr_effect: bool = Field(default=False, alias="hdrEffect")
+
+    class Config:
+        populate_by_name = True
+
+
+class DynamicPortraitParams(BaseModel):
+    motion_type: str = Field(default="subtle_smile", alias="motionType")
+    blink_enabled: bool = Field(default=True, alias="blinkEnabled")
+    head_movement: bool = Field(default=True, alias="headMovement")
+    duration_seconds: int = Field(default=5, ge=1, le=30, alias="durationSeconds")
+    fps: int = Field(default=24, ge=15, le=60)
+
+    class Config:
+        populate_by_name = True
+
+
+class CrossGenerationParams(BaseModel):
+    target_age: Optional[int] = Field(default=None, ge=0, le=100, alias="targetAge")
+    target_gender: Optional[str] = Field(default=None, alias="targetGender")
+    target_style: Optional[str] = Field(default="modern", alias="targetStyle")
+    preserve_identity: bool = Field(default=True, alias="preserveIdentity")
+
+    class Config:
+        populate_by_name = True
+
+
+class VideoHighlightsParams(BaseModel):
+    highlight_duration: int = Field(default=30, ge=5, le=300, alias="highlightDuration")
+    transition_style: str = Field(default="fade", alias="transitionStyle")
+    background_music: Optional[str] = Field(default=None, alias="backgroundMusic")
+    add_captions: bool = Field(default=False, alias="addCaptions")
+    caption_style: Optional[str] = Field(default="elegant", alias="captionStyle")
+
+    class Config:
+        populate_by_name = True
+
+
+class AISceneParams(BaseModel):
+    scene_prompt: str = Field(..., alias="scenePrompt")
+    style: str = Field(default="photorealistic", alias="style")
+    aspect_ratio: str = Field(default="16:9", alias="aspectRatio")
+    quality: str = Field(default="high", alias="quality")
+    negative_prompt: Optional[str] = Field(default=None, alias="negativePrompt")
+
+    class Config:
+        populate_by_name = True
+
+
+class ExportOptions(BaseModel):
+    format: ExportFormat = ExportFormat.JPG
+    quality: int = Field(default=90, ge=1, le=100)
+    resolution: Optional[str] = Field(default=None)
+    add_watermark: bool = Field(default=False, alias="addWatermark")
+    watermark_text: Optional[str] = Field(default=None, alias="watermarkText")
+    watermark_position: WatermarkPosition = Field(default=WatermarkPosition.BOTTOM_RIGHT, alias="watermarkPosition")
+
+    class Config:
+        populate_by_name = True
+
+
+class CreateProcessTaskRequest(BaseModel):
+    gallery_id: str = Field(..., alias="galleryId")
+    media_id: Optional[str] = Field(default=None, alias="mediaId")
+    media_ids: Optional[List[str]] = Field(default=None, alias="mediaIds")
+    task_type: ImageProcessType = Field(..., alias="taskType")
+    source_url: Optional[str] = Field(default=None, alias="sourceUrl")
+
+    restoration_params: Optional[RestorationParams] = Field(default=None, alias="restorationParams")
+    enhancement_params: Optional[EnhancementParams] = Field(default=None, alias="enhancementParams")
+    dynamic_portrait_params: Optional[DynamicPortraitParams] = Field(default=None, alias="dynamicPortraitParams")
+    cross_generation_params: Optional[CrossGenerationParams] = Field(default=None, alias="crossGenerationParams")
+    video_highlights_params: Optional[VideoHighlightsParams] = Field(default=None, alias="videoHighlightsParams")
+    ai_scene_params: Optional[AISceneParams] = Field(default=None, alias="aiSceneParams")
+
+    export_options: Optional[ExportOptions] = Field(default=None, alias="exportOptions")
+    callback_url: Optional[str] = Field(default=None, alias="callbackUrl")
+    webhook_payload: Optional[Dict[str, Any]] = Field(default=None, alias="webhookPayload")
+
+    class Config:
+        populate_by_name = True
+
+
+class ProcessTaskResponse(BaseModel):
+    task_id: str = Field(alias="taskId")
+    gallery_id: str = Field(alias="galleryId")
+    task_type: ImageProcessType = Field(alias="taskType")
+    status: ImageProcessStatus
+    progress: int
+    message: str
+
+    class Config:
+        populate_by_name = True
+
+
+class ProcessTaskStatusResponse(BaseModel):
+    task_id: str = Field(alias="taskId")
+    gallery_id: str = Field(alias="galleryId")
+    media_id: Optional[str] = Field(default=None, alias="mediaId")
+    task_type: ImageProcessType = Field(alias="taskType")
+    status: ImageProcessStatus
+    progress: int
+
+    source_url: Optional[str] = Field(default=None, alias="sourceUrl")
+    result_url: Optional[str] = Field(default=None, alias="resultUrl")
+    result_preview_url: Optional[str] = Field(default=None, alias="previewUrl")
+    result_metadata: Optional[Dict[str, Any]] = Field(default=None, alias="resultMetadata")
+
+    retry_count: int = Field(alias="retryCount")
+    max_retries: int = Field(alias="maxRetries")
+    last_error: Optional[str] = Field(default=None, alias="lastError")
+
+    started_at: Optional[datetime] = Field(default=None, alias="startedAt")
+    completed_at: Optional[datetime] = Field(default=None, alias="completedAt")
+    created_at: datetime = Field(alias="createdAt")
+    updated_at: datetime = Field(alias="updatedAt")
+
+    estimated_time_remaining: Optional[int] = Field(default=None, alias="estimatedTimeRemaining")
+    processing_time: Optional[int] = Field(default=None, alias="processingTime")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
+class ProcessTaskListResponse(BaseModel):
+    total: int
+    tasks: List[ProcessTaskStatusResponse]
+
+
+class BatchProcessRequest(BaseModel):
+    gallery_id: str = Field(..., alias="galleryId")
+    media_ids: List[str] = Field(..., alias="mediaIds")
+    task_type: ImageProcessType = Field(..., alias="taskType")
+
+    restoration_params: Optional[RestorationParams] = Field(default=None, alias="restorationParams")
+    enhancement_params: Optional[EnhancementParams] = Field(default=None, alias="enhancementParams")
+    dynamic_portrait_params: Optional[DynamicPortraitParams] = Field(default=None, alias="dynamicPortraitParams")
+    cross_generation_params: Optional[CrossGenerationParams] = Field(default=None, alias="crossGenerationParams")
+    video_highlights_params: Optional[VideoHighlightsParams] = Field(default=None, alias="videoHighlightsParams")
+
+    export_options: Optional[ExportOptions] = Field(default=None, alias="exportOptions")
+    callback_url: Optional[str] = Field(default=None, alias="callbackUrl")
+
+    class Config:
+        populate_by_name = True
+
+
+class BatchProcessResponse(BaseModel):
+    total_tasks: int = Field(alias="totalTasks")
+    task_ids: List[str] = Field(alias="taskIds")
+    message: str
+
+    class Config:
+        populate_by_name = True
+
+
+class RetryTaskRequest(BaseModel):
+    reset_retry_count: bool = Field(default=False, alias="resetRetryCount")
+
+    class Config:
+        populate_by_name = True
+
+
+class ProcessResultDownloadRequest(BaseModel):
+    task_id: str = Field(..., alias="taskId")
+    format: Optional[ExportFormat] = Field(default=None)
+    quality: Optional[int] = Field(default=None, ge=1, le=100)
+
+    class Config:
+        populate_by_name = True
+
+
+class ProcessTaskCancelResponse(BaseModel):
+    task_id: str = Field(alias="taskId")
+    success: bool
+    message: str
+
+    class Config:
+        populate_by_name = True

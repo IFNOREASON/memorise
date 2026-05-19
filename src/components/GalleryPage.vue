@@ -1,8 +1,8 @@
 <template>
-  <div class="min-h-screen paper-texture">
-    <div class="max-w-7xl mx-auto px-6 py-8">
-      <section class="mb-8">
-        <div class="bg-gradient-to-r from-[#8B6F4E] to-[#A67B5B] rounded-[24px] p-8 text-white shadow-warm">
+  <div class="min-h-screen paper-texture flex flex-col">
+    <div class="flex-1 max-w-7xl mx-auto px-4 py-6 w-full">
+      <section class="mb-6">
+        <div class="bg-gradient-to-r from-[#8B6F4E] to-[#A67B5B] rounded-2xl p-6 text-white shadow-warm">
           <div class="flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
               <div class="flex items-center space-x-3 mb-4">
@@ -36,9 +36,9 @@
         </div>
       </section>
 
-      <section class="mb-8">
-        <div class="flex items-center justify-between mb-6">
-          <h3 class="text-xl font-bold text-[#5C4A3A] font-serif">人物影像管理</h3>
+      <section class="mb-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-[#5C4A3A] font-serif">人物影像管理</h3>
           <button 
             class="flex items-center space-x-2 px-5 py-2.5 bg-[#8B6F4E] text-white rounded-xl hover:bg-[#6B5342] transition-colors shadow-soft"
             @click="showCreateModal = true">
@@ -58,9 +58,9 @@
             <div class="flex transition-transform duration-500 ease-in-out" 
                  :style="{ transform: `translateX(-${currentSlide * 100}%)` }">
               <div v-for="(task, index) in tasks" :key="task.id"
-                   class="w-full md:w-1/2 lg:w-1/3 flex-shrink-0 px-3">
+                   class="w-full md:w-1/2 lg:w-1/3 flex-shrink-0 px-2">
                 <div 
-                  class="bg-white rounded-2xl p-5 shadow-soft border border-stone-100 hover-lift cursor-pointer relative"
+                  class="bg-white rounded-2xl p-4 shadow-soft border border-stone-100 hover-lift cursor-pointer relative">
                   @click="openMediaModal(task)">
                   <button 
                     class="absolute top-3 right-12 w-8 h-8 bg-[#E8D5C4] rounded-lg flex items-center justify-center hover:bg-[#D4A574] transition-colors z-10"
@@ -146,41 +146,41 @@
         </div>
       </section>
 
-      <section class="mb-8">
-        <div class="flex items-center justify-between mb-6">
-          <h3 class="text-xl font-bold text-[#5C4A3A] font-serif">快速制作</h3>
+      <section class="mb-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-[#5C4A3A] font-serif">快速制作</h3>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="bg-white rounded-2xl p-6 shadow-soft border border-stone-100 hover-lift cursor-pointer" @click="goToImageRepair">
-            <div class="w-16 h-16 bg-gradient-to-br from-[#E8D5C4] to-[#D4A574] rounded-2xl flex items-center justify-center mb-4">
-              <Icon icon="solar:image-line-duotone" class="text-[#8B6F4E] text-3xl" />
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-white rounded-2xl p-5 shadow-soft border border-stone-100 hover-lift cursor-pointer" @click="goToImageRepair">
+            <div class="w-14 h-14 bg-gradient-to-br from-[#E8D5C4] to-[#D4A574] rounded-2xl flex items-center justify-center mb-3">
+              <Icon icon="solar:image-line-duotone" class="text-[#8B6F4E] text-2xl" />
             </div>
             <h4 class="font-bold text-gray-800 mb-2">影像修复</h4>
-            <p class="text-sm text-gray-500 mb-4">智能修复老照片，去除划痕、褪色，还原清晰色彩</p>
+            <p class="text-sm text-gray-500 mb-3">智能修复老照片，去除划痕、褪色，还原清晰色彩</p>
             <div class="flex items-center text-xs text-[#8B6F4E] font-medium">
               <span>开始制作</span>
               <Icon icon="material-symbols:arrow-right-alt" class="ml-1" />
             </div>
           </div>
 
-          <div class="bg-white rounded-2xl p-6 shadow-soft border border-stone-100 hover-lift cursor-pointer">
-            <div class="w-16 h-16 bg-gradient-to-br from-[#F5E6D3] to-[#D4A574] rounded-2xl flex items-center justify-center mb-4">
-              <Icon icon="solar:video-circle-line-duotone" class="text-[#A67B5B] text-3xl" />
+          <div class="bg-white rounded-2xl p-5 shadow-soft border border-stone-100 hover-lift cursor-pointer">
+            <div class="w-14 h-14 bg-gradient-to-br from-[#F5E6D3] to-[#D4A574] rounded-2xl flex items-center justify-center mb-3">
+              <Icon icon="solar:video-circle-line-duotone" class="text-[#A67B5B] text-2xl" />
             </div>
             <h4 class="font-bold text-gray-800 mb-2">动态影像</h4>
-            <p class="text-sm text-gray-500 mb-4">让静态照片动起来，眨眼、微笑，栩栩如生</p>
+            <p class="text-sm text-gray-500 mb-3">让静态照片动起来，眨眼、微笑，栩栩如生</p>
             <div class="flex items-center text-xs text-[#A67B5B] font-medium">
               <span>开始制作</span>
               <Icon icon="material-symbols:arrow-right-alt" class="ml-1" />
             </div>
           </div>
 
-          <div class="bg-white rounded-2xl p-6 shadow-soft border border-stone-100 hover-lift cursor-pointer">
-            <div class="w-16 h-16 bg-gradient-to-br from-[#E8D5C4] to-emerald-100 rounded-2xl flex items-center justify-center mb-4">
-              <Icon icon="solar:clapperboard-line-duotone" class="text-emerald-600 text-3xl" />
+          <div class="bg-white rounded-2xl p-5 shadow-soft border border-stone-100 hover-lift cursor-pointer">
+            <div class="w-14 h-14 bg-gradient-to-br from-[#E8D5C4] to-emerald-100 rounded-2xl flex items-center justify-center mb-3">
+              <Icon icon="solar:clapperboard-line-duotone" class="text-emerald-600 text-2xl" />
             </div>
             <h4 class="font-bold text-gray-800 mb-2">回忆视频</h4>
-            <p class="text-sm text-gray-500 mb-4">多张照片合成视频，添加背景音乐和特效</p>
+            <p class="text-sm text-gray-500 mb-3">多张照片合成视频，添加背景音乐和特效</p>
             <div class="flex items-center text-xs text-emerald-600 font-medium">
               <span>开始制作</span>
               <Icon icon="material-symbols:arrow-right-alt" class="ml-1" />
@@ -303,16 +303,16 @@
           </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-6">
+        <div class="flex-1 overflow-y-auto p-4">
           <template v-if="displayMode === 'date'">
-            <div v-for="group in mediaByDate" :key="group.date" class="mb-8">
-              <div class="flex items-center space-x-3 mb-4">
+            <div v-for="group in mediaByDate" :key="group.date" class="mb-6">
+              <div class="flex items-center space-x-3 mb-3">
                 <div class="w-1 h-8 bg-gradient-to-b from-[#8B6F4E] to-[#D4A574] rounded-full"></div>
                 <h4 class="font-bold text-[#5C4A3A] font-serif text-lg">{{ group.date }}</h4>
                 <span class="text-xs text-gray-400 bg-[#E8D5C4]/50 px-2 py-1 rounded-full">{{ group.medias.length }} 个</span>
               </div>
               
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div v-for="media in group.medias" :key="media.id"
                      class="rounded-xl overflow-hidden bg-gray-100 relative group cursor-pointer hover:shadow-lg transition-shadow">
                   <div class="aspect-square relative">
@@ -440,7 +440,7 @@
                 <span class="text-xs text-gray-400 bg-[#E8D5C4]/50 px-2 py-1 rounded-full">{{ group.medias.length }} 个</span>
               </div>
               
-              <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
+              <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-1.5">
                 <div v-for="media in group.medias" :key="media.id"
                      class="aspect-square rounded-lg overflow-hidden bg-gray-100 relative group cursor-pointer hover:shadow-md transition-shadow">
                   <img v-if="media.type === 'image'" 
@@ -473,7 +473,7 @@
                 <span class="text-xs text-gray-400 bg-[#E8D5C4]/50 px-2 py-1 rounded-full">{{ group.medias.length }} 个</span>
               </div>
               
-              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
                 <div v-for="media in group.medias" :key="media.id"
                      class="rounded-lg overflow-hidden bg-gray-100 relative group cursor-pointer hover:shadow-md transition-shadow">
                   <div class="aspect-square relative">
@@ -512,14 +512,14 @@
             </div>
           </template>
 
-          <div v-if="filteredMedias.length === 0" class="flex flex-col items-center justify-center py-20">
-            <Icon icon="solar:gallery-empty-linear" class="text-6xl text-gray-300 mb-4" />
-            <p class="text-gray-500 mb-2">没有找到匹配的影像</p>
+          <div v-if="filteredMedias.length === 0" class="flex flex-col items-center justify-center py-12">
+            <Icon icon="solar:gallery-empty-linear" class="text-4xl text-gray-300 mb-3" />
+            <p class="text-gray-500 mb-1">没有找到匹配的影像</p>
             <p class="text-gray-400 text-sm">请尝试修改搜索条件</p>
           </div>
         </div>
 
-        <div class="flex items-center justify-end space-x-3 p-6 border-t border-[#E8D5C4]">
+        <div class="flex items-center justify-end space-x-3 p-4 border-t border-[#E8D5C4]">
           <button 
             class="flex items-center space-x-2 px-5 py-2.5 border border-[#E8D5C4] text-[#8B6F4E] rounded-xl hover:bg-[#E8D5C4]/30 transition-colors"
             @click="showAddMediaModal = true">
@@ -538,8 +538,8 @@
     <div v-if="showAddMediaModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div class="absolute inset-0 bg-black/50" @click="showAddMediaModal = false"></div>
       <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div class="p-6 border-b border-[#E8D5C4] flex items-center justify-between">
-          <h3 class="text-lg font-bold text-[#5C4A3A] font-serif">添加影像</h3>
+        <div class="p-4 border-b border-[#E8D5C4] flex items-center justify-between">
+          <h3 class="text-base font-bold text-[#5C4A3A] font-serif">添加影像</h3>
           <button 
             class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
             @click="showAddMediaModal = false">
@@ -547,7 +547,7 @@
           </button>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-6 space-y-5">
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">选择日期时间</label>
             <input 
@@ -701,7 +701,7 @@
             @change="handleAudioUpload">
         </div>
 
-        <div class="p-6 border-t border-gray-100 flex items-center justify-end space-x-3">
+        <div class="p-4 border-t border-gray-100 flex items-center justify-end space-x-3">
           <button 
             class="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
             @click="showAddMediaModal = false">
@@ -835,7 +835,7 @@
           </button>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-6 space-y-5">
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">影集名称</label>
             <input 
@@ -887,7 +887,7 @@
           </div>
         </div>
 
-        <div class="p-6 border-t border-gray-100 flex items-center justify-end space-x-3">
+        <div class="p-4 border-t border-gray-100 flex items-center justify-end space-x-3">
           <button 
             class="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
             @click="closeCreateModal">
@@ -903,8 +903,8 @@
       </div>
     </div>
 
-    <footer class="bg-[#5C4A3A] text-white py-10">
-      <div class="max-w-7xl mx-auto px-6">
+    <footer class="bg-[#5C4A3A] text-white py-6">
+      <div class="max-w-7xl mx-auto px-4">
         <div class="flex flex-col md:flex-row items-center justify-between">
           <div class="flex items-center space-x-4 mb-6 md:mb-0">
             <div class="w-12 h-12 bg-[#C84A3E] rounded-sm flex items-center justify-center shadow-md">

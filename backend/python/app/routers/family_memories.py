@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form
+from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form, Request
 from typing import Optional, List
 from datetime import datetime
 import uuid
@@ -14,6 +14,7 @@ from app.schemas import (
     FamilyMemoryBase, FamilyMemoryCreateRequest, FamilyMemoryUpdateRequest,
     FamilyMemoryListResponse, FamilyMemoryTimelineResponse, FamilyMemoryTimelineItem
 )
+from app.permissions import viewer_required, editor_required, User
 
 router = APIRouter(tags=["家族记忆管理"])
 
@@ -46,13 +47,14 @@ async def get_or_create_default_family(db: AsyncSession) -> Family:
 @router.post("/family-memories", response_model=ApiResponse[FamilyMemoryBase])
 async def create_family_memory(
     request: FamilyMemoryCreateRequest,
+    user_and_family: tuple = Depends(editor_required),
     db: AsyncSession = Depends(get_async_session)
 ):
     if not request.title:
         raise HTTPException(status_code=400, detail="记忆标题不能为空")
     
     try:
-        family = await get_or_create_default_family(db)
+        current_user, family, family_user = user_and_family
         
         memory = FamilyMemory(
             id=generate_uuid(),
@@ -101,10 +103,12 @@ async def get_family_memories(
     keyword: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
+    user_and_family: tuple = Depends(viewer_required),
     db: AsyncSession = Depends(get_async_session)
 ):
     try:
-        query = select(FamilyMemory).where(FamilyMemory.deleted_at.is_(None))
+        current_user, family, family_user = user_and_family
+        query = select(FamilyMemory).where(FamilyMemory.deleted_at.is_(None), FamilyMemory.family_id == family.id)
         
         if type:
             query = query.where(FamilyMemory.type == type.value)
@@ -160,11 +164,14 @@ async def get_family_memories(
 @router.get("/family-memories/timeline", response_model=ApiResponse[FamilyMemoryTimelineResponse])
 async def get_family_memory_timeline(
     limit: int = 20,
+    user_and_family: tuple = Depends(viewer_required),
     db: AsyncSession = Depends(get_async_session)
 ):
     try:
+        current_user, family, family_user = user_and_family
         query = select(FamilyMemory).where(
-            FamilyMemory.deleted_at.is_(None)
+            FamilyMemory.deleted_at.is_(None),
+            FamilyMemory.family_id == family.id
         ).order_by(
             FamilyMemory.event_date.desc(), 
             FamilyMemory.created_at.desc()
@@ -201,12 +208,15 @@ async def get_family_memory_timeline(
 @router.get("/family-memories/{memory_id}", response_model=ApiResponse[FamilyMemoryBase])
 async def get_family_memory(
     memory_id: str,
+    user_and_family: tuple = Depends(viewer_required),
     db: AsyncSession = Depends(get_async_session)
 ):
     try:
+        current_user, family, family_user = user_and_family
         stmt = select(FamilyMemory).where(
             FamilyMemory.id == memory_id,
-            FamilyMemory.deleted_at.is_(None)
+            FamilyMemory.deleted_at.is_(None),
+            FamilyMemory.family_id == family.id
         )
         result = await db.execute(stmt)
         memory = result.scalar_one_or_none()
@@ -242,12 +252,15 @@ async def get_family_memory(
 async def update_family_memory(
     memory_id: str,
     request: FamilyMemoryUpdateRequest,
+    user_and_family: tuple = Depends(editor_required),
     db: AsyncSession = Depends(get_async_session)
 ):
     try:
+        current_user, family, family_user = user_and_family
         stmt = select(FamilyMemory).where(
             FamilyMemory.id == memory_id,
-            FamilyMemory.deleted_at.is_(None)
+            FamilyMemory.deleted_at.is_(None),
+            FamilyMemory.family_id == family.id
         )
         result = await db.execute(stmt)
         memory = result.scalar_one_or_none()
@@ -306,12 +319,15 @@ async def update_family_memory(
 @router.delete("/family-memories/{memory_id}", response_model=ApiResponse)
 async def delete_family_memory(
     memory_id: str,
+    user_and_family: tuple = Depends(editor_required),
     db: AsyncSession = Depends(get_async_session)
 ):
     try:
+        current_user, family, family_user = user_and_family
         stmt = select(FamilyMemory).where(
             FamilyMemory.id == memory_id,
-            FamilyMemory.deleted_at.is_(None)
+            FamilyMemory.deleted_at.is_(None),
+            FamilyMemory.family_id == family.id
         )
         result = await db.execute(stmt)
         memory = result.scalar_one_or_none()
@@ -342,11 +358,12 @@ async def upload_family_memory_with_media(
     location: Optional[str] = Form(None),
     tags: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
+    user_and_family: tuple = Depends(editor_required),
     db: AsyncSession = Depends(get_async_session)
 ):
     try:
         ensure_upload_dir()
-        family = await get_or_create_default_family(db)
+        current_user, family, family_user = user_and_family
         
         media_url = None
         media_type = None

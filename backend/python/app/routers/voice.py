@@ -12,7 +12,7 @@ import base64
 import io
 import re
 
-from app.database import get_async_session, AsyncSessionLocal
+from app.database import get_async_session, db_manager
 from app.config import settings
 from app.models import (
     VoiceMaterial, VoiceMaterialStatus,
@@ -771,7 +771,7 @@ async def perform_voice_training(model_id: str):
     logger.info(f"开始执行声音模型训练任务，model_id: {model_id}")
     
     try:
-        async with AsyncSessionLocal() as task_db:
+        async with db_manager.session_maker() as task_db:
             stmt_task = select(VoiceModel).where(VoiceModel.id == model_id)
             result_task = await task_db.execute(stmt_task)
             task_model = result_task.scalar_one_or_none()
@@ -865,7 +865,7 @@ async def perform_voice_training(model_id: str):
         logger.error(f"声音训练任务执行失败: {str(e)}", exc_info=True)
         
         try:
-            async with AsyncSessionLocal() as task_db:
+            async with db_manager.session_maker() as task_db:
                 stmt_task = select(VoiceModel).where(VoiceModel.id == model_id)
                 result_task = await task_db.execute(stmt_task)
                 task_model = result_task.scalar_one_or_none()
@@ -1164,7 +1164,7 @@ async def perform_audio_preprocessing(material_id: str):
     logger.info(f"开始执行音频预处理任务，material_id: {material_id}")
     
     try:
-        async with AsyncSessionLocal() as task_db:
+        async with db_manager.session_maker() as task_db:
             stmt = select(VoiceMaterial).where(VoiceMaterial.id == material_id)
             result = await task_db.execute(stmt)
             material = result.scalar_one_or_none()
@@ -1196,7 +1196,7 @@ async def perform_audio_preprocessing(material_id: str):
         logger.error(f"音频预处理任务执行失败: {str(e)}", exc_info=True)
         
         try:
-            async with AsyncSessionLocal() as task_db:
+            async with db_manager.session_maker() as task_db:
                 stmt = select(VoiceMaterial).where(VoiceMaterial.id == material_id)
                 result = await task_db.execute(stmt)
                 material = result.scalar_one_or_none()

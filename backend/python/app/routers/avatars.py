@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 from app.database import get_async_session
 from app.models import (
     Avatar, AvatarStatus, Memory, Photo,
-    VoiceModel, VoiceModelStatus, GenerationTask
+    VoiceModel, VoiceModelStatus, GenerationTask, ChatSession
 )
 from app.schemas import (
     ApiResponse,
@@ -20,6 +20,7 @@ from app.schemas import (
     RetryGenerationRequest, TaskStatusResponse
 )
 from app.services import generation_service
+from app.permissions import viewer_required, editor_required
 
 router = APIRouter(tags=["数字人管理"])
 
@@ -55,9 +56,11 @@ async def get_avatar_status(
 
 @router.get("/avatars", response_model=ApiResponse[AvatarListResponse])
 async def get_avatars(
+    user_and_family: tuple = Depends(viewer_required),
     db: AsyncSession = Depends(get_async_session)
 ):
     try:
+        current_user, family, family_user = user_and_family
         stmt = (
             select(Avatar)
             .where(Avatar.deleted_at.is_(None))
@@ -68,7 +71,12 @@ async def get_avatars(
         
         avatar_list = []
         for avatar in avatars:
-            chat_count = 0
+            chat_count_stmt = select(func.count(ChatSession.id)).where(
+                ChatSession.avatar_id == avatar.id,
+                ChatSession.deleted_at.is_(None)
+            )
+            chat_count_result = await db.execute(chat_count_stmt)
+            chat_count = chat_count_result.scalar() or 0
             
             avatar_list.append(AvatarBase(
                 id=avatar.id,
@@ -85,7 +93,8 @@ async def get_avatars(
                 modelUrl=avatar.model_url,
                 voice_model_id=avatar.voice_model_id,
                 voice_enabled=avatar.voice_enabled,
-                created_at=avatar.created_at
+                created_at=avatar.created_at,
+                chat_count=chat_count
             ))
         
         return ApiResponse(

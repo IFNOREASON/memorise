@@ -36,15 +36,13 @@
           @dragover.prevent="isDragOver = true"
           @dragleave="isDragOver = false"
           @drop.prevent="handleDrop"
-          :class="{ 'border-[#D4A574] bg-[#F5E6D3]/30': isDragOver }"
-        >
+          :class="{ 'border-[#D4A574] bg-[#F5E6D3]/30': isDragOver }">
           <input 
             type="file" 
             ref="fileInput" 
             class="hidden" 
             accept="image/*"
-            @change="handleFileSelect"
-          >
+            @change="handleFileSelect">
           <div class="w-20 h-20 bg-[#E8D5C4] rounded-full flex items-center justify-center mx-auto mb-4">
             <Icon icon="solar:upload-cloud-bold-duotone" class="text-[#8B6F4E] text-4xl" />
           </div>
@@ -58,10 +56,9 @@
             <div 
               v-for="img in recentImages" :key="img.id"
               class="aspect-square rounded-lg overflow-hidden bg-gray-100 relative group cursor-pointer hover:shadow-lg transition-shadow"
-              @click="selectRecentImage(img)"
-            >
+              @click="selectRecentImage(img)">
               <img :src="img.url" class="w-full h-full object-cover" :alt="`最近照片${img.id}`">
-              <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+              <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
                 <Icon icon="solar:check-circle-bold" class="text-white text-2xl" />
               </div>
             </div>
@@ -74,15 +71,13 @@
           <div class="absolute top-4 right-4 z-10 flex items-center space-x-2">
             <button 
               class="flex items-center space-x-1.5 px-3 py-2 bg-white/90 backdrop-blur-sm text-[#8B6F4E] rounded-lg shadow-sm hover:bg-[#E8D5C4]/80 transition-colors text-sm"
-              @click="showSaveGalleryModal = true"
-            >
+              @click="showSaveGalleryModal = true">
               <Icon icon="solar:gallery-add-bold" class="text-base" />
               <span class="font-medium">保存</span>
             </button>
             <button 
               class="flex items-center space-x-1.5 px-3 py-2 bg-[#8B6F4E] text-white rounded-lg shadow-sm hover:bg-[#6B5342] transition-colors text-sm"
-              @click="downloadImage"
-            >
+              @click="downloadImage">
               <Icon icon="solar:download-minimalistic-bold" class="text-base" />
               <span class="font-medium">下载</span>
             </button>
@@ -103,8 +98,7 @@
                   :src="uploadedImage" 
                   class="max-w-full max-h-full object-contain transition-transform duration-300"
                   :style="imageTransform"
-                  alt="原图"
-                >
+                  alt="原图">
               </div>
             </div>
             <div class="relative">
@@ -114,20 +108,49 @@
                   :src="repairedImage" 
                   class="max-w-full max-h-full object-contain transition-transform duration-300"
                   :style="imageTransform"
-                  alt="修复后"
-                >
+                  alt="修复后">
               </div>
             </div>
           </div>
 
           <div v-else class="p-4 bg-[#F5E6D3]/30">
-            <div class="aspect-video rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center relative">
+            <div v-if="activeEditTool === 'crop'" class="aspect-video rounded-lg overflow-hidden bg-gray-100 relative">
+              <canvas 
+                ref="cropCanvasRef" 
+                class="w-full h-full object-contain cursor-crosshair"
+                @mousedown="startCrop"
+                @mousemove="updateCrop"
+                @mouseup="endCrop"
+                @mouseleave="endCrop">
+              </canvas>
+              <div 
+                v-if="isCropping"
+                class="absolute border-2 border-[#8B6F4E] border-dashed bg-[#8B6F4E]/10 pointer-events-none"
+                :style="cropBoxStyle">
+                <div class="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-[#8B6F4E]"></div>
+                <div class="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-[#8B6F4E]"></div>
+                <div class="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-[#8B6F4E]"></div>
+                <div class="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-[#8B6F4E]"></div>
+              </div>
+              <div class="absolute top-2 left-2 flex items-center space-x-2">
+                <button 
+                  class="px-3 py-1.5 bg-white/90 rounded-lg text-sm text-[#8B6F4E] hover:bg-[#E8D5C4]/80 transition-colors"
+                  @click="resetCrop">
+                  重置
+                </button>
+                <button 
+                  class="px-3 py-1.5 bg-[#8B6F4E] text-white rounded-lg text-sm hover:bg-[#6B5342] transition-colors"
+                  @click="applyCrop">
+                  应用裁剪
+                </button>
+              </div>
+            </div>
+            <div v-else class="aspect-video rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center relative">
               <img 
                 :src="repairedImage || uploadedImage" 
                 class="max-w-full max-h-full object-contain transition-all duration-300"
                 :style="imageTransform"
-                :alt="repairedImage ? '修复后' : '原图'"
-              >
+                :alt="repairedImage ? '修复后' : '原图'">
               <div v-if="repairedImage" class="absolute bottom-3 right-3 px-2.5 py-1 bg-emerald-500/90 text-white text-xs rounded-full">
                 <Icon icon="solar:check-bold" class="inline mr-1" />
                 已修复
@@ -143,14 +166,12 @@
               <div v-if="activeEditTool" class="flex items-center space-x-3">
                 <button 
                   class="text-xs text-gray-400 hover:text-[#8B6F4E]"
-                  @click="resetEditTool"
-                >
+                  @click="resetEditTool">
                   重置
                 </button>
                 <button 
                   class="text-xs text-[#8B6F4E] font-medium"
-                  @click="applyEdit"
-                >
+                  @click="applyEdit">
                   完成
                 </button>
               </div>
@@ -165,8 +186,7 @@
                     ? 'bg-[#8B6F4E] text-white' 
                     : 'bg-[#F5E6D3]/50 text-gray-700 hover:bg-[#E8D5C4]'
                 ]"
-                @click="selectEditTool(editTool.id)"
-              >
+                @click="selectEditTool(editTool.id)">
                 <Icon :icon="editTool.icon" class="text-lg" />
                 <span class="text-xs font-medium">{{ editTool.label }}</span>
               </button>
@@ -183,8 +203,7 @@
                         ? 'bg-[#8B6F4E] text-white' 
                         : 'bg-white text-[#8B6F4E] hover:bg-[#D4A574]'
                     ]"
-                    @click="rotation = angle"
-                  >
+                    @click="rotation = angle">
                     {{ angle }}°
                   </button>
                 </div>
@@ -199,8 +218,7 @@
                         ? 'bg-[#8B6F4E] text-white' 
                         : 'bg-white text-[#8B6F4E] hover:bg-[#D4A574]'
                     ]"
-                    @click="flipHorizontal = !flipHorizontal"
-                  >
+                    @click="flipHorizontal = !flipHorizontal">
                     <Icon icon="solar:swap-horizontal-bold" class="text-sm" />
                     <span>水平</span>
                   </button>
@@ -211,8 +229,7 @@
                         ? 'bg-[#8B6F4E] text-white' 
                         : 'bg-white text-[#8B6F4E] hover:bg-[#D4A574]'
                     ]"
-                    @click="flipVertical = !flipVertical"
-                  >
+                    @click="flipVertical = !flipVertical">
                     <Icon icon="solar:swap-vertical-bold" class="text-sm" />
                     <span>垂直</span>
                   </button>
@@ -230,8 +247,7 @@
                   min="50" 
                   max="200" 
                   step="10"
-                  class="w-full h-1.5 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer accent-[#8B6F4E]"
-                >
+                  class="w-full h-1.5 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer accent-[#8B6F4E]">
               </div>
 
               <div v-if="activeEditTool === 'crop'">
@@ -244,8 +260,7 @@
                         ? 'bg-[#8B6F4E] text-white' 
                         : 'bg-white text-[#8B6F4E] hover:bg-[#D4A574]'
                     ]"
-                    @click="selectedCropRatio = ratio.id"
-                  >
+                    @click="selectCropRatio(ratio.id)">
                     {{ ratio.label }}
                   </button>
                 </div>
@@ -259,8 +274,7 @@
               <div v-if="hasAnyToolApplied && !repairedImage" class="flex items-center space-x-2">
                 <button 
                   class="flex items-center space-x-1.5 px-3 py-1.5 bg-[#8B6F4E] text-white rounded-lg hover:bg-[#6B5342] transition-colors text-xs"
-                  @click="applyAllTools"
-                >
+                  @click="applyAllTools">
                   <Icon icon="solar:magic-stick-3-bold" class="text-sm" />
                   <span class="font-medium">应用修复</span>
                 </button>
@@ -268,14 +282,12 @@
               <div v-else-if="repairedImage" class="flex items-center space-x-2">
                 <button 
                   class="text-xs text-[#8B6F4E] hover:underline"
-                  @click="toggleCompare"
-                >
+                  @click="toggleCompare">
                   {{ showBeforeAfter ? '关闭对比' : '对比查看' }}
                 </button>
                 <button 
                   class="text-xs text-gray-400 hover:text-gray-600"
-                  @click="resetAll"
-                >
+                  @click="resetAll">
                   重新开始
                 </button>
               </div>
@@ -292,8 +304,7 @@
                     ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
                     : 'bg-[#F5E6D3]/50 text-gray-700 hover:bg-[#E8D5C4]'
                 ]"
-                @click="selectTool(tool.id)"
-              >
+                @click="selectTool(tool.id)">
                 <Icon :icon="tool.icon" 
                       :class="activeTool === tool.id ? 'text-white' : toolApplied[tool.id] ? 'text-emerald-600' : tool.color"
                       class="text-lg" />
@@ -316,8 +327,7 @@
                   min="10" 
                   max="100" 
                   step="10"
-                  class="w-full h-1.5 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer accent-[#8B6F4E]"
-                >
+                  class="w-full h-1.5 bg-[#E8D5C4] rounded-lg appearance-none cursor-pointer accent-[#8B6F4E]">
               </div>
 
               <div v-if="activeToolConfig.options" class="grid grid-cols-2 gap-2">
@@ -329,8 +339,7 @@
                       ? 'border-[#8B6F4E] bg-[#E8D5C4]/50' 
                       : 'border-[#E8D5C4] bg-white hover:border-[#D4A574]'
                   ]"
-                  @click="selectedOption = option.id"
-                >
+                  @click="selectedOption = option.id">
                   <p class="font-medium text-xs" :class="selectedOption === option.id ? 'text-[#8B6F4E]' : 'text-gray-700'">
                     {{ option.label }}
                   </p>
@@ -340,8 +349,7 @@
 
               <button 
                 class="w-full mt-3 flex items-center justify-center space-x-1.5 px-3 py-2 bg-[#8B6F4E] text-white rounded-lg hover:bg-[#6B5342] transition-colors text-xs"
-                @click="applyCurrentTool"
-              >
+                @click="applyCurrentTool">
                 <Icon icon="solar:check-bold" class="text-sm" />
                 <span class="font-medium">应用{{ activeToolConfig.label }}</span>
               </button>
@@ -357,13 +365,12 @@
             v-for="img in recentImages" :key="img.id"
             class="aspect-square rounded-lg overflow-hidden bg-gray-100 relative group cursor-pointer hover:shadow-lg transition-shadow"
             :class="{ 'ring-2 ring-[#8B6F4E]': uploadedImage === img.url }"
-            @click="selectRecentImage(img)"
-          >
+            @click="selectRecentImage(img)">
             <img :src="img.url" class="w-full h-full object-cover" :alt="`最近照片${img.id}`">
             <div v-if="uploadedImage === img.url" class="absolute inset-0 bg-[#8B6F4E]/20 flex items-center justify-center">
               <Icon icon="solar:check-circle-bold" class="text-[#8B6F4E] text-3xl" />
             </div>
-            <div v-else class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <div v-else class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
               <Icon icon="solar:check-circle-bold" class="text-white text-2xl" />
             </div>
           </div>
@@ -378,8 +385,7 @@
           <h3 class="text-lg font-bold text-[#5C4A3A] font-serif">保存到影集</h3>
           <button 
             class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-            @click="showSaveGalleryModal = false"
-          >
+            @click="showSaveGalleryModal = false">
             <Icon icon="solar:close-circle-bold" class="text-xl" />
           </button>
         </div>
@@ -393,8 +399,7 @@
           <div class="relative">
             <button 
               class="w-full flex items-center justify-between px-4 py-3 border border-[#E8D5C4] rounded-xl bg-white hover:border-[#D4A574] transition-colors"
-              @click="showGalleryDropdown = !showGalleryDropdown"
-            >
+              @click="showGalleryDropdown = !showGalleryDropdown">
               <span class="text-sm" :class="selectedGallery ? 'text-gray-800' : 'text-gray-400'">
                 {{ selectedGallery ? getGalleryById(selectedGallery)?.name : '请选择影集' }}
               </span>
@@ -406,8 +411,7 @@
                 v-for="gallery in galleryList" :key="gallery.id"
                 class="flex items-center space-x-3 px-4 py-3 hover:bg-[#F5E6D3]/50 cursor-pointer transition-colors"
                 :class="{ 'bg-[#E8D5C4]/50': selectedGallery === gallery.id }"
-                @click="selectGallery(gallery.id)"
-              >
+                @click="selectGallery(gallery.id)">
                 <div class="w-10 h-10 rounded-lg bg-[#E8D5C4] flex items-center justify-center overflow-hidden">
                   <img v-if="gallery.thumb" :src="gallery.thumb" class="w-full h-full object-cover" :alt="gallery.name">
                   <Icon v-else icon="solar:gallery-wide-bold-duotone" class="text-[#8B6F4E]" />
@@ -428,22 +432,20 @@
             v-model="galleryNote"
             class="w-full px-4 py-3 border border-[#E8D5C4] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4A574] focus:border-transparent text-sm resize-none"
             rows="3"
-            placeholder="为这张照片添加备注..."
-          ></textarea>
+            placeholder="为这张照片添加备注...">
+          </textarea>
         </div>
 
         <div class="flex items-center justify-end space-x-3">
           <button 
             class="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors text-sm"
-            @click="showSaveGalleryModal = false"
-          >
+            @click="showSaveGalleryModal = false">
             取消
           </button>
           <button 
             class="px-5 py-2.5 bg-[#8B6F4E] text-white rounded-xl hover:bg-[#6B5342] transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             :disabled="!selectedGallery"
-            @click="saveToGallery"
-          >
+            @click="saveToGallery">
             保存
           </button>
         </div>
@@ -466,16 +468,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 
 const router = useRouter()
 
 const fileInput = ref<HTMLInputElement | null>(null)
+const cropCanvasRef = ref<HTMLCanvasElement | null>(null)
 
 const isDragOver = ref(false)
 const uploadedImage = ref<string | null>(null)
+const originalImage = ref<string | null>(null)
 const repairedImage = ref<string | null>(null)
 const isProcessing = ref(false)
 const processingProgress = ref(0)
@@ -492,6 +496,12 @@ const flipHorizontal = ref(false)
 const flipVertical = ref(false)
 const zoom = ref(100)
 const selectedCropRatio = ref('original')
+
+const isCropping = ref(false)
+const cropStart = ref({ x: 0, y: 0 })
+const cropEnd = ref({ x: 0, y: 0 })
+const cropBox = ref({ x: 0, y: 0, width: 0, height: 0 })
+const imageSize = ref({ width: 0, height: 0 })
 
 const showSaveGalleryModal = ref(false)
 const showGalleryDropdown = ref(false)
@@ -623,13 +633,20 @@ const galleryList = ref<Gallery[]>([
 ])
 
 const imageTransform = computed(() => {
-  const scale = zoom.value / 100
-  const rotate = rotation.value
   const scaleX = flipHorizontal.value ? -1 : 1
   const scaleY = flipVertical.value ? -1 : 1
   return {
-    transform: `scale(${scaleX * scale}, ${scaleY * scale}) rotate(${rotate}deg)`,
+    transform: `scale(${scaleX * (zoom.value / 100)}, ${scaleY * (zoom.value / 100)}) rotate(${rotation.value}deg)`,
     transformOrigin: 'center center'
+  }
+})
+
+const cropBoxStyle = computed(() => {
+  return {
+    left: `${cropBox.value.x}px`,
+    top: `${cropBox.value.y}px`,
+    width: `${cropBox.value.width}px`,
+    height: `${cropBox.value.height}px`
   }
 })
 
@@ -669,6 +686,7 @@ const processFile = (file: File) => {
   const reader = new FileReader()
   reader.onload = (e) => {
     uploadedImage.value = e.target?.result as string
+    originalImage.value = e.target?.result as string
     resetToolState()
     resetEditState()
   }
@@ -677,6 +695,7 @@ const processFile = (file: File) => {
 
 const selectRecentImage = (img: { id: string; url: string }) => {
   uploadedImage.value = img.url
+  originalImage.value = img.url
   resetToolState()
   resetEditState()
 }
@@ -699,10 +718,20 @@ const resetEditState = () => {
   flipVertical.value = false
   zoom.value = 100
   selectedCropRatio.value = 'original'
+  resetCrop()
 }
 
 const selectEditTool = (toolId: string) => {
-  activeEditTool.value = activeEditTool.value === toolId ? null : toolId
+  if (activeEditTool.value === toolId) {
+    activeEditTool.value = null
+    return
+  }
+  activeEditTool.value = toolId
+  if (toolId === 'crop') {
+    nextTick(() => {
+      initCropCanvas()
+    })
+  }
 }
 
 const resetEditTool = () => {
@@ -714,12 +743,150 @@ const resetEditTool = () => {
   } else if (activeEditTool.value === 'zoom') {
     zoom.value = 100
   } else if (activeEditTool.value === 'crop') {
-    selectedCropRatio.value = 'original'
+    resetCrop()
   }
 }
 
 const applyEdit = () => {
   activeEditTool.value = null
+}
+
+const initCropCanvas = () => {
+  const canvas = cropCanvasRef.value
+  if (!canvas) return
+  
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  
+  const img = new Image()
+  img.onload = () => {
+    canvas.width = canvas.offsetWidth
+    canvas.height = canvas.offsetHeight
+    
+    imageSize.value = {
+      width: img.width,
+      height: img.height
+    }
+    
+    const scale = Math.min(
+      canvas.width / img.width,
+      canvas.height / img.height
+    )
+    const x = (canvas.width - img.width * scale) / 2
+    const y = (canvas.height - img.height * scale) / 2
+    
+    ctx.drawImage(img, x, y, img.width * scale, img.height * scale)
+  }
+  img.src = repairedImage.value || uploadedImage.value || ''
+}
+
+const startCrop = (event: MouseEvent) => {
+  const canvas = cropCanvasRef.value
+  if (!canvas) return
+  
+  const rect = canvas.getBoundingClientRect()
+  cropStart.value = {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top
+  }
+  isCropping.value = true
+}
+
+const updateCrop = (event: MouseEvent) => {
+  if (!isCropping.value) return
+  
+  const canvas = cropCanvasRef.value
+  if (!canvas) return
+  
+  const rect = canvas.getBoundingClientRect()
+  cropEnd.value = {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top
+  }
+  
+  cropBox.value = {
+    x: Math.min(cropStart.value.x, cropEnd.value.x),
+    y: Math.min(cropStart.value.y, cropEnd.value.y),
+    width: Math.abs(cropEnd.value.x - cropStart.value.x),
+    height: Math.abs(cropEnd.value.y - cropStart.value.y)
+  }
+}
+
+const endCrop = () => {
+  isCropping.value = false
+}
+
+const resetCrop = () => {
+  cropBox.value = { x: 0, y: 0, width: 0, height: 0 }
+  cropStart.value = { x: 0, y: 0 }
+  cropEnd.value = { x: 0, y: 0 }
+  if (activeEditTool.value === 'crop') {
+    initCropCanvas()
+  }
+}
+
+const selectCropRatio = (ratioId: string) => {
+  selectedCropRatio.value = ratioId
+  if (ratioId !== 'original' && cropCanvasRef.value) {
+    const canvas = cropCanvasRef.value
+    const [w, h] = ratioId.split(':').map(Number)
+    const ratio = w / h
+    
+    const maxWidth = canvas.width * 0.8
+    const maxHeight = canvas.height * 0.8
+    
+    let width = maxWidth
+    let height = width / ratio
+    if (height > maxHeight) {
+      height = maxHeight
+      width = height * ratio
+    }
+    
+    cropBox.value = {
+      x: (canvas.width - width) / 2,
+      y: (canvas.height - height) / 2,
+      width,
+      height
+    }
+  }
+}
+
+const applyCrop = () => {
+  if (cropBox.value.width === 0 || cropBox.value.height === 0) {
+    return
+  }
+  
+  const canvas = cropCanvasRef.value
+  if (!canvas) return
+  
+  const img = new Image()
+  img.onload = () => {
+    const scale = Math.min(
+      canvas.width / img.width,
+      canvas.height / img.height
+    )
+    const offsetX = (canvas.width - img.width * scale) / 2
+    const offsetY = (canvas.height - img.height * scale) / 2
+    
+    const realX = (cropBox.value.x - offsetX) / scale
+    const realY = (cropBox.value.y - offsetY) / scale
+    const realW = cropBox.value.width / scale
+    const realH = cropBox.value.height / scale
+    
+    const tempCanvas = document.createElement('canvas')
+    tempCanvas.width = realW
+    tempCanvas.height = realH
+    const tempCtx = tempCanvas.getContext('2d')
+    
+    if (tempCtx) {
+      tempCtx.drawImage(img, realX, realY, realW, realH, 0, 0, realW, realH)
+      const croppedImage = tempCanvas.toDataURL('image/png')
+      uploadedImage.value = croppedImage
+      repairedImage.value = croppedImage
+      activeEditTool.value = null
+    }
+  }
+  img.src = repairedImage.value || uploadedImage.value || ''
 }
 
 const selectTool = (toolId: string) => {
@@ -738,34 +905,106 @@ const applyCurrentTool = () => {
   activeTool.value = null
 }
 
-const applyAllTools = () => {
+const applyAllTools = async () => {
   isProcessing.value = true
   processingProgress.value = 0
   
-  const interval = setInterval(() => {
-    processingProgress.value += Math.random() * 20
-    if (processingProgress.value >= 100) {
-      processingProgress.value = 100
-      clearInterval(interval)
-      
-      setTimeout(() => {
-        isProcessing.value = false
-        repairedImage.value = uploadedImage.value
-      }, 500)
+  const progressInterval = setInterval(() => {
+    processingProgress.value += Math.random() * 15
+    if (processingProgress.value >= 90) {
+      clearInterval(progressInterval)
     }
   }, 200)
+  
+  try {
+    await processImageWithAI()
+    
+    clearInterval(progressInterval)
+    processingProgress.value = 100
+    
+    setTimeout(() => {
+      isProcessing.value = false
+      repairedImage.value = uploadedImage.value
+    }, 500)
+  } catch (error) {
+    clearInterval(progressInterval)
+    isProcessing.value = false
+    alert('处理失败，请重试')
+  }
+}
+
+const processImageWithAI = async () => {
+  const appliedTools = Object.keys(toolApplied)
+  
+  if (appliedTools.length === 0) {
+    return
+  }
+  
+  const img = new Image()
+  img.src = uploadedImage.value || ''
+  
+  await new Promise(resolve => {
+    img.onload = resolve
+  })
+  
+  const canvas = document.createElement('canvas')
+  canvas.width = img.width
+  canvas.height = img.height
+  const ctx = canvas.getContext('2d')
+  
+  if (!ctx) return
+  
+  ctx.drawImage(img, 0, 0)
+  
+  if (toolApplied['sharpen']) {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    const data = imageData.data
+    const factor = toolStrength.value / 100
+    
+    for (let i = 0; i < data.length; i += 4) {
+      const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3
+      data[i] += (brightness - 128) * factor * 0.5
+      data[i + 1] += (brightness - 128) * factor * 0.5
+      data[i + 2] += (brightness - 128) * factor * 0.5
+    }
+    
+    ctx.putImageData(imageData, 0, 0)
+  }
+  
+  if (toolApplied['colorize']) {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    const data = imageData.data
+    
+    for (let i = 0; i < data.length; i += 4) {
+      const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3
+      
+      if (selectedOption.value === 'sepia') {
+        data[i] = brightness * 1.07
+        data[i + 1] = brightness * 0.74
+        data[i + 2] = brightness * 0.43
+      } else if (selectedOption.value === 'vintage') {
+        data[i] = brightness * 0.95 + 30
+        data[i + 1] = brightness * 0.85 + 15
+        data[i + 2] = brightness * 0.75
+      } else {
+        data[i] = Math.min(255, brightness * 1.1 + 20)
+        data[i + 1] = Math.min(255, brightness * 0.95 + 15)
+        data[i + 2] = Math.min(255, brightness * 0.9 + 30)
+      }
+    }
+    
+    ctx.putImageData(imageData, 0, 0)
+  }
+  
+  uploadedImage.value = canvas.toDataURL('image/png')
 }
 
 const toggleCompare = () => {
   showBeforeAfter.value = !showBeforeAfter.value
 }
 
-const changeImage = () => {
-  triggerUpload()
-}
-
 const resetAll = () => {
-  uploadedImage.value = null
+  uploadedImage.value = originalImage.value
   repairedImage.value = null
   activeTool.value = null
   activeEditTool.value = null

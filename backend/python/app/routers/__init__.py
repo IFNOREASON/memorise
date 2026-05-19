@@ -12,6 +12,7 @@ from app.routers.push_rules import router as push_rules_router
 from app.routers.messages import router as messages_router
 from app.routers.galleries import router as galleries_router
 from app.routers.family_memories import router as family_memories_router
+from app.routers.image_processing import router as image_processing_router
 
 __all__ = [
     "health_router",
@@ -27,5 +28,6 @@ __all__ = [
     "push_rules_router",
     "messages_router",
     "galleries_router",
-    "family_memories_router"
+    "family_memories_router",
+    "image_processing_router"
 ]

@@ -760,6 +760,87 @@ class GalleryType(str, enum.Enum):
     VIDEO = "video"
 
 
+class ImageProcessType(str, enum.Enum):
+    RESTORATION = "restoration"
+    ENHANCEMENT = "enhancement"
+    DYNAMIC_PORTRAIT = "dynamic_portrait"
+    CROSS_GENERATION = "cross_generation"
+    VIDEO_HIGHLIGHTS = "video_highlights"
+    AI_SCENE = "ai_scene"
+
+
+class ImageProcessStatus(str, enum.Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    RETRY_PENDING = "retry_pending"
+
+
+class ExportFormat(str, enum.Enum):
+    JPG = "jpg"
+    PNG = "png"
+    WEBP = "webp"
+    MP4 = "mp4"
+    GIF = "gif"
+
+
+class ImageProcessTask(Base, TimestampMixin):
+    __tablename__ = "image_process_tasks"
+
+    id = Column(String(64), primary_key=True)
+    gallery_id = Column(String(64), ForeignKey('galleries.id', ondelete='CASCADE'), nullable=False, index=True)
+    media_id = Column(String(64), ForeignKey('gallery_medias.id', ondelete='SET NULL'), nullable=True)
+    family_id = Column(String(64), ForeignKey('families.id', ondelete='CASCADE'), nullable=False, index=True)
+
+    task_type = Column(String(50), nullable=False, index=True)
+    status = Column(String(20), nullable=False, default="pending", index=True)
+    progress = Column(Integer, nullable=False, default=0)
+
+    source_url = Column(String(500))
+    source_media_ids = Column(JSON)
+
+    result_url = Column(String(500))
+    result_preview_url = Column(String(500))
+    result_metadata = Column(JSON)
+
+    parameters = Column(JSON)
+    options = Column(JSON)
+
+    retry_count = Column(Integer, nullable=False, default=0)
+    max_retries = Column(Integer, nullable=False, default=3)
+    last_error = Column(Text)
+    failed_at = Column(DateTime(timezone=True))
+    next_retry_at = Column(DateTime(timezone=True))
+
+    external_task_id = Column(String(100))
+    external_service = Column(String(100))
+
+    callback_url = Column(String(500))
+    webhook_payload = Column(JSON)
+
+    started_at = Column(DateTime(timezone=True))
+    completed_at = Column(DateTime(timezone=True))
+
+    watermark_text = Column(String(200))
+    watermark_position = Column(String(50))
+    export_format = Column(String(20))
+    export_quality = Column(Integer, default=90)
+
+    size_info = Column(JSON)
+    processing_time = Column(Integer)
+
+    gallery = orm_relationship("Gallery", backref="process_tasks")
+    media = orm_relationship("GalleryMedia", backref="process_tasks")
+
+    __table_args__ = (
+        Index('idx_image_process_tasks_status', 'status'),
+        Index('idx_image_process_tasks_task_type', 'task_type'),
+        Index('idx_image_process_tasks_created_at', 'created_at'),
+        Index('idx_image_process_tasks_external_id', 'external_task_id'),
+    )
+
+
 class Gallery(Base, TimestampMixin):
     __tablename__ = "galleries"
 
