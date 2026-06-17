@@ -12,34 +12,39 @@ function ensureDataDir() {
   }
 }
 
+const DEFAULT_STORE = {
+  tasks: {},
+  taskItems: {},
+  taskLogs: {},
+  galleries: {},
+  familyMemories: {},
+  familyMembers: {},
+  familyRelationships: {},
+  messages: {},
+  pushRules: {},
+  logs: [],
+};
+
+function migrateStore(loaded) {
+  const store = { ...loaded };
+  for (const key of Object.keys(DEFAULT_STORE)) {
+    if (store[key] === undefined || store[key] === null) {
+      store[key] = DEFAULT_STORE[key];
+    }
+  }
+  return store;
+}
+
 function loadStore() {
   ensureDataDir();
   if (!fs.existsSync(DATA_FILE)) {
-    return {
-      tasks: {},
-      taskItems: {},
-      taskLogs: {},
-      galleries: {},
-      familyMemories: {},
-      messages: {},
-      pushRules: {},
-      logs: [],
-    };
+    return { ...DEFAULT_STORE };
   }
   try {
     const content = fs.readFileSync(DATA_FILE, 'utf-8');
-    return JSON.parse(content);
+    return migrateStore(JSON.parse(content));
   } catch {
-    return {
-      tasks: {},
-      taskItems: {},
-      taskLogs: {},
-      galleries: {},
-      familyMemories: {},
-      messages: {},
-      pushRules: {},
-      logs: [],
-    };
+    return { ...DEFAULT_STORE };
   }
 }
 
@@ -59,16 +64,7 @@ export function persist() {
 }
 
 export function resetStore() {
-  store = {
-    tasks: {},
-    taskItems: {},
-    taskLogs: {},
-    galleries: {},
-    familyMemories: {},
-    messages: {},
-    pushRules: {},
-    logs: [],
-  };
+  store = { ...DEFAULT_STORE };
   persist();
 }
 

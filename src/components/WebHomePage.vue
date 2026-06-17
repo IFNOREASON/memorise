@@ -56,6 +56,8 @@
 
     <TaskCenterPage v-if="activeNav === 'tasks'" @back="activeNav = 'home'" />
 
+    <FamilyTreePage v-else-if="activeNav === 'family'" @back="activeNav = 'home'" />
+
     <div v-else class="max-w-7xl mx-auto px-6 py-8">
       <section class="relative mb-10">
         <div class="absolute top-10 right-10 w-64 h-64 bg-[#E8D5C4] rounded-full blur-3xl opacity-40"></div>
@@ -368,6 +370,7 @@
 import { computed, ref, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import TaskCenterPage from './tasks/TaskCenterPage.vue'
+import FamilyTreePage from './family/FamilyTreePage.vue'
 import { messageApi } from '../api'
 
 interface NavItem {

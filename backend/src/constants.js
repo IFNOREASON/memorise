@@ -70,6 +70,12 @@ export const MESSAGE_TYPE = {
   BATCH_COMPLETED: 'batch_completed',
 };
 
+export const RELATIONSHIP_TYPE = {
+  PARENT_CHILD: 'parent_child',
+  SIBLING: 'sibling',
+  SPOUSE: 'spouse',
+};
+
 export const GALLERY_SOURCE = {
   UPLOAD: 'upload',
   REPAIR: 'repair',

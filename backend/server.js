@@ -7,6 +7,7 @@ import tasksRouter from './src/routes/tasks.js';
 import messagesRouter from './src/routes/messages.js';
 import galleryRouter from './src/routes/gallery.js';
 import familyMemoriesRouter from './src/routes/familyMemories.js';
+import familyTreeRouter from './src/routes/familyTree.js';
 
 const app = express();
 const server = createServer(app);
@@ -32,6 +33,7 @@ app.use('/api/tasks', tasksRouter);
 app.use('/api/messages', messagesRouter);
 app.use('/api/gallery', galleryRouter);
 app.use('/api/family-memories', familyMemoriesRouter);
+app.use('/api/family-tree', familyTreeRouter);
 
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);

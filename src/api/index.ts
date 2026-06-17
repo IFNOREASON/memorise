@@ -9,6 +9,9 @@ import type {
   Message,
   GalleryPhoto,
   FamilyMemory,
+  FamilyMember,
+  FamilyRelationship,
+  FamilyTreeData,
 } from '../types/task';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -207,9 +210,68 @@ export const familyMemoryApi = {
     request<{ deleted: boolean }>(`/family-memories/${memoryId}`, { method: 'DELETE' }),
 };
 
+export const familyTreeApi = {
+  getTree: (familyId: string) =>
+    request<FamilyTreeData>(`/family-tree/family/${familyId}/tree`),
+
+  getMembers: (familyId: string, params?: { limit?: number; offset?: number; generation?: number }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.offset) searchParams.set('offset', String(params.offset));
+    if (params?.generation !== undefined) searchParams.set('generation', String(params.generation));
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    return request<PaginatedResponse<FamilyMember>>(`/family-tree/family/${familyId}/members${query}`);
+  },
+
+  getRelationships: (familyId: string, params?: { type?: string; memberId?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.type) searchParams.set('type', params.type);
+    if (params?.memberId) searchParams.set('memberId', params.memberId);
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    return request<FamilyRelationship[]>(`/family-tree/family/${familyId}/relationships${query}`);
+  },
+
+  getMember: (memberId: string) =>
+    request<FamilyMember>(`/family-tree/members/${memberId}`),
+
+  getMemberRelationships: (memberId: string) =>
+    request<FamilyRelationship[]>(`/family-tree/members/${memberId}/relationships`),
+
+  createMember: (data: Partial<FamilyMember>) =>
+    request<FamilyMember>('/family-tree/members', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateMember: (memberId: string, data: Partial<FamilyMember>) =>
+    request<FamilyMember>(`/family-tree/members/${memberId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteMember: (memberId: string) =>
+    request<{ deleted: boolean }>(`/family-tree/members/${memberId}`, { method: 'DELETE' }),
+
+  createRelationship: (data: Partial<FamilyRelationship>) =>
+    request<FamilyRelationship>('/family-tree/relationships', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateRelationship: (relId: string, data: Partial<FamilyRelationship>) =>
+    request<FamilyRelationship>(`/family-tree/relationships/${relId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteRelationship: (relId: string) =>
+    request<{ deleted: boolean }>(`/family-tree/relationships/${relId}`, { method: 'DELETE' }),
+};
+
 export default {
   task: taskApi,
   message: messageApi,
   gallery: galleryApi,
   familyMemory: familyMemoryApi,
+  familyTree: familyTreeApi,
 };

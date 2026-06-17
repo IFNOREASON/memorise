@@ -1211,5 +1211,49 @@
       },
       "timestamp": "2026-06-17T07:30:02.497Z"
     }
-  ]
+  ],
+  "familyMembers": {
+    "member_mqhu1ed4_0thmudqu": {
+      "id": "member_mqhu1ed4_0thmudqu",
+      "userId": "default_user",
+      "familyId": "default_family",
+      "name": "???",
+      "birthDate": "1928-01-15",
+      "deathDate": "2018-06-20",
+      "avatar": "",
+      "bio": "????,?????????",
+      "gender": "male",
+      "generation": 1,
+      "metadata": {},
+      "createdAt": "2026-06-17T08:52:09.592Z",
+      "updatedAt": "2026-06-17T08:52:09.592Z"
+    },
+    "member_mqhu1tqf_8x8pak8u": {
+      "id": "member_mqhu1tqf_8x8pak8u",
+      "userId": "default_user",
+      "familyId": "default_family",
+      "name": "???",
+      "birthDate": "1932-05-08",
+      "deathDate": "2020-03-15",
+      "avatar": "",
+      "bio": "?????,????",
+      "gender": "female",
+      "generation": 1,
+      "metadata": {},
+      "createdAt": "2026-06-17T08:52:29.511Z",
+      "updatedAt": "2026-06-17T08:52:29.511Z"
+    }
+  },
+  "familyRelationships": {
+    "rel_mqhu23c5_ng3bk00p": {
+      "id": "rel_mqhu23c5_ng3bk00p",
+      "fromMemberId": "member_mqhu1ed4_0thmudqu",
+      "toMemberId": "member_mqhu1tqf_8x8pak8u",
+      "type": "spouse",
+      "familyId": "default_family",
+      "metadata": {},
+      "createdAt": "2026-06-17T08:52:41.957Z",
+      "updatedAt": "2026-06-17T08:52:41.957Z"
+    }
+  }
 }

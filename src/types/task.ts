@@ -42,6 +42,14 @@ export const GallerySource = {
 
 export type GallerySource = (typeof GallerySource)[keyof typeof GallerySource];
 
+export const RelationshipType = {
+  PARENT_CHILD: 'parent_child',
+  SIBLING: 'sibling',
+  SPOUSE: 'spouse',
+} as const;
+
+export type RelationshipType = (typeof RelationshipType)[keyof typeof RelationshipType];
+
 export interface Task {
   id: string;
   userId: string;
@@ -169,6 +177,42 @@ export interface FamilyMemory {
   isPublished: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface FamilyMember {
+  id: string;
+  userId: string;
+  familyId: string | null;
+  name: string;
+  birthDate: string | null;
+  deathDate: string | null;
+  avatar: string;
+  bio: string;
+  gender: string | null;
+  generation: number | null;
+  metadata: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FamilyRelationship {
+  id: string;
+  fromMemberId: string;
+  toMemberId: string;
+  type: RelationshipType;
+  familyId: string | null;
+  metadata: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FamilyTreeData {
+  members: FamilyMember[];
+  relationships: FamilyRelationship[];
+  rootMembers: string[];
+  childrenOf: Record<string, string[]>;
+  spouseOf: Record<string, string[]>;
+  siblingOf: Record<string, string[]>;
 }
 
 export interface RepairOptions {
