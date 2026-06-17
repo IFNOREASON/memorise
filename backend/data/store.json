@@ -1,0 +1,1215 @@
+{
+  "tasks": {
+    "task_mqhqc19v_x416mewk": {
+      "id": "task_mqhqc19v_x416mewk",
+      "userId": "default_user",
+      "familyId": null,
+      "memberId": null,
+      "type": "image_repair",
+      "title": "?????????",
+      "description": "????????",
+      "status": "completed",
+      "totalItems": 3,
+      "completedItems": 3,
+      "failedItems": 0,
+      "progress": 100,
+      "priority": 0,
+      "metadata": {
+        "repairOptions": {
+          "enableScratchRemoval": true,
+          "enableFaceEnhance": true,
+          "enableColorize": true,
+          "mode": "full"
+        },
+        "autoAddToGallery": true,
+        "autoCreateMemory": true
+      },
+      "result": {
+        "total": 3,
+        "success": 3,
+        "failed": 0
+      },
+      "error": null,
+      "createdAt": "2026-06-17T07:08:27.379Z",
+      "updatedAt": "2026-06-17T07:08:29.380Z",
+      "startedAt": "2026-06-17T07:08:27.383Z",
+      "completedAt": "2026-06-17T07:08:29.380Z",
+      "cancelledAt": null
+    },
+    "task_mqhqfnim_11sxh4a1": {
+      "id": "task_mqhqfnim_11sxh4a1",
+      "userId": "default_user",
+      "familyId": null,
+      "memberId": null,
+      "type": "ai_generation",
+      "title": "??????",
+      "description": "",
+      "status": "cancelled",
+      "totalItems": 2,
+      "completedItems": 0,
+      "failedItems": 0,
+      "progress": 0,
+      "priority": 0,
+      "metadata": {
+        "generationType": "scene",
+        "prompt": "1980????????????",
+        "generationOptions": {
+          "style": "vintage"
+        },
+        "autoAddToGallery": true
+      },
+      "result": null,
+      "error": null,
+      "createdAt": "2026-06-17T07:11:16.174Z",
+      "updatedAt": "2026-06-17T07:11:16.210Z",
+      "startedAt": null,
+      "completedAt": null,
+      "cancelledAt": "2026-06-17T07:11:16.210Z"
+    },
+    "task_mqhr3qnw_x5atloiv": {
+      "id": "task_mqhr3qnw_x5atloiv",
+      "userId": "default_user",
+      "familyId": "test_family_001",
+      "memberId": "test_member_001",
+      "type": "image_repair",
+      "title": "????????",
+      "description": "???????????????",
+      "status": "completed",
+      "totalItems": 2,
+      "completedItems": 2,
+      "failedItems": 0,
+      "progress": 100,
+      "priority": 0,
+      "metadata": {
+        "repairOptions": {
+          "enableColorize": true,
+          "mode": "full"
+        },
+        "autoAddToGallery": true,
+        "autoCreateMemory": true
+      },
+      "result": {
+        "total": 2,
+        "success": 2,
+        "failed": 0
+      },
+      "error": null,
+      "createdAt": "2026-06-17T07:29:59.996Z",
+      "updatedAt": "2026-06-17T07:30:02.497Z",
+      "startedAt": "2026-06-17T07:30:00.121Z",
+      "completedAt": "2026-06-17T07:30:02.497Z",
+      "cancelledAt": null
+    }
+  },
+  "taskItems": {
+    "item_mqhqc19w_qmoo2mis": {
+      "id": "item_mqhqc19w_qmoo2mis",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "userId": "default_user",
+      "type": "image_repair",
+      "index": 0,
+      "title": "???1",
+      "inputData": {
+        "imageUrl": "https://example.com/old-photo-1.jpg",
+        "originalPhotoId": null,
+        "title": "???1",
+        "description": "",
+        "repairOptions": {
+          "enableScratchRemoval": true,
+          "enableFaceEnhance": true,
+          "enableColorize": true,
+          "mode": "full"
+        }
+      },
+      "outputData": {
+        "originalUrl": "https://example.com/old-photo-1.jpg",
+        "repairedUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fold-photo-1.jpg_repaired_1781680109378.jpg",
+        "thumbnailUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fold-photo-1.jpg_repaired_1781680109378.jpg&thumb=true",
+        "mode": "full",
+        "settings": {
+          "enableScratchRemoval": true,
+          "enableColorize": true,
+          "enableFaceEnhance": true,
+          "targetResolution": "1080p"
+        },
+        "stats": {
+          "scratchesRemoved": 22,
+          "facesEnhanced": 2,
+          "colorConfidence": 80,
+          "resolution": "1080p"
+        },
+        "processedAt": "2026-06-17T07:08:29.378Z",
+        "galleryPhotoId": "photo_mqhqc2te_jtlonwb3"
+      },
+      "status": "completed",
+      "error": null,
+      "errorCategory": null,
+      "retryCount": 0,
+      "maxRetries": 5,
+      "nextRetryAt": null,
+      "metadata": {
+        "familyId": null,
+        "memberId": null,
+        "autoAddToGallery": true
+      },
+      "createdAt": "2026-06-17T07:08:27.380Z",
+      "updatedAt": "2026-06-17T07:08:29.378Z",
+      "startedAt": "2026-06-17T07:08:27.384Z",
+      "completedAt": "2026-06-17T07:08:29.378Z"
+    },
+    "item_mqhqc19x_hbdxnoht": {
+      "id": "item_mqhqc19x_hbdxnoht",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "userId": "default_user",
+      "type": "image_repair",
+      "index": 1,
+      "title": "???2",
+      "inputData": {
+        "imageUrl": "https://example.com/old-photo-2.jpg",
+        "originalPhotoId": null,
+        "title": "???2",
+        "description": "",
+        "repairOptions": {
+          "enableScratchRemoval": true,
+          "enableFaceEnhance": true,
+          "enableColorize": true,
+          "mode": "full"
+        }
+      },
+      "outputData": {
+        "originalUrl": "https://example.com/old-photo-2.jpg",
+        "repairedUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fold-photo-2.jpg_repaired_1781680109052.jpg",
+        "thumbnailUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fold-photo-2.jpg_repaired_1781680109052.jpg&thumb=true",
+        "mode": "full",
+        "settings": {
+          "enableScratchRemoval": true,
+          "enableColorize": true,
+          "enableFaceEnhance": true,
+          "targetResolution": "1080p"
+        },
+        "stats": {
+          "scratchesRemoved": 32,
+          "facesEnhanced": 5,
+          "colorConfidence": 90,
+          "resolution": "1080p"
+        },
+        "processedAt": "2026-06-17T07:08:29.052Z",
+        "galleryPhotoId": "photo_mqhqc2kc_417piosx"
+      },
+      "status": "completed",
+      "error": null,
+      "errorCategory": null,
+      "retryCount": 0,
+      "maxRetries": 5,
+      "nextRetryAt": null,
+      "metadata": {
+        "familyId": null,
+        "memberId": null,
+        "autoAddToGallery": true
+      },
+      "createdAt": "2026-06-17T07:08:27.381Z",
+      "updatedAt": "2026-06-17T07:08:29.053Z",
+      "startedAt": "2026-06-17T07:08:27.385Z",
+      "completedAt": "2026-06-17T07:08:29.053Z"
+    },
+    "item_mqhqc19x_4qvg5gqe": {
+      "id": "item_mqhqc19x_4qvg5gqe",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "userId": "default_user",
+      "type": "image_repair",
+      "index": 2,
+      "title": "???3",
+      "inputData": {
+        "imageUrl": "https://example.com/old-photo-3.jpg",
+        "originalPhotoId": null,
+        "title": "???3",
+        "description": "",
+        "repairOptions": {
+          "enableScratchRemoval": true,
+          "enableFaceEnhance": true,
+          "enableColorize": true,
+          "mode": "full"
+        }
+      },
+      "outputData": {
+        "originalUrl": "https://example.com/old-photo-3.jpg",
+        "repairedUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fold-photo-3.jpg_repaired_1781680109192.jpg",
+        "thumbnailUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fold-photo-3.jpg_repaired_1781680109192.jpg&thumb=true",
+        "mode": "full",
+        "settings": {
+          "enableScratchRemoval": true,
+          "enableColorize": true,
+          "enableFaceEnhance": true,
+          "targetResolution": "1080p"
+        },
+        "stats": {
+          "scratchesRemoved": 22,
+          "facesEnhanced": 2,
+          "colorConfidence": 80,
+          "resolution": "1080p"
+        },
+        "processedAt": "2026-06-17T07:08:29.192Z",
+        "galleryPhotoId": "photo_mqhqc2o8_86wbclod"
+      },
+      "status": "completed",
+      "error": null,
+      "errorCategory": null,
+      "retryCount": 0,
+      "maxRetries": 5,
+      "nextRetryAt": null,
+      "metadata": {
+        "familyId": null,
+        "memberId": null,
+        "autoAddToGallery": true
+      },
+      "createdAt": "2026-06-17T07:08:27.381Z",
+      "updatedAt": "2026-06-17T07:08:29.193Z",
+      "startedAt": "2026-06-17T07:08:27.385Z",
+      "completedAt": "2026-06-17T07:08:29.193Z"
+    },
+    "item_mqhqfnin_jafocay5": {
+      "id": "item_mqhqfnin_jafocay5",
+      "taskId": "task_mqhqfnim_11sxh4a1",
+      "userId": "default_user",
+      "type": "ai_generation",
+      "index": 0,
+      "title": "?????? 1",
+      "inputData": {
+        "prompt": "1980????????????",
+        "type": "scene",
+        "generationOptions": {
+          "style": "vintage"
+        }
+      },
+      "outputData": null,
+      "status": "cancelled",
+      "error": null,
+      "errorCategory": null,
+      "retryCount": 0,
+      "maxRetries": 5,
+      "nextRetryAt": null,
+      "metadata": {
+        "familyId": null,
+        "memberId": null,
+        "autoAddToGallery": true
+      },
+      "createdAt": "2026-06-17T07:11:16.175Z",
+      "updatedAt": "2026-06-17T07:11:16.209Z",
+      "startedAt": null,
+      "completedAt": null
+    },
+    "item_mqhqfnin_pwqp22a2": {
+      "id": "item_mqhqfnin_pwqp22a2",
+      "taskId": "task_mqhqfnim_11sxh4a1",
+      "userId": "default_user",
+      "type": "ai_generation",
+      "index": 1,
+      "title": "?????? 2",
+      "inputData": {
+        "prompt": "1980????????????",
+        "type": "scene",
+        "generationOptions": {
+          "style": "vintage"
+        }
+      },
+      "outputData": null,
+      "status": "cancelled",
+      "error": null,
+      "errorCategory": null,
+      "retryCount": 0,
+      "maxRetries": 5,
+      "nextRetryAt": null,
+      "metadata": {
+        "familyId": null,
+        "memberId": null,
+        "autoAddToGallery": true
+      },
+      "createdAt": "2026-06-17T07:11:16.175Z",
+      "updatedAt": "2026-06-17T07:11:16.210Z",
+      "startedAt": null,
+      "completedAt": null
+    },
+    "item_mqhr3qnx_djk8aeqw": {
+      "id": "item_mqhr3qnx_djk8aeqw",
+      "taskId": "task_mqhr3qnw_x5atloiv",
+      "userId": "default_user",
+      "type": "image_repair",
+      "index": 0,
+      "title": "??A",
+      "inputData": {
+        "imageUrl": "https://example.com/photo-a.jpg",
+        "originalPhotoId": null,
+        "title": "??A",
+        "description": "",
+        "repairOptions": {
+          "enableColorize": true,
+          "mode": "full"
+        }
+      },
+      "outputData": {
+        "originalUrl": "https://example.com/photo-a.jpg",
+        "repairedUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fphoto-a.jpg_repaired_1781681402492.jpg",
+        "thumbnailUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fphoto-a.jpg_repaired_1781681402492.jpg&thumb=true",
+        "mode": "full",
+        "settings": {
+          "enableScratchRemoval": true,
+          "enableColorize": true,
+          "enableFaceEnhance": true,
+          "targetResolution": "1080p"
+        },
+        "stats": {
+          "scratchesRemoved": 18,
+          "facesEnhanced": 1,
+          "colorConfidence": 82,
+          "resolution": "1080p"
+        },
+        "processedAt": "2026-06-17T07:30:02.492Z",
+        "galleryPhotoId": "photo_mqhr3sl8_qdcfezv7"
+      },
+      "status": "completed",
+      "error": null,
+      "errorCategory": null,
+      "retryCount": 0,
+      "maxRetries": 5,
+      "nextRetryAt": null,
+      "metadata": {
+        "familyId": "test_family_001",
+        "memberId": "test_member_001",
+        "autoAddToGallery": true
+      },
+      "createdAt": "2026-06-17T07:29:59.997Z",
+      "updatedAt": "2026-06-17T07:30:02.494Z",
+      "startedAt": "2026-06-17T07:30:00.122Z",
+      "completedAt": "2026-06-17T07:30:02.494Z"
+    },
+    "item_mqhr3qnx_mgqe5wm6": {
+      "id": "item_mqhr3qnx_mgqe5wm6",
+      "taskId": "task_mqhr3qnw_x5atloiv",
+      "userId": "default_user",
+      "type": "image_repair",
+      "index": 1,
+      "title": "??B",
+      "inputData": {
+        "imageUrl": "https://example.com/photo-b.jpg",
+        "originalPhotoId": null,
+        "title": "??B",
+        "description": "",
+        "repairOptions": {
+          "enableColorize": true,
+          "mode": "full"
+        }
+      },
+      "outputData": {
+        "originalUrl": "https://example.com/photo-b.jpg",
+        "repairedUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fphoto-b.jpg_repaired_1781681402431.jpg",
+        "thumbnailUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fphoto-b.jpg_repaired_1781681402431.jpg&thumb=true",
+        "mode": "full",
+        "settings": {
+          "enableScratchRemoval": true,
+          "enableColorize": true,
+          "enableFaceEnhance": true,
+          "targetResolution": "1080p"
+        },
+        "stats": {
+          "scratchesRemoved": 14,
+          "facesEnhanced": 1,
+          "colorConfidence": 92,
+          "resolution": "1080p"
+        },
+        "processedAt": "2026-06-17T07:30:02.431Z",
+        "galleryPhotoId": "photo_mqhr3sjj_9f2n6yt3"
+      },
+      "status": "completed",
+      "error": null,
+      "errorCategory": null,
+      "retryCount": 0,
+      "maxRetries": 5,
+      "nextRetryAt": null,
+      "metadata": {
+        "familyId": "test_family_001",
+        "memberId": "test_member_001",
+        "autoAddToGallery": true
+      },
+      "createdAt": "2026-06-17T07:29:59.997Z",
+      "updatedAt": "2026-06-17T07:30:02.433Z",
+      "startedAt": "2026-06-17T07:30:00.123Z",
+      "completedAt": "2026-06-17T07:30:02.433Z"
+    }
+  },
+  "taskLogs": {
+    "log_mqhqc19x_vcswi8ak": {
+      "id": "log_mqhqc19x_vcswi8ak",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "itemId": null,
+      "userId": "default_user",
+      "level": "info",
+      "action": "task_submitted",
+      "message": "任务已提交，共 3 张照片待修复",
+      "details": {
+        "imageCount": 3,
+        "familyId": null,
+        "memberId": null
+      },
+      "timestamp": "2026-06-17T07:08:27.381Z"
+    },
+    "log_mqhqc1a0_v66nk16a": {
+      "id": "log_mqhqc1a0_v66nk16a",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "itemId": "item_mqhqc19w_qmoo2mis",
+      "userId": "default_user",
+      "level": "info",
+      "action": "task_started",
+      "message": "任务开始处理",
+      "details": {},
+      "timestamp": "2026-06-17T07:08:27.384Z"
+    },
+    "log_mqhqc1a0_zitghgbk": {
+      "id": "log_mqhqc1a0_zitghgbk",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "itemId": "item_mqhqc19w_qmoo2mis",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_started",
+      "message": "开始处理子任务 1",
+      "details": {},
+      "timestamp": "2026-06-17T07:08:27.384Z"
+    },
+    "log_mqhqc1a1_i32j3d8r": {
+      "id": "log_mqhqc1a1_i32j3d8r",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "itemId": "item_mqhqc19x_hbdxnoht",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_started",
+      "message": "开始处理子任务 2",
+      "details": {},
+      "timestamp": "2026-06-17T07:08:27.385Z"
+    },
+    "log_mqhqc1a2_p0zlf21y": {
+      "id": "log_mqhqc1a2_p0zlf21y",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "itemId": "item_mqhqc19x_4qvg5gqe",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_started",
+      "message": "开始处理子任务 3",
+      "details": {},
+      "timestamp": "2026-06-17T07:08:27.386Z"
+    },
+    "log_mqhqc2kf_dqh5zhy6": {
+      "id": "log_mqhqc2kf_dqh5zhy6",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "itemId": "item_mqhqc19x_hbdxnoht",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_completed",
+      "message": "子任务 2 处理完成",
+      "details": {},
+      "timestamp": "2026-06-17T07:08:29.055Z"
+    },
+    "log_mqhqc2oa_eo9fugty": {
+      "id": "log_mqhqc2oa_eo9fugty",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "itemId": "item_mqhqc19x_4qvg5gqe",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_completed",
+      "message": "子任务 3 处理完成",
+      "details": {},
+      "timestamp": "2026-06-17T07:08:29.194Z"
+    },
+    "log_mqhqc2tf_q7ejncm6": {
+      "id": "log_mqhqc2tf_q7ejncm6",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "itemId": "item_mqhqc19w_qmoo2mis",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_completed",
+      "message": "子任务 1 处理完成",
+      "details": {},
+      "timestamp": "2026-06-17T07:08:29.379Z"
+    },
+    "log_mqhqc2tg_w2oolngg": {
+      "id": "log_mqhqc2tg_w2oolngg",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "itemId": null,
+      "userId": "default_user",
+      "level": "info",
+      "action": "task_completed",
+      "message": "任务完成: 3 成功, 0 失败, 共 3 项",
+      "details": {
+        "total": 3,
+        "success": 3,
+        "failed": 0
+      },
+      "timestamp": "2026-06-17T07:08:29.380Z"
+    },
+    "log_mqhqfnin_zmbzkykt": {
+      "id": "log_mqhqfnin_zmbzkykt",
+      "taskId": "task_mqhqfnim_11sxh4a1",
+      "itemId": null,
+      "userId": "default_user",
+      "level": "info",
+      "action": "task_submitted",
+      "message": "AI生成任务已提交，共 2 张",
+      "details": {
+        "numImages": 2,
+        "type": "scene",
+        "familyId": null,
+        "memberId": null
+      },
+      "timestamp": "2026-06-17T07:11:16.175Z"
+    },
+    "log_mqhqfnjm_jq6ugn7f": {
+      "id": "log_mqhqfnjm_jq6ugn7f",
+      "taskId": "task_mqhqfnim_11sxh4a1",
+      "itemId": null,
+      "userId": "default_user",
+      "level": "info",
+      "action": "task_cancelled",
+      "message": "任务已取消",
+      "details": {},
+      "timestamp": "2026-06-17T07:11:16.210Z"
+    },
+    "log_mqhr3qny_uvy570qk": {
+      "id": "log_mqhr3qny_uvy570qk",
+      "taskId": "task_mqhr3qnw_x5atloiv",
+      "itemId": null,
+      "userId": "default_user",
+      "level": "info",
+      "action": "task_submitted",
+      "message": "任务已提交，共 2 张照片待修复",
+      "details": {
+        "imageCount": 2,
+        "familyId": "test_family_001",
+        "memberId": "test_member_001"
+      },
+      "timestamp": "2026-06-17T07:29:59.998Z"
+    },
+    "log_mqhr3qre_rmv7q4t9": {
+      "id": "log_mqhr3qre_rmv7q4t9",
+      "taskId": "task_mqhr3qnw_x5atloiv",
+      "itemId": "item_mqhr3qnx_djk8aeqw",
+      "userId": "default_user",
+      "level": "info",
+      "action": "task_started",
+      "message": "任务开始处理",
+      "details": {},
+      "timestamp": "2026-06-17T07:30:00.122Z"
+    },
+    "log_mqhr3qrf_g6e7dxtt": {
+      "id": "log_mqhr3qrf_g6e7dxtt",
+      "taskId": "task_mqhr3qnw_x5atloiv",
+      "itemId": "item_mqhr3qnx_djk8aeqw",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_started",
+      "message": "开始处理子任务 1",
+      "details": {},
+      "timestamp": "2026-06-17T07:30:00.123Z"
+    },
+    "log_mqhr3qrf_h976sivu": {
+      "id": "log_mqhr3qrf_h976sivu",
+      "taskId": "task_mqhr3qnw_x5atloiv",
+      "itemId": "item_mqhr3qnx_mgqe5wm6",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_started",
+      "message": "开始处理子任务 2",
+      "details": {},
+      "timestamp": "2026-06-17T07:30:00.123Z"
+    },
+    "log_mqhr3sjn_x4o6sv4l": {
+      "id": "log_mqhr3sjn_x4o6sv4l",
+      "taskId": "task_mqhr3qnw_x5atloiv",
+      "itemId": "item_mqhr3qnx_mgqe5wm6",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_completed",
+      "message": "子任务 2 处理完成",
+      "details": {},
+      "timestamp": "2026-06-17T07:30:02.435Z"
+    },
+    "log_mqhr3slc_9xslrxrn": {
+      "id": "log_mqhr3slc_9xslrxrn",
+      "taskId": "task_mqhr3qnw_x5atloiv",
+      "itemId": "item_mqhr3qnx_djk8aeqw",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_completed",
+      "message": "子任务 1 处理完成",
+      "details": {},
+      "timestamp": "2026-06-17T07:30:02.496Z"
+    },
+    "log_mqhr3sld_ckug9kui": {
+      "id": "log_mqhr3sld_ckug9kui",
+      "taskId": "task_mqhr3qnw_x5atloiv",
+      "itemId": null,
+      "userId": "default_user",
+      "level": "info",
+      "action": "task_completed",
+      "message": "任务完成: 2 成功, 0 失败, 共 2 项",
+      "details": {
+        "total": 2,
+        "success": 2,
+        "failed": 0
+      },
+      "timestamp": "2026-06-17T07:30:02.497Z"
+    }
+  },
+  "galleries": {
+    "photo_mqhqc2kc_417piosx": {
+      "id": "photo_mqhqc2kc_417piosx",
+      "userId": "default_user",
+      "familyId": null,
+      "memberId": null,
+      "title": "???2 (已修复)",
+      "description": "AI修复后的老照片",
+      "imageUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fold-photo-2.jpg_repaired_1781680109052.jpg",
+      "thumbnailUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fold-photo-2.jpg_repaired_1781680109052.jpg&thumb=true",
+      "source": "repair",
+      "sourceTaskId": "task_mqhqc19v_x416mewk",
+      "sourceItemId": "item_mqhqc19x_hbdxnoht",
+      "originalPhotoId": null,
+      "repairedPhotoId": null,
+      "isRepaired": true,
+      "isAIGenerated": false,
+      "tags": [
+        "修复",
+        "老照片"
+      ],
+      "metadata": {
+        "repairStats": {
+          "scratchesRemoved": 32,
+          "facesEnhanced": 5,
+          "colorConfidence": 90,
+          "resolution": "1080p"
+        },
+        "repairMode": "full"
+      },
+      "createdAt": "2026-06-17T07:08:29.052Z",
+      "updatedAt": "2026-06-17T07:08:29.052Z"
+    },
+    "photo_mqhqc2o8_86wbclod": {
+      "id": "photo_mqhqc2o8_86wbclod",
+      "userId": "default_user",
+      "familyId": null,
+      "memberId": null,
+      "title": "???3 (已修复)",
+      "description": "AI修复后的老照片",
+      "imageUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fold-photo-3.jpg_repaired_1781680109192.jpg",
+      "thumbnailUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fold-photo-3.jpg_repaired_1781680109192.jpg&thumb=true",
+      "source": "repair",
+      "sourceTaskId": "task_mqhqc19v_x416mewk",
+      "sourceItemId": "item_mqhqc19x_4qvg5gqe",
+      "originalPhotoId": null,
+      "repairedPhotoId": null,
+      "isRepaired": true,
+      "isAIGenerated": false,
+      "tags": [
+        "修复",
+        "老照片"
+      ],
+      "metadata": {
+        "repairStats": {
+          "scratchesRemoved": 22,
+          "facesEnhanced": 2,
+          "colorConfidence": 80,
+          "resolution": "1080p"
+        },
+        "repairMode": "full"
+      },
+      "createdAt": "2026-06-17T07:08:29.192Z",
+      "updatedAt": "2026-06-17T07:08:29.192Z"
+    },
+    "photo_mqhqc2te_jtlonwb3": {
+      "id": "photo_mqhqc2te_jtlonwb3",
+      "userId": "default_user",
+      "familyId": null,
+      "memberId": null,
+      "title": "???1 (已修复)",
+      "description": "AI修复后的老照片",
+      "imageUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fold-photo-1.jpg_repaired_1781680109378.jpg",
+      "thumbnailUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fold-photo-1.jpg_repaired_1781680109378.jpg&thumb=true",
+      "source": "repair",
+      "sourceTaskId": "task_mqhqc19v_x416mewk",
+      "sourceItemId": "item_mqhqc19w_qmoo2mis",
+      "originalPhotoId": null,
+      "repairedPhotoId": null,
+      "isRepaired": true,
+      "isAIGenerated": false,
+      "tags": [
+        "修复",
+        "老照片"
+      ],
+      "metadata": {
+        "repairStats": {
+          "scratchesRemoved": 22,
+          "facesEnhanced": 2,
+          "colorConfidence": 80,
+          "resolution": "1080p"
+        },
+        "repairMode": "full"
+      },
+      "createdAt": "2026-06-17T07:08:29.378Z",
+      "updatedAt": "2026-06-17T07:08:29.378Z"
+    },
+    "photo_mqhr3sjj_9f2n6yt3": {
+      "id": "photo_mqhr3sjj_9f2n6yt3",
+      "userId": "default_user",
+      "familyId": "test_family_001",
+      "memberId": "test_member_001",
+      "title": "??B (已修复)",
+      "description": "AI修复后的老照片",
+      "imageUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fphoto-b.jpg_repaired_1781681402431.jpg",
+      "thumbnailUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fphoto-b.jpg_repaired_1781681402431.jpg&thumb=true",
+      "source": "repair",
+      "sourceTaskId": "task_mqhr3qnw_x5atloiv",
+      "sourceItemId": "item_mqhr3qnx_mgqe5wm6",
+      "originalPhotoId": null,
+      "repairedPhotoId": null,
+      "isRepaired": true,
+      "isAIGenerated": false,
+      "tags": [
+        "修复",
+        "老照片"
+      ],
+      "metadata": {
+        "repairStats": {
+          "scratchesRemoved": 14,
+          "facesEnhanced": 1,
+          "colorConfidence": 92,
+          "resolution": "1080p"
+        },
+        "repairMode": "full"
+      },
+      "createdAt": "2026-06-17T07:30:02.431Z",
+      "updatedAt": "2026-06-17T07:30:02.431Z"
+    },
+    "photo_mqhr3sl8_qdcfezv7": {
+      "id": "photo_mqhr3sl8_qdcfezv7",
+      "userId": "default_user",
+      "familyId": "test_family_001",
+      "memberId": "test_member_001",
+      "title": "??A (已修复)",
+      "description": "AI修复后的老照片",
+      "imageUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fphoto-a.jpg_repaired_1781681402492.jpg",
+      "thumbnailUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fphoto-a.jpg_repaired_1781681402492.jpg&thumb=true",
+      "source": "repair",
+      "sourceTaskId": "task_mqhr3qnw_x5atloiv",
+      "sourceItemId": "item_mqhr3qnx_djk8aeqw",
+      "originalPhotoId": null,
+      "repairedPhotoId": null,
+      "isRepaired": true,
+      "isAIGenerated": false,
+      "tags": [
+        "修复",
+        "老照片"
+      ],
+      "metadata": {
+        "repairStats": {
+          "scratchesRemoved": 18,
+          "facesEnhanced": 1,
+          "colorConfidence": 82,
+          "resolution": "1080p"
+        },
+        "repairMode": "full"
+      },
+      "createdAt": "2026-06-17T07:30:02.492Z",
+      "updatedAt": "2026-06-17T07:30:02.492Z"
+    }
+  },
+  "familyMemories": {
+    "memory_mqhqc2th_s7rxpfo7": {
+      "id": "memory_mqhqc2th_s7rxpfo7",
+      "userId": "default_user",
+      "familyId": null,
+      "memberId": null,
+      "title": "老照片修复 - ?????????",
+      "description": "通过AI技术修复的老照片合集，共 3 张",
+      "content": "",
+      "date": null,
+      "location": "",
+      "type": "repair",
+      "photoIds": [
+        null,
+        "photo_mqhqc2te_jtlonwb3",
+        null,
+        "photo_mqhqc2kc_417piosx",
+        null,
+        "photo_mqhqc2o8_86wbclod"
+      ],
+      "beforeAfterPairs": [
+        {
+          "beforeUrl": "https://example.com/old-photo-1.jpg",
+          "afterUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fold-photo-1.jpg_repaired_1781680109378.jpg",
+          "beforeId": null,
+          "afterId": "photo_mqhqc2te_jtlonwb3",
+          "title": "???1",
+          "stats": {
+            "scratchesRemoved": 22,
+            "facesEnhanced": 2,
+            "colorConfidence": 80,
+            "resolution": "1080p"
+          }
+        },
+        {
+          "beforeUrl": "https://example.com/old-photo-2.jpg",
+          "afterUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fold-photo-2.jpg_repaired_1781680109052.jpg",
+          "beforeId": null,
+          "afterId": "photo_mqhqc2kc_417piosx",
+          "title": "???2",
+          "stats": {
+            "scratchesRemoved": 32,
+            "facesEnhanced": 5,
+            "colorConfidence": 90,
+            "resolution": "1080p"
+          }
+        },
+        {
+          "beforeUrl": "https://example.com/old-photo-3.jpg",
+          "afterUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fold-photo-3.jpg_repaired_1781680109192.jpg",
+          "beforeId": null,
+          "afterId": "photo_mqhqc2o8_86wbclod",
+          "title": "???3",
+          "stats": {
+            "scratchesRemoved": 22,
+            "facesEnhanced": 2,
+            "colorConfidence": 80,
+            "resolution": "1080p"
+          }
+        }
+      ],
+      "sourceTaskId": "task_mqhqc19v_x416mewk",
+      "tags": [
+        "老照片修复",
+        "AI修复"
+      ],
+      "metadata": {},
+      "isPublished": true,
+      "createdAt": "2026-06-17T07:08:29.381Z",
+      "updatedAt": "2026-06-17T07:08:29.381Z"
+    },
+    "memory_mqhr3sld_l6ixigr7": {
+      "id": "memory_mqhr3sld_l6ixigr7",
+      "userId": "default_user",
+      "familyId": "test_family_001",
+      "memberId": "test_member_001",
+      "title": "老照片修复 - ????????",
+      "description": "通过AI技术修复的老照片合集，共 2 张",
+      "content": "",
+      "date": null,
+      "location": "",
+      "type": "repair",
+      "photoIds": [
+        null,
+        "photo_mqhr3sl8_qdcfezv7",
+        null,
+        "photo_mqhr3sjj_9f2n6yt3"
+      ],
+      "beforeAfterPairs": [
+        {
+          "beforeUrl": "https://example.com/photo-a.jpg",
+          "afterUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fphoto-a.jpg_repaired_1781681402492.jpg",
+          "beforeId": null,
+          "afterId": "photo_mqhr3sl8_qdcfezv7",
+          "title": "??A",
+          "stats": {
+            "scratchesRemoved": 18,
+            "facesEnhanced": 1,
+            "colorConfidence": 82,
+            "resolution": "1080p"
+          }
+        },
+        {
+          "beforeUrl": "https://example.com/photo-b.jpg",
+          "afterUrl": "https://api.mock-alibaba-vision.com/repair/output/https%3A%2F%2Fexample.com%2Fphoto-b.jpg_repaired_1781681402431.jpg",
+          "beforeId": null,
+          "afterId": "photo_mqhr3sjj_9f2n6yt3",
+          "title": "??B",
+          "stats": {
+            "scratchesRemoved": 14,
+            "facesEnhanced": 1,
+            "colorConfidence": 92,
+            "resolution": "1080p"
+          }
+        }
+      ],
+      "sourceTaskId": "task_mqhr3qnw_x5atloiv",
+      "tags": [
+        "老照片修复",
+        "AI修复"
+      ],
+      "metadata": {},
+      "isPublished": true,
+      "createdAt": "2026-06-17T07:30:02.497Z",
+      "updatedAt": "2026-06-17T07:30:02.497Z"
+    }
+  },
+  "messages": {
+    "msg_mqhqc2th_upy4l6iu": {
+      "id": "msg_mqhqc2th_upy4l6iu",
+      "userId": "default_user",
+      "type": "success",
+      "title": "任务全部完成",
+      "content": "您的 3 张照片修复任务已全部完成",
+      "category": "task",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "itemId": null,
+      "actionUrl": "/tasks/task_mqhqc19v_x416mewk",
+      "actionText": "查看详情",
+      "metadata": {
+        "taskType": "image_repair",
+        "totalItems": 3,
+        "successItems": 3,
+        "failedItems": 0
+      },
+      "isRead": false,
+      "createdAt": "2026-06-17T07:08:29.381Z",
+      "readAt": null
+    },
+    "msg_mqhr3sle_y8qfyxi1": {
+      "id": "msg_mqhr3sle_y8qfyxi1",
+      "userId": "default_user",
+      "type": "success",
+      "title": "任务全部完成",
+      "content": "您的 2 张照片修复任务已全部完成",
+      "category": "task",
+      "taskId": "task_mqhr3qnw_x5atloiv",
+      "itemId": null,
+      "actionUrl": "/tasks/task_mqhr3qnw_x5atloiv",
+      "actionText": "查看详情",
+      "metadata": {
+        "taskType": "image_repair",
+        "totalItems": 2,
+        "successItems": 2,
+        "failedItems": 0
+      },
+      "isRead": false,
+      "createdAt": "2026-06-17T07:30:02.498Z",
+      "readAt": null
+    }
+  },
+  "pushRules": {},
+  "logs": [
+    {
+      "id": "log_mqhqc19x_vcswi8ak",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "itemId": null,
+      "userId": "default_user",
+      "level": "info",
+      "action": "task_submitted",
+      "message": "任务已提交，共 3 张照片待修复",
+      "details": {
+        "imageCount": 3,
+        "familyId": null,
+        "memberId": null
+      },
+      "timestamp": "2026-06-17T07:08:27.381Z"
+    },
+    {
+      "id": "log_mqhqc1a0_v66nk16a",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "itemId": "item_mqhqc19w_qmoo2mis",
+      "userId": "default_user",
+      "level": "info",
+      "action": "task_started",
+      "message": "任务开始处理",
+      "details": {},
+      "timestamp": "2026-06-17T07:08:27.384Z"
+    },
+    {
+      "id": "log_mqhqc1a0_zitghgbk",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "itemId": "item_mqhqc19w_qmoo2mis",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_started",
+      "message": "开始处理子任务 1",
+      "details": {},
+      "timestamp": "2026-06-17T07:08:27.384Z"
+    },
+    {
+      "id": "log_mqhqc1a1_i32j3d8r",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "itemId": "item_mqhqc19x_hbdxnoht",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_started",
+      "message": "开始处理子任务 2",
+      "details": {},
+      "timestamp": "2026-06-17T07:08:27.385Z"
+    },
+    {
+      "id": "log_mqhqc1a2_p0zlf21y",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "itemId": "item_mqhqc19x_4qvg5gqe",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_started",
+      "message": "开始处理子任务 3",
+      "details": {},
+      "timestamp": "2026-06-17T07:08:27.386Z"
+    },
+    {
+      "id": "log_mqhqc2kf_dqh5zhy6",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "itemId": "item_mqhqc19x_hbdxnoht",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_completed",
+      "message": "子任务 2 处理完成",
+      "details": {},
+      "timestamp": "2026-06-17T07:08:29.055Z"
+    },
+    {
+      "id": "log_mqhqc2oa_eo9fugty",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "itemId": "item_mqhqc19x_4qvg5gqe",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_completed",
+      "message": "子任务 3 处理完成",
+      "details": {},
+      "timestamp": "2026-06-17T07:08:29.194Z"
+    },
+    {
+      "id": "log_mqhqc2tf_q7ejncm6",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "itemId": "item_mqhqc19w_qmoo2mis",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_completed",
+      "message": "子任务 1 处理完成",
+      "details": {},
+      "timestamp": "2026-06-17T07:08:29.379Z"
+    },
+    {
+      "id": "log_mqhqc2tg_w2oolngg",
+      "taskId": "task_mqhqc19v_x416mewk",
+      "itemId": null,
+      "userId": "default_user",
+      "level": "info",
+      "action": "task_completed",
+      "message": "任务完成: 3 成功, 0 失败, 共 3 项",
+      "details": {
+        "total": 3,
+        "success": 3,
+        "failed": 0
+      },
+      "timestamp": "2026-06-17T07:08:29.380Z"
+    },
+    {
+      "id": "log_mqhqfnin_zmbzkykt",
+      "taskId": "task_mqhqfnim_11sxh4a1",
+      "itemId": null,
+      "userId": "default_user",
+      "level": "info",
+      "action": "task_submitted",
+      "message": "AI生成任务已提交，共 2 张",
+      "details": {
+        "numImages": 2,
+        "type": "scene",
+        "familyId": null,
+        "memberId": null
+      },
+      "timestamp": "2026-06-17T07:11:16.175Z"
+    },
+    {
+      "id": "log_mqhqfnjm_jq6ugn7f",
+      "taskId": "task_mqhqfnim_11sxh4a1",
+      "itemId": null,
+      "userId": "default_user",
+      "level": "info",
+      "action": "task_cancelled",
+      "message": "任务已取消",
+      "details": {},
+      "timestamp": "2026-06-17T07:11:16.210Z"
+    },
+    {
+      "id": "log_mqhr3qny_uvy570qk",
+      "taskId": "task_mqhr3qnw_x5atloiv",
+      "itemId": null,
+      "userId": "default_user",
+      "level": "info",
+      "action": "task_submitted",
+      "message": "任务已提交，共 2 张照片待修复",
+      "details": {
+        "imageCount": 2,
+        "familyId": "test_family_001",
+        "memberId": "test_member_001"
+      },
+      "timestamp": "2026-06-17T07:29:59.998Z"
+    },
+    {
+      "id": "log_mqhr3qre_rmv7q4t9",
+      "taskId": "task_mqhr3qnw_x5atloiv",
+      "itemId": "item_mqhr3qnx_djk8aeqw",
+      "userId": "default_user",
+      "level": "info",
+      "action": "task_started",
+      "message": "任务开始处理",
+      "details": {},
+      "timestamp": "2026-06-17T07:30:00.122Z"
+    },
+    {
+      "id": "log_mqhr3qrf_g6e7dxtt",
+      "taskId": "task_mqhr3qnw_x5atloiv",
+      "itemId": "item_mqhr3qnx_djk8aeqw",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_started",
+      "message": "开始处理子任务 1",
+      "details": {},
+      "timestamp": "2026-06-17T07:30:00.123Z"
+    },
+    {
+      "id": "log_mqhr3qrf_h976sivu",
+      "taskId": "task_mqhr3qnw_x5atloiv",
+      "itemId": "item_mqhr3qnx_mgqe5wm6",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_started",
+      "message": "开始处理子任务 2",
+      "details": {},
+      "timestamp": "2026-06-17T07:30:00.123Z"
+    },
+    {
+      "id": "log_mqhr3sjn_x4o6sv4l",
+      "taskId": "task_mqhr3qnw_x5atloiv",
+      "itemId": "item_mqhr3qnx_mgqe5wm6",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_completed",
+      "message": "子任务 2 处理完成",
+      "details": {},
+      "timestamp": "2026-06-17T07:30:02.435Z"
+    },
+    {
+      "id": "log_mqhr3slc_9xslrxrn",
+      "taskId": "task_mqhr3qnw_x5atloiv",
+      "itemId": "item_mqhr3qnx_djk8aeqw",
+      "userId": "default_user",
+      "level": "info",
+      "action": "item_completed",
+      "message": "子任务 1 处理完成",
+      "details": {},
+      "timestamp": "2026-06-17T07:30:02.496Z"
+    },
+    {
+      "id": "log_mqhr3sld_ckug9kui",
+      "taskId": "task_mqhr3qnw_x5atloiv",
+      "itemId": null,
+      "userId": "default_user",
+      "level": "info",
+      "action": "task_completed",
+      "message": "任务完成: 2 成功, 0 失败, 共 2 项",
+      "details": {
+        "total": 2,
+        "success": 2,
+        "failed": 0
+      },
+      "timestamp": "2026-06-17T07:30:02.497Z"
+    }
+  ]
+}

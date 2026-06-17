@@ -26,8 +26,17 @@
         </nav>
 
         <div class="flex items-center space-x-4">
-          <button class="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow">
+          <button 
+            class="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow relative"
+            @click="activeNav = 'tasks'"
+          >
             <Icon icon="solar:bell-bold" class="text-gray-600" />
+            <span 
+              v-if="unreadMessageCount > 0"
+              class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center"
+            >
+              {{ unreadMessageCount > 99 ? '99+' : unreadMessageCount }}
+            </span>
           </button>
           <div class="flex items-center space-x-3 pl-4 border-l border-[#E8D5C4]">
             <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#E8D5C4] to-[#D4A574] p-0.5">
@@ -45,7 +54,9 @@
       </div>
     </header>
 
-    <div class="max-w-7xl mx-auto px-6 py-8">
+    <TaskCenterPage v-if="activeNav === 'tasks'" @back="activeNav = 'home'" />
+
+    <div v-else class="max-w-7xl mx-auto px-6 py-8">
       <section class="relative mb-10">
         <div class="absolute top-10 right-10 w-64 h-64 bg-[#E8D5C4] rounded-full blur-3xl opacity-40"></div>
         <div class="absolute bottom-0 left-0 w-48 h-48 bg-[#D4A574] rounded-full blur-2xl opacity-20"></div>
@@ -300,7 +311,7 @@
                        :class="[
                          index === 0 ? 'bg-[#E8D5C4]' : index === 1 ? 'bg-[#F5E6D3]' : 'bg-emerald-50'
                        ]">
-                    <Icon :icon="memory.icon" 
+                    <Icon :icon="memory.icon || 'solar:image-outline'" 
                           :class="[
                             index === 0 ? 'text-[#8B6F4E]' : index === 1 ? 'text-[#D4A574]' : 'text-emerald-600'
                           ]"
@@ -354,8 +365,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
+import TaskCenterPage from './tasks/TaskCenterPage.vue'
+import { messageApi } from '../api'
 
 interface NavItem {
   id: string
@@ -401,7 +414,25 @@ const navItems: NavItem[] = [
   { id: 'gallery', label: '影集', icon: 'solar:gallery-wide-bold-duotone' },
   { id: 'digital', label: '生境', icon: 'solar:magic-stick-3-bold-duotone' },
   { id: 'chat', label: '语伴', icon: 'solar:chat-round-dots-bold-duotone' },
+  { id: 'tasks', label: '任务中心', icon: 'solar:task-bold' },
 ]
+
+const unreadMessageCount = ref(0)
+
+async function loadUnreadCount() {
+  try {
+    const response = await messageApi.getUnreadCount()
+    if (response.success) {
+      unreadMessageCount.value = response.data.count
+    }
+  } catch (err) {
+    console.error('Load unread count error:', err)
+  }
+}
+
+onMounted(() => {
+  loadUnreadCount()
+})
 
 const modules: Module[] = [
   { id: 'family', label: '家承', subLabel: '族谱', icon: 'solar:tree-bold-duotone', highlight: false },
